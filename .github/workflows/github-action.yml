@@ -20,6 +20,8 @@ jobs:
       # setup the environment 
       - name: env-setup
         run: |
+          echo ${{github.event}}
+          echo ${{github.event_name}}
           echo $RUNNER_OS
           if [ "$RUNNER_OS" = "Linux" ]; then sudo apt-get update       ; fi
           if [ "$RUNNER_OS" = "Linux" ]; then sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test       ; fi
