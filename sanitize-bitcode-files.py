@@ -6,7 +6,6 @@ import sys
 
 os.system("find . -name \"*.o\" > bc.list")
 
-sys.exit(0)
 f = open("bc.list")
 
 bc_files=[]
