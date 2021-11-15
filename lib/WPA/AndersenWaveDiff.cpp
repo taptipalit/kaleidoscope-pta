@@ -123,11 +123,22 @@ void AndersenWaveDiff::solveWorklist()
     }
 
     // New nodes will be inserted into workList during processing.
+    int genCount = worklist.size();
+    int count = 0;
+
     while (!isWorklistEmpty())
     {
         NodeID nodeId = popFromWorklist();
         // process nodes in worklist
         postProcessNode(nodeId);
+        count ++; 
+        if (count == genCount) {
+            genCount = worklist.size();
+            count = 0;
+            maxPts.push_back(getMaxPts());
+            avgPts.push_back(getAvgPts());
+        }
+
     }
     maxPts.push_back(getMaxPts());
     avgPts.push_back(getAvgPts());

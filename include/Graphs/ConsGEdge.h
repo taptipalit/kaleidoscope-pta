@@ -60,10 +60,13 @@ private:
 public:
 
     int traverseCount;
+    Value* llvmValue;
+
     /// Constructor
     ConstraintEdge(ConstraintNode* s, ConstraintNode* d, ConstraintEdgeK k, EdgeID id = 0) : GenericConsEdgeTy(s,d,k),edgeId(id)
     {
         traverseCount = 0;
+        llvmValue = nullptr;
     }
     /// Destructor
     ~ConstraintEdge()
@@ -73,6 +76,14 @@ public:
     inline EdgeID getEdgeID() const
     {
         return edgeId;
+    }
+
+    inline void setLLVMValue(const Value* val) {
+        llvmValue = const_cast<Value*>(val);
+    }
+
+    inline const Value* getLLVMValue() {
+        return llvmValue;
     }
 
     /// ClassOf
