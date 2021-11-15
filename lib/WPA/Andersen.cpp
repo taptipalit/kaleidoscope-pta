@@ -77,8 +77,11 @@ void AndersenBase::initialize()
 void AndersenBase::finalize()
 {
     /// dump constraint graph if PAGDotGraph flag is enabled
-	if (Options::ConsCGDotGraph)
+	if (Options::ConsCGDotGraph) {
+        // Compute the max edge width (max times a edge is traverse)
+        consCG->computeMaxEdgeWidth();
 		consCG->dump("consCG_final");
+    }
 
 	if (Options::PrintCGGraph)
 		consCG->print();
@@ -300,6 +303,7 @@ bool Andersen::processLoad(NodeID node, const ConstraintEdge* load)
         return false;
 
     numOfProcessedLoad++;
+    (const_cast<ConstraintEdge*>(load))->traverseCount++;
 
     NodeID dst = load->getDstID();
     return addCopyEdge(node, dst);
@@ -319,6 +323,7 @@ bool Andersen::processStore(NodeID node, const ConstraintEdge* store)
     if (pag->isConstantObj(node) || isNonPointerObj(node))
         return false;
 
+    (const_cast<ConstraintEdge*>(store))->traverseCount++;
     numOfProcessedStore++;
 
     NodeID src = store->getSrcID();
@@ -333,6 +338,7 @@ bool Andersen::processStore(NodeID node, const ConstraintEdge* store)
 bool Andersen::processCopy(NodeID node, const ConstraintEdge* edge)
 {
     numOfProcessedCopy++;
+    (const_cast<ConstraintEdge*>(edge))->traverseCount++;
 
     assert((SVFUtil::isa<CopyCGEdge>(edge)) && "not copy/call/ret ??");
     NodeID dst = edge->getDstID();
@@ -353,6 +359,7 @@ bool Andersen::processCopy(NodeID node, const ConstraintEdge* edge)
 bool Andersen::processGep(NodeID, const GepCGEdge* edge)
 {
     const PointsTo& srcPts = getDiffPts(edge->getSrcID());
+    (const_cast<GepCGEdge*>(edge))->traverseCount++;
     return processGepPts(srcPts, edge);
 }
 

@@ -115,6 +115,15 @@ if __name__ == "__main__":
     logging.info("Total simple config options (y/n): %d", len(sortedList))
     logging.info("Total config options set to y: %d", len(currSetOptions))
     logging.info("From top-100, candidates: %d", len(candidates))
+
+
+    os.system("cp .config .config.bkup")
+    count = 0
+    for candidate in candidates:
+        print(candidate)
+        #os.system("./scripts/config --enable "+candidate)
+        #os.system("cp .config .config."+str(count))
+
 #
 #    for curOption in currSetOptions:
 #        print("Curr option: ", curOption)

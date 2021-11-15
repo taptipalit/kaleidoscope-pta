@@ -29,12 +29,41 @@
 
 #include "Graphs/ConsG.h"
 #include "Util/Options.h"
+#include <cmath>
 
 using namespace SVF;
 using namespace SVFUtil;
 
 
 ConstraintNode::SCCEdgeFlag ConstraintNode::sccEdgeFlag = ConstraintNode::Direct;
+
+
+
+void ConstraintGraph::computeMaxEdgeWidth() {
+    for(ConstraintEdge::ConstraintEdgeSetTy::iterator it = getDirectCGEdges().begin(),
+            eit = getDirectCGEdges().end(); it!=eit; ++it) {
+        int traverseCount = (*it)->traverseCount;
+        if (traverseCount > maxWidth) {
+            maxWidth = traverseCount;
+        }
+    }
+
+    for(ConstraintEdge::ConstraintEdgeSetTy::iterator it = getStoreCGEdges().begin(),
+            eit = getStoreCGEdges().end(); it!=eit; ++it) {
+        int traverseCount = (*it)->traverseCount;
+        if (traverseCount > maxWidth) {
+            maxWidth = traverseCount;
+        }
+    }
+
+    for(ConstraintEdge::ConstraintEdgeSetTy::iterator it = getLoadCGEdges().begin(),
+            eit = getLoadCGEdges().end(); it!=eit; ++it) {
+        int traverseCount = (*it)->traverseCount;
+        if (traverseCount > maxWidth) {
+            maxWidth = traverseCount;
+        }
+    }
+}
 
 /*!
  * Start building constraint graph
@@ -665,9 +694,16 @@ struct DOTGraphTraits<ConstraintGraph*> : public DOTGraphTraits<PAG*>
     }
 
     template<class EdgeIter>
-    static std::string getEdgeAttributes(NodeType*, EdgeIter EI, ConstraintGraph*)
+    static std::string getEdgeAttributes(NodeType*, EdgeIter EI, ConstraintGraph* cg)
     {
         ConstraintEdge* edge = *(EI.getCurrent());
+        float iWidth = 1.0;
+        if (cg->maxWidth > 0) {
+            iWidth = 4.0 * ( (float)edge->traverseCount / (float)cg->maxWidth ) + 1.0;
+            //errs() << "edge-traverse-count: " << edge->traverseCount << " maxWidth = "<< cg->maxWidth << "\n";
+            //errs() << "width: " << iWidth << "\n";
+        }
+
         assert(edge && "No edge found!!");
         if (edge->getEdgeKind() == ConstraintEdge::Addr)
         {
@@ -675,20 +711,20 @@ struct DOTGraphTraits<ConstraintGraph*> : public DOTGraphTraits<PAG*>
         }
         else if (edge->getEdgeKind() == ConstraintEdge::Copy)
         {
-            return "color=black";
+            return std::string("color=black") + std::string(", penwidth=") + std::to_string(iWidth) ;
         }
         else if (edge->getEdgeKind() == ConstraintEdge::NormalGep
                  || edge->getEdgeKind() == ConstraintEdge::VariantGep)
         {
-            return "color=purple";
+            return std::string("color=purple") + std::string(", penwidth=") + std::to_string(iWidth);
         }
         else if (edge->getEdgeKind() == ConstraintEdge::Store)
         {
-            return "color=blue";
+            return std::string("color=blue") + std::string(", penwidth=") + std::to_string(iWidth);
         }
         else if (edge->getEdgeKind() == ConstraintEdge::Load)
         {
-            return "color=red";
+            return std::string("color=red") + std::string(", penwidth=") + std::to_string(iWidth);
         }
         else
         {

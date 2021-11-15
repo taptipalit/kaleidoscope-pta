@@ -63,6 +63,7 @@ protected:
     ConstraintEdge::ConstraintEdgeSetTy LoadCGEdgeSet;
     ConstraintEdge::ConstraintEdgeSetTy StoreCGEdgeSet;
 
+
     void buildCG();
 
     void destroy();
@@ -91,16 +92,21 @@ protected:
     //@}
 
 public:
+
+    int maxWidth;
     /// Constructor
     ConstraintGraph(PAG* p): pag(p), edgeIndex(0)
     {
         buildCG();
+        maxWidth = 0;
     }
     /// Destructor
     virtual ~ConstraintGraph()
     {
         destroy();
     }
+
+    void computeMaxEdgeWidth();
 
     /// Get/add/remove constraint node
     //@{

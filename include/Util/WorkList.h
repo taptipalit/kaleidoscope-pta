@@ -143,6 +143,10 @@ public:
 
     ~FIFOWorkList() {}
 
+    inline int size() const {
+        return data_list.size();
+    }
+
     inline bool empty() const
     {
         return data_list.empty();

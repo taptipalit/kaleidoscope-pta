@@ -34,6 +34,35 @@ using namespace SVFUtil;
 
 AndersenWaveDiff* AndersenWaveDiff::diffWave = nullptr;
 
+int AndersenWaveDiff::getAvgPts() {
+    int sumPts = 0;
+    int count = 0;
+    for (PAG::iterator iter = getPAG()->begin(), eiter = getPAG()->end();
+            iter != eiter; ++iter)
+    {
+        NodeID node = iter->first;
+        const PointsTo& pts = getPts(node);
+        u32_t size = pts.count();
+        sumPts += size;
+        count++;
+    }
+    return sumPts/count;
+}
+
+int AndersenWaveDiff::getMaxPts() {
+    int maxPts = 0;
+    for (PAG::iterator iter = getPAG()->begin(), eiter = getPAG()->end();
+            iter != eiter; ++iter)
+    {
+        NodeID node = iter->first;
+        const PointsTo& pts = getPts(node);
+        u32_t size = pts.count();
+        if (size > maxPts) {
+            maxPts = size;
+        }
+    }
+    return maxPts;
+}
 /*!
  * solve worklist
  */
@@ -53,11 +82,15 @@ void AndersenWaveDiff::solveWorklist()
         processNode(nodeId);
         collapseFields();
     }
+    maxPts.push_back(getMaxPts());
+    avgPts.push_back(getAvgPts());
 
     // This modification is to make WAVE feasible to handle PWC analysis
     if (!mergePWC())
     {
         NodeStack tmpWorklist;
+        int genCount = worklist.size();
+        int count = 0;
         while (!isWorklistEmpty())
         {
             NodeID nodeId = popFromWorklist();
@@ -66,13 +99,27 @@ void AndersenWaveDiff::solveWorklist()
             processNode(nodeId);
             collapseFields();
             tmpWorklist.push(nodeId);
+            count ++; 
+            if (count == genCount) {
+                genCount = worklist.size();
+                count = 0;
+                maxPts.push_back(getMaxPts());
+                avgPts.push_back(getAvgPts());
+            }
         }
+        maxPts.push_back(getMaxPts());
+        avgPts.push_back(getAvgPts());
+
+
         while (!tmpWorklist.empty())
         {
             NodeID nodeId = tmpWorklist.top();
             tmpWorklist.pop();
             pushIntoWorklist(nodeId);
         }
+        maxPts.push_back(getMaxPts());
+        avgPts.push_back(getAvgPts());
+
     }
 
     // New nodes will be inserted into workList during processing.
@@ -82,6 +129,8 @@ void AndersenWaveDiff::solveWorklist()
         // process nodes in worklist
         postProcessNode(nodeId);
     }
+    maxPts.push_back(getMaxPts());
+    avgPts.push_back(getAvgPts());
 }
 
 /*!
@@ -188,6 +237,7 @@ bool AndersenWaveDiff::handleStore(NodeID nodeId, const ConstraintEdge* edge)
 bool AndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge* edge)
 {
     numOfProcessedCopy++;
+    (const_cast<ConstraintEdge*>(edge))->traverseCount++;
 
     bool changed = false;
     assert((SVFUtil::isa<CopyCGEdge>(edge)) && "not copy/call/ret ??");

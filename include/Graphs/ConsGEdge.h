@@ -58,9 +58,12 @@ public:
 private:
     EdgeID edgeId;
 public:
+
+    int traverseCount;
     /// Constructor
     ConstraintEdge(ConstraintNode* s, ConstraintNode* d, ConstraintEdgeK k, EdgeID id = 0) : GenericConsEdgeTy(s,d,k),edgeId(id)
     {
+        traverseCount = 0;
     }
     /// Destructor
     ~ConstraintEdge()
@@ -71,6 +74,7 @@ public:
     {
         return edgeId;
     }
+
     /// ClassOf
     static inline bool classof(const GenericConsEdgeTy *edge)
     {

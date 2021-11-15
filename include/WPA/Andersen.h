@@ -36,6 +36,7 @@
 #include "Graphs/PAG.h"
 #include "Graphs/ConsG.h"
 #include "Graphs/OfflineConsG.h"
+#include <vector>
 
 namespace SVF
 {
@@ -52,6 +53,9 @@ class AndersenBase:  public WPAConstraintSolver, public BVDataPTAImpl
 {
 public:
 
+
+    std::vector<int> maxPts;
+    std::vector<int> avgPts;
     /// Constructor
 	AndersenBase(PAG* _pag, PTATY type = Andersen_BASE, bool alias_check = true)
         :  BVDataPTAImpl(_pag, type, alias_check), consCG(nullptr)
@@ -423,6 +427,10 @@ private:
     static AndersenWaveDiff* diffWave; // static instance
 
 public:
+
+    int getMaxPts();
+    int getAvgPts();
+
     AndersenWaveDiff(PAG* _pag, PTATY type = AndersenWaveDiff_WPA, bool alias_check = true): Andersen(_pag, type, alias_check) {}
 
     /// Create an singleton instance directly instead of invoking llvm pass manager

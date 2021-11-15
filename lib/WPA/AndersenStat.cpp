@@ -30,6 +30,7 @@
 #include "SVF-FE/LLVMUtil.h"
 #include "WPA/WPAStat.h"
 #include "WPA/Andersen.h"
+#include <map>
 
 using namespace SVF;
 using namespace SVFUtil;
@@ -98,24 +99,72 @@ void AndersenStat::collectCycleInfo(ConstraintGraph* consCG)
 
 void AndersenStat::constraintGraphStat()
 {
-
-
     ConstraintGraph* consCG = pta->getConstraintGraph();
+    PAG* pag = pta->getPAG();
+    Andersen* andersen = SVFUtil::dyn_cast<Andersen>(pta);
 
     u32_t numOfCopys = 0;
     u32_t numOfGeps = 0;
+
+    std::map<long, long> tcNumCopyEdgeMap; // Traverse-Count vs number of copy edges
+    std::map<long, long> tcNumGepEdgeMap;
+    std::map<long, long> tcNumLoadEdgeMap;
+    std::map<long, long> tcNumStoreEdgeMap;
+
     // collect copy and gep edges
     for(ConstraintEdge::ConstraintEdgeSetTy::iterator it = consCG->getDirectCGEdges().begin(),
             eit = consCG->getDirectCGEdges().end(); it!=eit; ++it)
     {
-        if(SVFUtil::isa<CopyCGEdge>(*it))
+        if(SVFUtil::isa<CopyCGEdge>(*it)) {
+            tcNumCopyEdgeMap[(*it)->traverseCount] ++;
             numOfCopys++;
-        else if(SVFUtil::isa<GepCGEdge>(*it))
+        } else if(SVFUtil::isa<GepCGEdge>(*it)) {
+            tcNumGepEdgeMap[(*it)->traverseCount] ++;
             numOfGeps++;
-        else
+        } else {
             assert(false && "what else!!");
+        }
     }
 
+    for(ConstraintEdge::ConstraintEdgeSetTy::iterator it = consCG->getStoreCGEdges().begin(),
+            eit = consCG->getStoreCGEdges().end(); it!=eit; ++it) {
+        tcNumStoreEdgeMap[(*it)->traverseCount] ++;
+    }
+
+    for(ConstraintEdge::ConstraintEdgeSetTy::iterator it = consCG->getLoadCGEdges().begin(),
+            eit = consCG->getLoadCGEdges().end(); it!=eit; ++it) {
+        tcNumLoadEdgeMap[(*it)->traverseCount] ++;
+    }
+
+    errs() << ">>>>>>>>>>>>>>>>> Rise in Max Pts-to Set Size: >>>>>>>>>>>>>>>\n";
+    for (int maxPt: andersen->maxPts) {
+        errs() << maxPt << ",";
+    }
+    errs() << "\n";
+
+    errs() << ">>>>>>>>>>>>>>>>> Rise in Avg Pts-to Set Size: >>>>>>>>>>>>>>>\n";
+    for (int avgPt: andersen->avgPts) {
+        errs() << avgPt << ",";
+    }
+    errs() << "\n";
+
+    errs() << ">>>>>>>>>>>>>>>>> Histogram of edges: >>>>>>>>>>>>>>>\n";
+    errs() << "----------------- Copy Edges ------------------------\n";
+    for (auto entry: tcNumCopyEdgeMap) {
+        errs() << entry.first << " : " << entry.second << "\n";
+    }
+    errs() << "----------------- Gep Edges ------------------------\n";
+    for (auto entry: tcNumGepEdgeMap) {
+        errs() << entry.first << " : " << entry.second << "\n";
+    }
+    errs() << "----------------- Load Edges ------------------------\n";
+    for (auto entry: tcNumLoadEdgeMap) {
+        errs() << entry.first << " : " << entry.second << "\n";
+    }
+    errs() << "----------------- Store Edges ------------------------\n";
+    for (auto entry: tcNumStoreEdgeMap) {
+        errs() << entry.first << " : " << entry.second << "\n";
+    }
     u32_t totalNodeNumber = 0;
     u32_t cgNodeNumber = 0;
     u32_t objNodeNumber = 0;
