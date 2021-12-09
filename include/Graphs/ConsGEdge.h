@@ -58,7 +58,6 @@ public:
 private:
     EdgeID edgeId;
 
-
 public:
 
     int traverseCount;
@@ -100,8 +99,6 @@ public:
         return dstComplexID;
     }
 
-
-    
     /// ClassOf
     static inline bool classof(const GenericConsEdgeTy *edge)
     {
@@ -118,6 +115,17 @@ public:
     private:
         PointsTo ptData;
         bool derived;
+        
+        /*
+        enum ArgRetTy 
+        {
+            Arg, Ret, None
+        };
+
+        ArgRetTy argOrRet;
+
+        Function* argRegFn;
+        */
 
     public:
         bool unionPtsContributed(PointsTo& incoming) {
@@ -128,11 +136,20 @@ public:
             return ptData;
         }
 
-
         void setDerived(bool derived) { this->derived = derived; }
 
         inline bool isDerived() { return derived; }
 
+        /*
+        void setFunctionBoundary(Function* fn, ArgRetTy ty) {
+            this->argRegFn = fn;
+            this->argOrRet = ty;
+        }
+
+        ArgRetTy getArgOrRetTy() {
+            return argOrRet;
+        }
+        */
 
 };
 

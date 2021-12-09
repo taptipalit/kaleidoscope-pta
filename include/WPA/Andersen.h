@@ -363,7 +363,7 @@ protected:
 
     virtual bool mergeSrcToTgt(NodeID srcId,NodeID tgtId);
 
-    void doBackwardAnalysis(CopyCGEdge*);
+    void doBackwardAnalysis(ConstraintEdge*);
     /// Merge sub node in a SCC cycle to their rep node
     //@{
     void mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes);
