@@ -58,7 +58,6 @@ public:
 private:
     EdgeID edgeId;
 
-    bool derived;
 
 public:
 
@@ -70,7 +69,7 @@ public:
 
 
     /// Constructor
-    ConstraintEdge(ConstraintNode* s, ConstraintNode* d, ConstraintEdgeK k, EdgeID id = 0, bool derived=false) : GenericConsEdgeTy(s,d,k),edgeId(id)
+    ConstraintEdge(ConstraintNode* s, ConstraintNode* d, ConstraintEdgeK k, EdgeID id = 0) : GenericConsEdgeTy(s,d,k),edgeId(id)
     {
         traverseCount = 0;
         llvmValue = nullptr;
@@ -101,9 +100,7 @@ public:
         return dstComplexID;
     }
 
-    inline bool isDerived() { return derived; }
 
-    void setDerived(bool derived) { this->derived = derived; }
     
     /// ClassOf
     static inline bool classof(const GenericConsEdgeTy *edge)
@@ -117,6 +114,25 @@ public:
     }
     /// Constraint edge type
     typedef GenericNode<ConstraintNode,ConstraintEdge>::GEdgeSetTy ConstraintEdgeSetTy;
+
+    private:
+        PointsTo ptData;
+        bool derived;
+
+    public:
+        bool unionPtsContributed(PointsTo& incoming) {
+            return ptData |= incoming;
+        }
+
+        PointsTo& getPtContributedData() {
+            return ptData;
+        }
+
+
+        void setDerived(bool derived) { this->derived = derived; }
+
+        inline bool isDerived() { return derived; }
+
 
 };
 
@@ -152,6 +168,7 @@ public:
 };
 
 
+
 /*!
  * Copy edge
  */
@@ -161,7 +178,6 @@ private:
     CopyCGEdge();                      ///< place holder
     CopyCGEdge(const CopyCGEdge &);  ///< place holder
     
-    PointsTo ptData;
 
     void operator=(const CopyCGEdge &); ///< place holder
 public:
@@ -181,17 +197,12 @@ public:
     }
     //@}
 
-    bool unionPtsContributed(PointsTo& incoming) {
-        return ptData |= incoming;
-    }
 
-    PointsTo& getPtContributedData() {
-        return ptData;
-    }
 
     /// constructor
     CopyCGEdge(ConstraintNode* s, ConstraintNode* d, EdgeID id) : ConstraintEdge(s,d,Copy,id)
     {
+        this->setDerived(false);
     }
 };
 
@@ -280,7 +291,7 @@ protected:
     GepCGEdge(ConstraintNode* s, ConstraintNode* d, ConstraintEdgeK k, EdgeID id)
         : ConstraintEdge(s,d,k,id)
     {
-
+        this->setDerived(false);
     }
 
 public:

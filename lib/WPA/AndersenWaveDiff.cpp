@@ -276,7 +276,6 @@ bool AndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge* edge)
         assert(copyCGEdge && "processing copy but not CopyCGEdge?");
         copyCGEdge->unionPtsContributed(afterPts);
 #endif
-
         changed = true;
         pushIntoWorklist(dst);
     }

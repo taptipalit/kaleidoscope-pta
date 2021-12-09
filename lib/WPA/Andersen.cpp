@@ -363,6 +363,9 @@ bool Andersen::processGep(NodeID, const GepCGEdge* edge)
     return processGepPts(srcPts, edge);
 }
 
+
+#define INSTRUMENTGEP
+
 /*!
  * Compute points-to for gep edges
  */
@@ -421,8 +424,17 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
     }
 
     NodeID dstId = edge->getDstID();
+#ifdef INSTRUMENTGEP
+    const PointsTo beforePts(getPts(dstId));
+#endif
+
     if (unionPts(dstId, tmpDstPts))
     {
+#ifdef INSTRUMENTGEP
+        PointsTo afterPts(getPts(dstId));
+        afterPts.intersectWithComplement(beforePts);
+        (const_cast<GepCGEdge*>(edge))->unionPtsContributed(afterPts);
+#endif
         pushIntoWorklist(dstId);
         return true;
     }
@@ -533,11 +545,9 @@ void Andersen::doBackwardAnalysis(CopyCGEdge* copy) {
     // Where did this ptd come from? 
 
     ConstraintEdge* responsibleEdge = nullptr;
-    for (ConstraintEdge* edge: baseNode->getCopyInEdges()) {
-        CopyCGEdge* copyCGEdge = dyn_cast<CopyCGEdge>(edge);
-        assert(copyCGEdge && "Copy edge");
-        if (copyCGEdge->getPtContributedData().test(copy->getSrcID())) {
-            responsibleEdge = copyCGEdge;
+    for (ConstraintEdge* edge: baseNode->getDirectInEdges()) {
+        if (edge->getPtContributedData().test(copy->getSrcID())) {
+            responsibleEdge = edge;
         }
     }
     std::vector<std::tuple<ConstraintEdge*, NodeID>> workList;
@@ -556,11 +566,10 @@ void Andersen::doBackwardAnalysis(CopyCGEdge* copy) {
                 NodeID nodeId = copy->getSrcID();
                 ConstraintNode* srcNode = consCG->getConstraintNode(nodeId);
                 // Incoming copy edges
-                for (ConstraintEdge* inCopy: srcNode->getCopyInEdges()) {
-                    CopyCGEdge* copyCGEdge = dyn_cast<CopyCGEdge>(inCopy);
-                    if (copyCGEdge->getPtContributedData().test(ptd)) {
+                for (ConstraintEdge* edge: srcNode->getDirectInEdges()) {
+                    if (edge->getPtContributedData().test(ptd)) {
                         // backward analysis
-                        workList.push_back(std::make_tuple(copyCGEdge, ptd));
+                        workList.push_back(std::make_tuple(edge, ptd));
                     }
                 }
             } else {

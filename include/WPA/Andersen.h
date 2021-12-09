@@ -344,7 +344,8 @@ protected:
             cEdge->srcComplexID = srcComplex;
             cEdge->dstComplexID = dstComplex;
             if (srcComplex > 0 || dstComplex > 0) {
-                cEdge->setDerived(true);
+                CopyCGEdge* copyCGEdge = SVFUtil::dyn_cast<CopyCGEdge>(cEdge);
+                copyCGEdge->setDerived(true);
             }
             return true;
         }
