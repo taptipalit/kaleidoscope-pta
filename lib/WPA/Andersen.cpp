@@ -306,7 +306,7 @@ bool Andersen::processLoad(NodeID node, const ConstraintEdge* load)
     (const_cast<ConstraintEdge*>(load))->traverseCount++;
 
     NodeID dst = load->getDstID();
-    return addCopyEdge(node, dst, load->getSrcID(), dst);
+    return addCopyEdge(node, dst, load->getSrcID(), 0);
 }
 
 /*!
@@ -327,7 +327,7 @@ bool Andersen::processStore(NodeID node, const ConstraintEdge* store)
     numOfProcessedStore++;
 
     NodeID src = store->getSrcID();
-    return addCopyEdge(src, node, src, store->getDstID());
+    return addCopyEdge(src, node, 0, store->getDstID());
 }
 
 /*!
@@ -505,13 +505,13 @@ void Andersen::doBackwardAnalysis(ConstraintEdge* cycleEdge) {
     ConstraintNode* baseNode = nullptr;
     ConstraintNode* ptd = nullptr;
     // Determine load or store edge
-    if (cycleEdge->getSrcComplexID() != cycleEdge->getSrcID()) {
+    if (cycleEdge->getSrcComplexID() > 0) {
         // Load edge
         // q = *p implies a -- copy --> p, where pts(p) contains a
         assert(getPts(cycleEdge->getSrcComplexID()).test(cycleEdge->getSrcID()) && "complex constraint derivation error");
         baseNode = consCG->getConstraintNode(cycleEdge->getSrcComplexID());
         ptd = consCG->getConstraintNode(cycleEdge->getSrcID());
-    } else if (cycleEdge->getDstComplexID() != cycleEdge->getDstID()) {
+    } else if (cycleEdge->getDstComplexID() > 0) {
         // Store edge
         // p -- load --> *q implies p -- cycle --> a, where pts(q) contains a
         assert(getPts(cycleEdge->getDstComplexID()).test(cycleEdge->getDstID()) && "complex constraint derivation error");
@@ -578,20 +578,23 @@ void Andersen::doBackwardAnalysis(ConstraintEdge* cycleEdge) {
             errs() << "Interesting function: " << csaFunction->getName() << "\n";
         }
 
-        if (!responsibleEdge->isDerived()) {
-            // Where did this come from? 
-            // Incoming ptds for this
-            NodeID nodeId = responsibleEdge->getSrcID();
-            ConstraintNode* srcNode = consCG->getConstraintNode(nodeId);
-            // Incoming copy/gep edges
-            for (ConstraintEdge* edge: srcNode->getDirectInEdges()) {
-                if (edge->getPtContributedData().test(ptd)) {
-                    // backward analysis
-                    workList.push_back(std::make_tuple(edge, ptd));
-                }
+        // Where did this come from? 
+        // Incoming ptds for this
+        NodeID nodeId = responsibleEdge->getSrcID();
+        ConstraintNode* srcNode = consCG->getConstraintNode(nodeId);
+        // Incoming copy/gep edges
+        for (ConstraintEdge* edge: srcNode->getDirectInEdges()) {
+            if (edge->getPtContributedData().test(ptd)) {
+                // backward analysis
+                workList.push_back(std::make_tuple(edge, ptd));
             }
-        } else {
-            // Find the correct edge
+        }
+        if (responsibleEdge->isDerived()) {
+            // The imprecision could be either about the edge that was added, or the flow of ptd
+            
+
+            // Track the edge where the ptd came from
+            // Also track the edge from which this derived edge was created
             if (responsibleEdge->getSrcComplexID() > 0) {
                 // Load edge
                 ConstraintNode* loadSrcNode = consCG->getConstraintNode(responsibleEdge->getSrcComplexID());
