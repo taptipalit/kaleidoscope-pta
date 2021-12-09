@@ -306,7 +306,7 @@ bool Andersen::processLoad(NodeID node, const ConstraintEdge* load)
     (const_cast<ConstraintEdge*>(load))->traverseCount++;
 
     NodeID dst = load->getDstID();
-    return addCopyEdge(node, dst);
+    return addCopyEdge(node, dst, load->getSrcID(), dst);
 }
 
 /*!
@@ -327,7 +327,7 @@ bool Andersen::processStore(NodeID node, const ConstraintEdge* store)
     numOfProcessedStore++;
 
     NodeID src = store->getSrcID();
-    return addCopyEdge(src, node);
+    return addCopyEdge(src, node, src, store->getDstID());
 }
 
 /*!
@@ -461,6 +461,7 @@ void Andersen::mergeSccCycle()
 {
     NodeStack revTopoOrder;
     NodeStack & topoOrder = getSCCDetector()->topoNodeStack();
+    consCG->dump(string("temp")+std::to_string(numOfSCCDetection));
     while (!topoOrder.empty())
     {
         NodeID repNodeId = topoOrder.top();
@@ -480,6 +481,207 @@ void Andersen::mergeSccCycle()
     }
 }
 
+void Andersen::doBackwardAnalysis(CopyCGEdge* copy) {
+    // Copy must be a complex CopyCGEdge
+    // First we find the "base" nodes (src for load-derived-copy-edge, dst for store-derived-copy-edge
+    // For these load and store edges, we compute how the ptd came to exist in pts(base)
+    // 1. If it is via an addr edge, then we know what's happening
+    // 2. If it is via another copy edge, then we take further steps outlined below
+
+    llvm::errs() << "Handling copy edge with src = " << copy->getSrcID() << ", dest = " << copy->getDstID() << ", complex src = " << copy->srcComplexID << ", complex dst = " << copy->dstComplexID << "\n";
+
+    ConstraintNode* baseNode = nullptr;
+    ConstraintNode* ptd = nullptr;
+    // Determine load or store edge
+    if (copy->getSrcComplexID() != copy->getSrcID()) {
+        // Load edge
+        // q = *p implies a -- copy --> p, where pts(p) contains a
+        assert(getPts(copy->getSrcComplexID()).test(copy->getSrcID()) && "complex constraint derivation error");
+        baseNode = consCG->getConstraintNode(copy->getSrcComplexID());
+        ptd = consCG->getConstraintNode(copy->getSrcID());
+    } else if (copy->getDstComplexID() != copy->getDstID()) {
+        // Store edge
+        // p -- load --> *q implies p -- copy --> a, where pts(q) contains a
+        assert(getPts(copy->getDstComplexID()).test(copy->getDstID()) && "complex constraint derivation error");
+        baseNode = consCG->getConstraintNode(copy->getDstComplexID());
+        ptd = consCG->getConstraintNode(copy->getDstID());
+    }
+
+    // Check if there's an addr edge into the baseNode that contains ptd
+
+    bool foundSource = false;
+    for (ConstraintEdge* inEdge: baseNode->getAddrInEdges()) {
+        AddrCGEdge* addrEdge = dyn_cast<AddrCGEdge>(inEdge);
+        assert(addrEdge && "Address edge, but not address edge?");
+        if (addrEdge->getSrcID() == ptd->getId()) {
+            llvm::errs() << "Success!\n";
+            foundSource = true;
+            break;
+        }
+    }
+
+    if (foundSource) return;
+
+    // Now we know that we have a baseNode and somehow ptd became an element of its pts-set
+    // This is a bit tricky here
+    // In case of vanilla copy edge (p1 --> p2), we simply have to go backwards analyzing the source
+    // In case of derived copy edge (p1 --> p2), caused by another load/store edge involving p3,
+    // there can be imprecision along two different paths.
+    //      a) the copy edge path (p1 --> p2). Here we need to identify how ptd came into the pts(p1)
+    //      b) the complex edge path (p1 --> p3 or p3 --> p2). Here we need to identify how pts(p3) came to contain p1 or p2 (depending on the type of edge)
+
+    // Where did this ptd come from? 
+
+    ConstraintEdge* responsibleEdge = nullptr;
+    for (ConstraintEdge* edge: baseNode->getCopyInEdges()) {
+        CopyCGEdge* copyCGEdge = dyn_cast<CopyCGEdge>(edge);
+        assert(copyCGEdge && "Copy edge");
+        if (copyCGEdge->getPtContributedData().test(copy->getSrcID())) {
+            responsibleEdge = copyCGEdge;
+        }
+    }
+    std::vector<std::tuple<ConstraintEdge*, NodeID>> workList;
+    workList.push_back(std::make_tuple(responsibleEdge, ptd->getId()));
+
+    while (workList.size() > 0) {
+        std::tuple<ConstraintEdge*, NodeID>& tuple = workList.back();
+        workList.pop_back();
+        ConstraintEdge* responsibleEdge = std::get<0>(tuple);
+        NodeID ptd = std::get<1>(tuple);
+
+        if (CopyCGEdge* copy = dyn_cast<CopyCGEdge>(responsibleEdge)) {
+            if (!copy->isDerived()) {
+                // Where did this come from? 
+                // Incoming ptds for this
+                NodeID nodeId = copy->getSrcID();
+                ConstraintNode* srcNode = consCG->getConstraintNode(nodeId);
+                // Incoming copy edges
+                for (ConstraintEdge* inCopy: srcNode->getCopyInEdges()) {
+                    CopyCGEdge* copyCGEdge = dyn_cast<CopyCGEdge>(inCopy);
+                    if (copyCGEdge->getPtContributedData().test(ptd)) {
+                        // backward analysis
+                        workList.push_back(std::make_tuple(copyCGEdge, ptd));
+                    }
+                }
+            } else {
+                // Find the correct edge
+                if (copy->getSrcComplexID() > 0) {
+                    // Load edge
+                    ConstraintNode* loadSrcNode = consCG->getConstraintNode(copy->getSrcComplexID());
+                    ConstraintNode* loadDstNode = consCG->getConstraintNode(copy->getDstID());
+
+                    ConstraintEdge* complexEdge = consCG->getEdge(loadSrcNode, loadDstNode, ConstraintEdge::ConstraintEdgeK::Load);
+
+                    LoadCGEdge* loadCGEdge = dyn_cast<LoadCGEdge>(complexEdge);
+
+                    assert(loadCGEdge && "not a load edge?");
+
+                    NodeID ptdFollow = copy->getSrcID();
+
+                    // src -- load --> dst: caused copy->getSrc() -- copy --> copy->getDst()
+                    // We should track what added copy->getSrc() to pts(src)
+
+                    for (ConstraintEdge* inCopy: loadSrcNode->getCopyInEdges()) {
+                        CopyCGEdge* copyCGEdge = dyn_cast<CopyCGEdge>(inCopy);
+                        assert(copyCGEdge && "not copy edge?");
+                        // We need to find how ptdFollow came up in the copyCGEdge
+                        workList.push_back(std::make_tuple(copyCGEdge, ptdFollow));                                                
+                    }
+                    
+                } else if (copy->getDstComplexID() > 0) {
+                    ConstraintNode* storeSrcNode = consCG->getConstraintNode(copy->getSrcID());
+                    ConstraintNode* storeDstNode = consCG->getConstraintNode(copy->getDstComplexID());
+
+                    ConstraintEdge* complexEdge = consCG->getEdge(storeSrcNode, storeDstNode, ConstraintEdge::ConstraintEdgeK::Store);
+
+                    StoreCGEdge* storeEdge = dyn_cast<StoreCGEdge>(complexEdge);
+                    assert(storeEdge && "not a store edge");
+
+                    NodeID ptdFollow = copy->getDstID();
+
+                    for (ConstraintEdge* inCopy: storeDstNode->getCopyInEdges()) {
+                        CopyCGEdge* copyCGEdge = dyn_cast<CopyCGEdge>(inCopy);
+                        assert(copyCGEdge && "not copy edge?");
+                        workList.push_back(std::make_tuple(copyCGEdge, ptdFollow));
+                    }
+                }
+            }
+        }
+    }
+
+}
+
+/*
+void Andersen::doBackwardAnalysis(CopyCGEdge* copy, NodeID ptd) {
+    llvm::errs() << "Handling copy edge with src = " << copy->getSrcID() << ", dest = " << copy->getDstID() << ", complex src = " << copy->srcComplexID << ", complex dst = " << copy->dstComplexID << "\n";
+    std::stack<ConstraintEdge*> stack;
+    // Is this an artifact of a load or a store edge? 
+    if (copy->srcComplexID != copy->getSrcID()) {
+        // Load edge
+        // pts(copy->srcComplexID) contained the copy->getSrcID()
+        assert(getPts(copy->srcComplexID).test(copy->getSrcID()) && "complex constraint derivation error");
+        // Find the copy edge that led to the addition of this element in the points-to set
+        
+        ConstraintNode* node = consCG->getConstraintNode(copy->srcComplexID);
+        bool copyDerived = false;
+        for (ConstraintEdge* edge: node->getCopyInEdges()) {
+            CopyCGEdge* copyCGEdge = dyn_cast<CopyCGEdge>(edge);
+            assert(copyCGEdge && "Copy edge");
+            if (copyCGEdge->getPtContributedData().test(copy->getSrcID())) {
+                doBackwardAnalysis(copyCGEdge, ptd);
+                copyDerived = true;
+            }
+        }
+        if (!copyDerived) {
+            // Must be an addr edge
+            for (ConstraintEdge* edge: node->getAddrInEdges()) {
+                AddrCGEdge* addrCGEdge = dyn_cast<AddrCGEdge>(edge);
+                if (addrCGEdge->getSrcID() == copy->getSrcID()) {
+                    llvm::errs() << "Addr edge: \n";
+                }
+            }
+        }
+    } else if (copy->dstComplexID != copy->getDstID()) {
+        // Store edge
+        assert(getPts(copy->dstComplexID).test(copy->getDstID()) && "complex constraint derivation error");
+        ConstraintNode* node = consCG->getConstraintNode(copy->dstComplexID);
+        bool copyDerived = false;
+        for (ConstraintEdge* edge: node->getCopyInEdges()) {
+            CopyCGEdge* copyCGEdge = dyn_cast<CopyCGEdge>(edge);
+            assert(copyCGEdge && "Copy edge");
+            if (copyCGEdge->getPtContributedData().test(copy->getSrcID())) {
+                doBackwardAnalysis(copyCGEdge, ptd);
+                copyDerived = true;
+            }
+        }
+        if (!copyDerived) {
+            // Must be an addr edge
+            for (ConstraintEdge* edge: node->getAddrInEdges()) {
+                AddrCGEdge* addrCGEdge = dyn_cast<AddrCGEdge>(edge);
+                if (addrCGEdge->getSrcID() == copy->getSrcID()) {
+                    llvm::errs() << "Addr edge: \n";
+                }
+            }
+        }
+    } else {
+        // A real copy edge
+        // Among the incoming copy edges of the source, find the one that brought this ptd
+        ConstraintNode* node = consCG->getConstraintNode(copy->getSrcID());
+        bool copyDerived = false;
+        for (ConstraintEdge* edge: node->getCopyInEdges()) {
+            CopyCGEdge* copyCGEdge = dyn_cast<CopyCGEdge>(edge);
+            assert(copyCGEdge && "Copy edge");
+            if (copyCGEdge->getPtContributedData().test(ptd) {
+                doBackwardAnalysis(copyCGEdge, ptd);
+                copyDerived = true;
+            }
+        }
+        // Not found copy?
+        // If this corresponds to a return edge, we can do something nice, like make it context-sensitive
+        llvm::errs() << "Dumping llvm value: " << *(copy->getLLVMValue()) << "\n";
+    }
+}
+*/
 
 /**
  * Union points-to of subscc nodes into its rep nodes
@@ -487,6 +689,39 @@ void Andersen::mergeSccCycle()
  */
 void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
 {
+    std::vector<ConstraintEdge*> edges;
+
+    if (subNodes.count() > 1) {
+        for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
+        {
+            NodeID subNodeId = *nodeIt;
+            errs() << "NumOfSCCDetection: " << numOfSCCDetection << "Subnode id: " << subNodeId << "\n";
+            ConstraintNode* subNode = consCG->getConstraintNode(subNodeId);
+            for (ConstraintEdge* edge : subNode->getCopyOutEdges()) {
+                NodeID destId = edge->getDstID();
+                if (subNodes.test(destId)) 
+                    edges.push_back(edge);
+            }
+        }
+    }
+
+    if (edges.size() > 1) {
+        errs() << "SCC Edges count: " << edges.size() << "\n";
+        for (ConstraintEdge* sccEdge: edges) {
+            // Do it for something simple
+            llvm::errs() << sccEdge->getSrcID() << " : " << sccEdge->getDstID() << "\n";
+
+            if (CopyCGEdge* copy = SVFUtil::dyn_cast<CopyCGEdge>(sccEdge)) {
+                if (copy->isDerived()) {
+                    // Move backwards to analyze this
+                    doBackwardAnalysis(copy);                    
+                }
+                //llvm::errs() << "Src complex id: " << copy->srcComplexID << "\n";
+                //llvm::errs() << "Dst complex id: " << copy->dstComplexID << "\n";
+            }
+        }
+    }
+
     for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
     {
         NodeID subNodeId = *nodeIt;

@@ -563,7 +563,7 @@ namespace SVF
 
     const llvm::cl::opt<bool> Options::ModelConsts(
         "model-consts", 
-        llvm::cl::init(false),
+        llvm::cl::init(true),
         llvm::cl::desc("Modeling individual constant objects")
     );
 

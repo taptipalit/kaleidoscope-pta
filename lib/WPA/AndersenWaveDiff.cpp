@@ -242,6 +242,8 @@ bool AndersenWaveDiff::handleStore(NodeID nodeId, const ConstraintEdge* edge)
     return changed;
 }
 
+#define INSTRUMENT
+
 /*!
  * Propagate diff points-to set from src to dst
  */
@@ -254,9 +256,27 @@ bool AndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge* edge)
     assert((SVFUtil::isa<CopyCGEdge>(edge)) && "not copy/call/ret ??");
     NodeID dst = edge->getDstID();
     const PointsTo& srcDiffPts = getDiffPts(node);
+
+#ifdef INSTRUMENT
+    const PointsTo beforePts(getPts(dst));
+#endif
+
     processCast(edge);
     if(unionPts(dst,srcDiffPts))
     {
+
+#ifdef INSTRUMENT
+        PointsTo afterPts(getPts(dst)); // copy
+
+        int aftCount = afterPts.count();
+        afterPts.intersectWithComplement(beforePts);
+        llvm::errs() << "nodeId : " << dst << " bef/aft/intersec size: " << beforePts.count() << " : " << aftCount << " : " << afterPts.count() << "\n";
+
+        CopyCGEdge* copyCGEdge = const_cast<CopyCGEdge*>(SVFUtil::dyn_cast<CopyCGEdge>(edge));
+        assert(copyCGEdge && "processing copy but not CopyCGEdge?");
+        copyCGEdge->unionPtsContributed(afterPts);
+#endif
+
         changed = true;
         pushIntoWorklist(dst);
     }

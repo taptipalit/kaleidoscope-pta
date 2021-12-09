@@ -361,6 +361,17 @@ const std::string SVFUtil::value2String(const Value* value) {
     if(value){
         if(const SVF::Function* fun = SVFUtil::dyn_cast<Function>(value))
             rawstr << " " << fun->getName() << " ";
+        else if (const SVF::Instruction* inst = SVFUtil::dyn_cast<Instruction>(value))
+            rawstr << " " << inst->getParent()->getParent()->getName() << " : " << *value << " ";
+        else if (const llvm::Operator* op = SVFUtil::dyn_cast<llvm::Operator>(value)) {
+            for (const User* u: op->users()) {
+                if (const SVF::Instruction* inst = SVFUtil::dyn_cast<SVF::Instruction>(u)) {
+                    rawstr << " " << inst->getParent()->getParent()->getName() << " : " << *value << " ";
+                    break;
+                }
+            }
+        }
+
         else
             rawstr << " " << *value << " ";
         rawstr << getSourceLoc(value);

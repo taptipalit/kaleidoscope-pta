@@ -100,6 +100,10 @@ public:
         buildCG();
         maxWidth = 0;
     }
+    ConstraintGraph(): pag(nullptr), edgeIndex(0)
+    {
+        maxWidth = 0;
+    }
     /// Destructor
     virtual ~ConstraintGraph()
     {

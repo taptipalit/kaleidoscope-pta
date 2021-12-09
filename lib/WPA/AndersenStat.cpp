@@ -106,20 +106,23 @@ void AndersenStat::constraintGraphStat()
     u32_t numOfCopys = 0;
     u32_t numOfGeps = 0;
 
-    std::map<long, std::vector<ConstraintEdge*>> tcNumCopyEdgeMap; // Traverse-Count vs number of copy edges
-    std::map<long, std::vector<ConstraintEdge*>> tcNumGepEdgeMap;
-    std::map<long, std::vector<ConstraintEdge*>> tcNumLoadEdgeMap;
-    std::map<long, std::vector<ConstraintEdge*>> tcNumStoreEdgeMap;
+    std::map<long, std::set<ConstraintEdge*>, greater<int>> tcNumCopyEdgeMap; // Traverse-Count vs number of copy edges
+    std::map<long, std::set<ConstraintEdge*>, greater<int>> tcNumGepEdgeMap;
+    std::map<long, std::set<ConstraintEdge*>, greater<int>> tcNumLoadEdgeMap;
+    std::map<long, std::set<ConstraintEdge*>, greater<int>> tcNumStoreEdgeMap;
+
+    //std::map<long, std::set<ConstraintEdge*>, greater<int>> tcNumComplexEdgeMap;
+
 
     // collect copy and gep edges
     for(ConstraintEdge::ConstraintEdgeSetTy::iterator it = consCG->getDirectCGEdges().begin(),
             eit = consCG->getDirectCGEdges().end(); it!=eit; ++it)
     {
         if(SVFUtil::isa<CopyCGEdge>(*it)) {
-            tcNumCopyEdgeMap[(*it)->traverseCount].push_back(*it);
+            tcNumCopyEdgeMap[(*it)->traverseCount].insert(*it);
             numOfCopys++;
         } else if(SVFUtil::isa<GepCGEdge>(*it)) {
-            tcNumGepEdgeMap[(*it)->traverseCount].push_back(*it);
+            tcNumGepEdgeMap[(*it)->traverseCount].insert(*it);
             numOfGeps++;
         } else {
             assert(false && "what else!!");
@@ -128,13 +131,38 @@ void AndersenStat::constraintGraphStat()
 
     for(ConstraintEdge::ConstraintEdgeSetTy::iterator it = consCG->getStoreCGEdges().begin(),
             eit = consCG->getStoreCGEdges().end(); it!=eit; ++it) {
-        tcNumStoreEdgeMap[(*it)->traverseCount].push_back(*it);
+        tcNumStoreEdgeMap[(*it)->traverseCount].insert(*it);
+        //tcNumComplexEdgeMap[(*it)->traverseCount].insert(*it);
     }
 
     for(ConstraintEdge::ConstraintEdgeSetTy::iterator it = consCG->getLoadCGEdges().begin(),
             eit = consCG->getLoadCGEdges().end(); it!=eit; ++it) {
-        tcNumLoadEdgeMap[(*it)->traverseCount].push_back(*it);
+        tcNumLoadEdgeMap[(*it)->traverseCount].insert(*it);
+        //tcNumComplexEdgeMap[(*it)->traverseCount].insert(*it);
     }
+
+    /*
+    int i = 0;
+    std::vector<ConstraintNode*> nodes;
+    for (auto entry: tcNumComplexEdgeMap) {
+        if (i++ > 50) break;
+
+        ConstraintGraph* subGraph = new ConstraintGraph();
+        for (ConstraintEdge* edge: entry.second) {
+            ConstraintNode* n1 = consCG->getConstraintNode(edge->getSrcID());
+            ConstraintNode* n2 = consCG->getConstraintNode(edge->getDstID());
+
+            subGraph->addConstraintNode(new ConstraintNode(n1->getId()), n1->getId());
+            subGraph->addConstraintNode(new ConstraintNode(n2->getId()), n2->getId());
+            if (SVFUtil::isa<LoadCGEdge>(edge)) {
+                subGraph->addLoadCGEdge(n1->getId(), n2->getId());
+            } else if (SVFUtil::isa<StoreCGEdge>(edge)) {
+                subGraph->addStoreCGEdge(n1->getId(), n2->getId());
+            }
+        }
+        subGraph->dump("subgraph"+std::to_string(entry.first));
+    }
+    */
 
     errs() << ">>>>>>>>>>>>>>>>> Rise in Max Pts-to Set Size: >>>>>>>>>>>>>>>\n";
     for (int maxPt: andersen->maxPts) {
@@ -178,26 +206,32 @@ void AndersenStat::constraintGraphStat()
     errs() << "----------------- Load Edges ------------------------\n";
     for (auto entry: tcNumLoadEdgeMap) {
         errs() << entry.first << " : " << entry.second.size() << "\n";
+        std::set<Function*> funcs;
         for (ConstraintEdge* edge: entry.second) {
             Value* val = const_cast<Value*>(edge->getLLVMValue());
             if (val) {
                 if (Instruction* inst = SVFUtil::dyn_cast<Instruction>(val)) {
+                    funcs.insert(inst->getParent()->getParent());
                     hotspotFunctionMap[inst->getParent()->getParent()]+=entry.first;
                 }
             }
         }
+        //errs() << "Number of functions:" << funcs.size() << "\n";
     }
     errs() << "----------------- Store Edges ------------------------\n";
     for (auto entry: tcNumStoreEdgeMap) {
         errs() << entry.first << " : " << entry.second.size() << "\n";
+        std::set<Function*> funcs;
         for (ConstraintEdge* edge: entry.second) {
             Value* val = const_cast<Value*>(edge->getLLVMValue());
             if (val) {
                 if (Instruction* inst = SVFUtil::dyn_cast<Instruction>(val)) {
+                    funcs.insert(inst->getParent()->getParent());
                     hotspotFunctionMap[inst->getParent()->getParent()]+=entry.first;
                 }
             }
         }
+        //errs() << "Number of functions:" << funcs.size() << "\n";
     }
 
     std::multimap<int, Function*, greater <int>> revHotspotMap;

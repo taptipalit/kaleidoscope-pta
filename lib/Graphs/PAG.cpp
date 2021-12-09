@@ -702,6 +702,7 @@ NodeID PAG::addGepObjNode(const MemObj* obj, const LocationSet& ls)
            && "this node should not be created before");
 
     NodeID gepId = NodeIDAllocator::get()->allocateGepObjectId(base, ls.getOffset(), StInfo::getMaxFieldLimit());
+    errs() << "Allocating gepObjPN: " << gepId << "\n";
     GepObjNodeMap[std::make_pair(base, ls)] = gepId;
     GepObjPN *node = new GepObjPN(obj, gepId, ls);
     memToFieldsMap[base].set(gepId);
@@ -1066,9 +1067,12 @@ PAGNode::PAGNode(const Value* val, NodeID i, PNODEK k) :
 }
 
 bool PAGNode::isIsolatedNode() const{
+    /*
+    // So for a GepObjPN node and it's ConstraintNode apparently the in-edges and out-edges are not 
+    // populated. This prevents them from being shown in the graph and causes a lot of pain
 	if (getInEdges().empty() && getOutEdges().empty())
 		return true;
-	else if (isConstantData())
+	else */ if (isConstantData())
 		return true;
 	else if (value && SVFUtil::isa<Function>(value))
 		return SVFUtil::isIntrinsicFun(SVFUtil::cast<Function>(value));

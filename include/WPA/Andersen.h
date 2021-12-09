@@ -335,11 +335,17 @@ protected:
     //@}
 
     /// Add copy edge on constraint graph
-    virtual inline bool addCopyEdge(NodeID src, NodeID dst)
+    virtual inline bool addCopyEdge(NodeID src, NodeID dst, NodeID srcComplex=-1, NodeID dstComplex=-1)
     {
-        if (consCG->addCopyCGEdge(src, dst))
+        ConstraintEdge* cEdge = consCG->addCopyCGEdge(src, dst);
+        if (cEdge)
         {
             updatePropaPts(src, dst);
+            cEdge->srcComplexID = srcComplex;
+            cEdge->dstComplexID = dstComplex;
+            if (srcComplex > 0 || dstComplex > 0) {
+                cEdge->setDerived(true);
+            }
             return true;
         }
         return false;
@@ -356,6 +362,7 @@ protected:
 
     virtual bool mergeSrcToTgt(NodeID srcId,NodeID tgtId);
 
+    void doBackwardAnalysis(CopyCGEdge*);
     /// Merge sub node in a SCC cycle to their rep node
     //@{
     void mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes);

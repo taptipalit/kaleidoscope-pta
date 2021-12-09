@@ -733,26 +733,43 @@ struct DOTGraphTraits<ConstraintGraph*> : public DOTGraphTraits<PAG*>
         }
 
         assert(edge && "No edge found!!");
+
+        Value* llvmValue = const_cast<Value*>(edge->getLLVMValue());
+        Function* edgeFunction = nullptr;
+        if (llvmValue) {
+           if (Instruction* inst = dyn_cast<Instruction>(llvmValue)) {
+               edgeFunction = inst->getParent()->getParent();
+           } 
+        }
+
+        std::string* edgeLabel;
+        if (edgeFunction) {
+            edgeLabel = new std::string(edgeFunction->getName());
+        } else {
+            edgeLabel = new std::string("");
+        }
+
+
         if (edge->getEdgeKind() == ConstraintEdge::Addr)
         {
             return "color=green";
         }
         else if (edge->getEdgeKind() == ConstraintEdge::Copy)
         {
-            return std::string("color=black") + std::string(", penwidth=") + std::to_string(iWidth) ;
+            return std::string("color=black") + std::string(", penwidth=") + std::to_string(iWidth) + std::string(", label = \"") + *edgeLabel + "\"";
         }
         else if (edge->getEdgeKind() == ConstraintEdge::NormalGep
                  || edge->getEdgeKind() == ConstraintEdge::VariantGep)
         {
-            return std::string("color=purple") + std::string(", penwidth=") + std::to_string(iWidth);
+            return std::string("color=purple") + std::string(", penwidth=") + std::to_string(iWidth) + std::string(", label = \"") + *edgeLabel+ "\"";
         }
         else if (edge->getEdgeKind() == ConstraintEdge::Store)
         {
-            return std::string("color=blue") + std::string(", penwidth=") + std::to_string(iWidth);
+            return std::string("color=blue") + std::string(", penwidth=") + std::to_string(iWidth) + std::string(", label = \"") +  *edgeLabel+ "\"";
         }
         else if (edge->getEdgeKind() == ConstraintEdge::Load)
         {
-            return std::string("color=red") + std::string(", penwidth=") + std::to_string(iWidth);
+            return std::string("color=red") + std::string(", penwidth=") + std::to_string(iWidth) + std::string(", label = \"") + *edgeLabel+ "\"";
         }
         else
         {

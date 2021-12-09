@@ -250,7 +250,7 @@ private:
     {
         // SVFUtil::outs() << "visit GNODE: " << Node_Index(v)<< "\n";
         _I += 1;
-        _D[v] = _I;
+        _D[v] = _I; // order in which they're visited
         this->rep(v,v);
         this->setVisited(v,true);
 
@@ -262,22 +262,31 @@ private:
             NodeID w = Node_Index(*EI);
 
             if (!this->visited(w))
-                visit(w);
+                visit(w); // visit
+            // Backtrack
             if (!this->inSCC(w))
             {
                 NodeID rep;
                 rep = _D[this->rep(v)] < _D[this->rep(w)] ?
-                      this->rep(v) : this->rep(w);
+                      this->rep(v) : this->rep(w); // Find the min low-val
                 this->rep(v,rep);
             }
         }
         if (this->rep(v) == v)
         {
+            // We found a SCC. The edges that led to this SCC are here
             this->setInSCC(v,true);
+            // Everything in the stack is part of the SCC
+            /*
+            if (!_SS.empty()) {
+                llvm::errs() << "Representative node: " << v << "\n";
+            }
+            */
             while (!_SS.empty())
             {
                 NodeID w = _SS.top();
-                if (_D[w] <= _D[v])
+                //llvm::errs() << "Sub node: " << w << "\n";
+                if (_D[w] <= _D[v]) // not sure what this is doing...
                     break;
                 else
                 {

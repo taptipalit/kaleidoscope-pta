@@ -57,13 +57,20 @@ public:
     };
 private:
     EdgeID edgeId;
+
+    bool derived;
+
 public:
 
     int traverseCount;
+    NodeID srcComplexID;
+    NodeID dstComplexID;
+
     Value* llvmValue;
 
+
     /// Constructor
-    ConstraintEdge(ConstraintNode* s, ConstraintNode* d, ConstraintEdgeK k, EdgeID id = 0) : GenericConsEdgeTy(s,d,k),edgeId(id)
+    ConstraintEdge(ConstraintNode* s, ConstraintNode* d, ConstraintEdgeK k, EdgeID id = 0, bool derived=false) : GenericConsEdgeTy(s,d,k),edgeId(id)
     {
         traverseCount = 0;
         llvmValue = nullptr;
@@ -86,6 +93,18 @@ public:
         return llvmValue;
     }
 
+    inline NodeID getSrcComplexID() {
+        return srcComplexID;
+    }
+
+    inline NodeID getDstComplexID() {
+        return dstComplexID;
+    }
+
+    inline bool isDerived() { return derived; }
+
+    void setDerived(bool derived) { this->derived = derived; }
+    
     /// ClassOf
     static inline bool classof(const GenericConsEdgeTy *edge)
     {
@@ -141,6 +160,9 @@ class CopyCGEdge: public ConstraintEdge
 private:
     CopyCGEdge();                      ///< place holder
     CopyCGEdge(const CopyCGEdge &);  ///< place holder
+    
+    PointsTo ptData;
+
     void operator=(const CopyCGEdge &); ///< place holder
 public:
     /// Methods for support type inquiry through isa, cast, and dyn_cast:
@@ -158,6 +180,14 @@ public:
         return edge->getEdgeKind() == Copy;
     }
     //@}
+
+    bool unionPtsContributed(PointsTo& incoming) {
+        return ptData |= incoming;
+    }
+
+    PointsTo& getPtContributedData() {
+        return ptData;
+    }
 
     /// constructor
     CopyCGEdge(ConstraintNode* s, ConstraintNode* d, EdgeID id) : ConstraintEdge(s,d,Copy,id)
