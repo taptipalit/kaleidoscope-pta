@@ -342,18 +342,27 @@ void ConstraintGraph::reTargetDstOfEdge(ConstraintEdge* edge, ConstraintNode* ne
     else if(CopyCGEdge* copy = SVFUtil::dyn_cast<CopyCGEdge>(edge))
     {
         removeDirectEdge(copy);
-        addCopyCGEdge(srcId,newDstNodeID);
+        CopyCGEdge* newCopy = addCopyCGEdge(srcId,newDstNodeID);
+        if (newCopy) {
+            newCopy->setRetargeted(true);
+        }
     }
     else if(NormalGepCGEdge* gep = SVFUtil::dyn_cast<NormalGepCGEdge>(edge))
     {
         const LocationSet ls = gep->getLocationSet();
         removeDirectEdge(gep);
-        addNormalGepCGEdge(srcId,newDstNodeID,ls);
+        NormalGepCGEdge* newNormGep = addNormalGepCGEdge(srcId,newDstNodeID,ls);
+        if (newNormGep) {
+            newNormGep->setRetargeted(true);
+        }
     }
     else if(VariantGepCGEdge* gep = SVFUtil::dyn_cast<VariantGepCGEdge>(edge))
     {
         removeDirectEdge(gep);
-        addVariantGepCGEdge(srcId,newDstNodeID);
+        VariantGepCGEdge* newVarGep = addVariantGepCGEdge(srcId,newDstNodeID);
+        if (newVarGep) {
+            newVarGep->setRetargeted(true);
+        }
     }
     else if(AddrCGEdge* addr = SVFUtil::dyn_cast<AddrCGEdge>(edge))
     {

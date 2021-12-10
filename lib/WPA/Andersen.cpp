@@ -504,6 +504,9 @@ void Andersen::doBackwardAnalysis(ConstraintEdge* cycleEdge) {
 
     ConstraintNode* baseNode = nullptr;
     ConstraintNode* ptd = nullptr;
+
+    if (cycleEdge->isRetargeted()) return; // Too much complication
+
     // Determine load or store edge
     if (cycleEdge->getSrcComplexID() > 0) {
         // Load edge
@@ -518,6 +521,7 @@ void Andersen::doBackwardAnalysis(ConstraintEdge* cycleEdge) {
         baseNode = consCG->getConstraintNode(cycleEdge->getDstComplexID());
         ptd = consCG->getConstraintNode(cycleEdge->getDstID());
     }
+
     // Check if there's an addr edge into the baseNode that contains ptd
     bool foundSource = false;
     for (ConstraintEdge* inEdge: baseNode->getAddrInEdges()) {
@@ -549,12 +553,20 @@ void Andersen::doBackwardAnalysis(ConstraintEdge* cycleEdge) {
         }
     }
     std::vector<std::tuple<ConstraintEdge*, NodeID>> workList;
+
+    std::vector<ConstraintEdge*> processedList; // shouldn't this be with the NodeID? TODO
+
     workList.push_back(std::make_tuple(responsibleEdge, ptd->getId()));
 
     while (workList.size() > 0) {
         std::tuple<ConstraintEdge*, NodeID>& tuple = workList.back();
         workList.pop_back();
         ConstraintEdge* responsibleEdge = std::get<0>(tuple);
+
+        if (responsibleEdge->isRetargeted()) continue; // Too much complication
+
+        processedList.push_back(responsibleEdge);
+
         NodeID ptd = std::get<1>(tuple);
 
         NodeID basePtd = pag->getBaseObjNode(ptd);
@@ -591,10 +603,14 @@ void Andersen::doBackwardAnalysis(ConstraintEdge* cycleEdge) {
         for (ConstraintEdge* edge: srcNode->getDirectInEdges()) {
             if (edge->getPtContributedData().test(ptd)) {
                 // backward analysis
-                workList.push_back(std::make_tuple(edge, ptd));
+                if (std::find(processedList.begin(), processedList.end(), edge) == processedList.end()) {
+                    workList.push_back(std::make_tuple(edge, ptd));
+                }
             }
             if (testBase && edge->getPtContributedData().test(basePtd)) {
-                workList.push_back(std::make_tuple(edge, basePtd));
+                if (std::find(processedList.begin(), processedList.end(), edge) == processedList.end()) {
+                    workList.push_back(std::make_tuple(edge, basePtd));
+                }
             }
             
         }

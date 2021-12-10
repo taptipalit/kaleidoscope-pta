@@ -115,6 +115,8 @@ public:
     private:
         PointsTo ptData;
         bool derived;
+
+        bool retargeted;
         
         /*
         enum ArgRetTy 
@@ -139,6 +141,10 @@ public:
         void setDerived(bool derived) { this->derived = derived; }
 
         inline bool isDerived() { return derived; }
+
+        void setRetargeted(bool retargeted) {this->retargeted = retargeted; }
+
+        inline bool isRetargeted() { return retargeted; }
 
         /*
         void setFunctionBoundary(Function* fn, ArgRetTy ty) {
@@ -195,7 +201,6 @@ private:
     CopyCGEdge();                      ///< place holder
     CopyCGEdge(const CopyCGEdge &);  ///< place holder
     
-
     void operator=(const CopyCGEdge &); ///< place holder
 public:
     /// Methods for support type inquiry through isa, cast, and dyn_cast:
@@ -220,6 +225,7 @@ public:
     CopyCGEdge(ConstraintNode* s, ConstraintNode* d, EdgeID id) : ConstraintEdge(s,d,Copy,id)
     {
         this->setDerived(false);
+        this->setRetargeted(false);
     }
 };
 

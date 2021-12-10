@@ -335,7 +335,7 @@ protected:
     //@}
 
     /// Add copy edge on constraint graph
-    virtual inline bool addCopyEdge(NodeID src, NodeID dst, NodeID srcComplex=-1, NodeID dstComplex=-1)
+    virtual inline bool addCopyEdge(NodeID src, NodeID dst, NodeID srcComplex=0, NodeID dstComplex=0)
     {
         ConstraintEdge* cEdge = consCG->addCopyCGEdge(src, dst);
         if (cEdge)
