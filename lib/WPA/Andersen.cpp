@@ -518,9 +518,7 @@ void Andersen::doBackwardAnalysis(ConstraintEdge* cycleEdge) {
         baseNode = consCG->getConstraintNode(cycleEdge->getDstComplexID());
         ptd = consCG->getConstraintNode(cycleEdge->getDstID());
     }
-
     // Check if there's an addr edge into the baseNode that contains ptd
-
     bool foundSource = false;
     for (ConstraintEdge* inEdge: baseNode->getAddrInEdges()) {
         AddrCGEdge* addrEdge = dyn_cast<AddrCGEdge>(inEdge);
@@ -559,6 +557,8 @@ void Andersen::doBackwardAnalysis(ConstraintEdge* cycleEdge) {
         ConstraintEdge* responsibleEdge = std::get<0>(tuple);
         NodeID ptd = std::get<1>(tuple);
 
+        NodeID basePtd = pag->getBaseObjNode(ptd);
+
         assert(isa<CopyCGEdge>(responsibleEdge) || isa<GepCGEdge>(responsibleEdge) && "not copy or gep edge?");
 
         errs() << "edge from: " << responsibleEdge->getSrcID() << " : to : " << responsibleEdge->getDstID() << "\n";
@@ -577,6 +577,11 @@ void Andersen::doBackwardAnalysis(ConstraintEdge* cycleEdge) {
         if (csaFunction) {
             errs() << "Interesting function: " << csaFunction->getName() << "\n";
         }
+        // If the responsibleEdge is a GepCGEdge, also test the base
+        bool testBase = false;
+        if (GepCGEdge* responsibleEdge = dyn_cast<GepCGEdge>(responsibleEdge)) {
+            testBase = true;
+        }
 
         // Where did this come from? 
         // Incoming ptds for this
@@ -588,7 +593,14 @@ void Andersen::doBackwardAnalysis(ConstraintEdge* cycleEdge) {
                 // backward analysis
                 workList.push_back(std::make_tuple(edge, ptd));
             }
+            if (testBase && edge->getPtContributedData().test(basePtd)) {
+                workList.push_back(std::make_tuple(edge, basePtd));
+            }
+            
         }
+
+        
+
         if (responsibleEdge->isDerived()) {
             // The imprecision could be either about the edge that was added, or the flow of ptd
             
