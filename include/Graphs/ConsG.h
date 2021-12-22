@@ -63,6 +63,8 @@ protected:
     ConstraintEdge::ConstraintEdgeSetTy LoadCGEdgeSet;
     ConstraintEdge::ConstraintEdgeSetTy StoreCGEdgeSet;
 
+    std::set<std::tuple<NodeID, NodeID>> blackListEdges;
+
     void buildCG();
 
     void destroy();
@@ -100,6 +102,10 @@ public:
     virtual ~ConstraintGraph()
     {
         destroy();
+    }
+
+    inline void blackListEdge(ConstraintEdge* edge) {
+        blackListEdges.insert(std::make_tuple(edge->getSrcID(), edge->getDstID()));
     }
 
     /// Get/add/remove constraint node

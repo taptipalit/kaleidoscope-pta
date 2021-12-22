@@ -200,6 +200,8 @@ bool AndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge* edge)
         pushIntoWorklist(dst);
     }
 
+    (const_cast<ConstraintEdge*>(edge))->incrementSolvedCount();
+
     return changed;
 }
 

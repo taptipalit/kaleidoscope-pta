@@ -302,7 +302,7 @@ bool Andersen::processLoad(NodeID node, const ConstraintEdge* load)
     numOfProcessedLoad++;
 
     NodeID dst = load->getDstID();
-    return addCopyEdge(node, dst);
+    return addCopyEdge(node, dst, 1);
 }
 
 /*!
@@ -322,7 +322,7 @@ bool Andersen::processStore(NodeID node, const ConstraintEdge* store)
     numOfProcessedStore++;
 
     NodeID src = store->getSrcID();
-    return addCopyEdge(src, node);
+    return addCopyEdge(src, node, 1);
 }
 
 /*!
@@ -480,12 +480,62 @@ void Andersen::mergeSccCycle()
  */
 void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
 {
-    for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
-    {
-        NodeID subNodeId = *nodeIt;
-        if (subNodeId != repNodeId)
+    bool skipCycle = false;
+    if (Options::Kaleidoscope) {
+        // Find the edges in the cycle
+        std::set<ConstraintEdge*> cycleEdges;
+
+        if (subNodes.count() > 1) {
+            for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
+            {
+                NodeID subNodeId = *nodeIt;
+                ConstraintNode* node = consCG->getConstraintNode(subNodeId);
+                for (ConstraintEdge* outEdge: node->getDirectOutEdges()) {
+                    if (subNodes.test(outEdge->getDstID())) {
+                        cycleEdges.insert(outEdge);
+                    }
+                }
+            }   
+        }
+
+        ConstraintEdge* edgeToRemove = nullptr;
+        // Find the first indirect cycle edges
+        for (ConstraintEdge* cycleEdge: cycleEdges) {
+            PAGNode* srcNode = pag->getPAGNode(cycleEdge->getSrcID());
+            PAGNode* dstNode = pag->getPAGNode(cycleEdge->getDstID());
+            Type* srcTy = nullptr;
+            Type* dstTy = nullptr;
+            if (srcNode) {
+                srcTy = const_cast<Type*>(srcNode->getType());
+            }
+            if (dstTy) {
+                dstTy = const_cast<Type*>(dstNode->getType());
+            }
+            if (srcTy == dstTy) // don't remove same typed nodes
+                continue;
+            if (cycleEdge->getDerivedWeight() > 0 && cycleEdge->getSolvedCount() == 0) {
+                edgeToRemove = cycleEdge;
+                //llvm::errs() << "Remove and blacklist edge: " << edgeToRemove->getSrcID() << " : " << edgeToRemove->getDstID() << "\n";
+                consCG->removeDirectEdge(cycleEdge);
+                consCG->blackListEdge(cycleEdge);
+                skipCycle = true;
+                break;
+            }
+        }
+    }
+    
+    if (!skipCycle) {
+        for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
         {
-            mergeNodeToRep(subNodeId, repNodeId);
+            NodeID subNodeId = *nodeIt;
+            if (subNodeId != repNodeId)
+            {
+                mergeNodeToRep(subNodeId, repNodeId);
+            }
+        }
+
+        if (subNodes.count() > 1) {
+            llvm::errs() << "Could not prevent cycle collapse\n";
         }
     }
 }

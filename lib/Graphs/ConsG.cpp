@@ -172,6 +172,11 @@ AddrCGEdge* ConstraintGraph::addAddrCGEdge(NodeID src, NodeID dst)
  */
 CopyCGEdge* ConstraintGraph::addCopyCGEdge(NodeID src, NodeID dst)
 {
+    // Did we blacklist this edge? 
+    if (blackListEdges.find(std::make_tuple(src, dst)) != 
+            blackListEdges.end()) {
+        return nullptr;
+    }
 
     ConstraintNode* srcNode = getConstraintNode(src);
     ConstraintNode* dstNode = getConstraintNode(dst);

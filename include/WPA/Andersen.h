@@ -156,6 +156,8 @@ class Andersen:  public AndersenBase
 {
 
 
+
+    int numChildren;
 public:
     typedef SCCDetection<ConstraintGraph*> CGSCC;
     typedef OrderedMap<CallSite, NodeID> CallSite2DummyValPN;
@@ -164,6 +166,7 @@ public:
     Andersen(PAG* _pag, PTATY type = Andersen_WPA, bool alias_check = true)
         :  AndersenBase(_pag, type, alias_check), pwcOpt(false), diffOpt(true)
     {
+        numChildren = 0;
     }
 
     /// Destructor
@@ -177,6 +180,14 @@ public:
 
     /// Finalize analysis
     virtual void finalize();
+
+    void updateNumChildren() {
+        numChildren++;
+    }
+
+    int getNumChildren() {
+        return numChildren;
+    }
 
     /// Reset data
     inline void resetData()
@@ -331,10 +342,12 @@ protected:
     //@}
 
     /// Add copy edge on constraint graph
-    virtual inline bool addCopyEdge(NodeID src, NodeID dst)
+    virtual inline bool addCopyEdge(NodeID src, NodeID dst, int derivedWeight=0)
     {
-        if (consCG->addCopyCGEdge(src, dst))
+        ConstraintEdge* copyEdge = consCG->addCopyCGEdge(src, dst);
+        if (copyEdge)
         {
+            copyEdge->setDerivedWeight(derivedWeight);
             updatePropaPts(src, dst);
             return true;
         }

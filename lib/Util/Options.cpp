@@ -5,6 +5,12 @@
 
 namespace SVF
 {
+    const llvm::cl::opt<bool> Options::Kaleidoscope(
+        "kaleidoscope",
+        llvm::cl::init(true),
+        llvm::cl::desc("Analyze with the kaleidoscope system"));
+
+
     const llvm::cl::opt<bool> Options::MarkedClocksOnly(
         "marked-clocks-only",
         llvm::cl::init(false),

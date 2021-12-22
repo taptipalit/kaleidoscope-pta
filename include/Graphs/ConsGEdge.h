@@ -57,6 +57,10 @@ public:
     };
 private:
     EdgeID edgeId;
+
+    int derivedWeight;
+    int solvedCount;
+
 public:
     /// Constructor
     ConstraintEdge(ConstraintNode* s, ConstraintNode* d, ConstraintEdgeK k, EdgeID id = 0) : GenericConsEdgeTy(s,d,k),edgeId(id)
@@ -83,6 +87,14 @@ public:
     }
     /// Constraint edge type
     typedef GenericNode<ConstraintNode,ConstraintEdge>::GEdgeSetTy ConstraintEdgeSetTy;
+
+    int getDerivedWeight() { return derivedWeight; } 
+
+    void setDerivedWeight(int derivedWeight) { this->derivedWeight = derivedWeight; }
+
+    int getSolvedCount() { return solvedCount; }
+
+    void incrementSolvedCount() { this->solvedCount++; }
 
 };
 
