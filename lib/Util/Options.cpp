@@ -10,6 +10,11 @@ namespace SVF
         llvm::cl::init(true),
         llvm::cl::desc("Analyze with the kaleidoscope system"));
 
+    const llvm::cl::opt<bool> Options::KaliBreakNullTypeEdges(
+        "kali-break-null-type-edges",
+        llvm::cl::init(true),
+        llvm::cl::desc("Kaleidoscope: compare null types"));
+
 
     const llvm::cl::opt<bool> Options::MarkedClocksOnly(
         "marked-clocks-only",

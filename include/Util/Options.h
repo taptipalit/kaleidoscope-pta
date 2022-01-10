@@ -20,6 +20,8 @@ public:
 
     static const llvm::cl::opt<bool> Kaleidoscope;
 
+    static const llvm::cl::opt<bool> KaliBreakNullTypeEdges;
+
     /// If set, only return the clock when getClk is called as getClk(true).
     /// Retrieving the clock is slow but it should be fine for a few calls.
     /// This is good for benchmarking when we don't need to know how long processLoad

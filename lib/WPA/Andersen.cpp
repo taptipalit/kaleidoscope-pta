@@ -481,6 +481,8 @@ void Andersen::mergeSccCycle()
 void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
 {
     bool skipCycle = false;
+
+    bool isPWC = false;
     if (Options::Kaleidoscope) {
         // Find the edges in the cycle
         std::set<ConstraintEdge*> cycleEdges;
@@ -492,6 +494,9 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                 ConstraintNode* node = consCG->getConstraintNode(subNodeId);
                 for (ConstraintEdge* outEdge: node->getDirectOutEdges()) {
                     if (subNodes.test(outEdge->getDstID())) {
+                        if (NormalGepCGEdge* ngep = SVFUtil::dyn_cast<NormalGepCGEdge>(outEdge)) {
+                            isPWC = true;
+                        }
                         cycleEdges.insert(outEdge);
                     }
                 }
@@ -500,26 +505,33 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
 
         ConstraintEdge* edgeToRemove = nullptr;
         // Find the first indirect cycle edges
-        for (ConstraintEdge* cycleEdge: cycleEdges) {
-            PAGNode* srcNode = pag->getPAGNode(cycleEdge->getSrcID());
-            PAGNode* dstNode = pag->getPAGNode(cycleEdge->getDstID());
-            Type* srcTy = nullptr;
-            Type* dstTy = nullptr;
-            if (srcNode) {
-                srcTy = const_cast<Type*>(srcNode->getType());
-            }
-            if (dstTy) {
-                dstTy = const_cast<Type*>(dstNode->getType());
-            }
-            if (srcTy == dstTy) // don't remove same typed nodes
-                continue;
-            if (cycleEdge->getDerivedWeight() > 0 && cycleEdge->getSolvedCount() == 0) {
-                edgeToRemove = cycleEdge;
-                //llvm::errs() << "Remove and blacklist edge: " << edgeToRemove->getSrcID() << " : " << edgeToRemove->getDstID() << "\n";
-                consCG->removeDirectEdge(cycleEdge);
-                consCG->blackListEdge(cycleEdge);
-                skipCycle = true;
-                break;
+        if (isPWC) {
+            for (ConstraintEdge* cycleEdge: cycleEdges) {
+                PAGNode* srcNode = pag->getPAGNode(cycleEdge->getSrcID());
+                PAGNode* dstNode = pag->getPAGNode(cycleEdge->getDstID());
+                Type* srcTy = nullptr;
+                Type* dstTy = nullptr;
+                if (srcNode) {
+                    srcTy = const_cast<Type*>(srcNode->getType());
+                }
+                if (dstTy) {
+                    dstTy = const_cast<Type*>(dstNode->getType());
+                }
+                if (srcTy == dstTy) // don't remove same typed nodes
+                    continue;
+
+                if (!Options::KaliBreakNullTypeEdges) {
+                    if (!srcTy || !dstTy)
+                        continue;
+                }
+                if (cycleEdge->getDerivedWeight() > 0 && cycleEdge->getSolvedCount() == 0) {
+                    edgeToRemove = cycleEdge;
+                    //llvm::errs() << "Remove and blacklist edge: " << edgeToRemove->getSrcID() << " : " << edgeToRemove->getDstID() << "\n";
+                    consCG->removeDirectEdge(cycleEdge);
+                    consCG->blackListEdge(cycleEdge);
+                    skipCycle = true;
+                    break;
+                }
             }
         }
     }
@@ -534,7 +546,7 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
             }
         }
 
-        if (subNodes.count() > 1) {
+        if (subNodes.count() > 1 && isPWC) {
             llvm::errs() << "Could not prevent cycle collapse\n";
         }
     }
