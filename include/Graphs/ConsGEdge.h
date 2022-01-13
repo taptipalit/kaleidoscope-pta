@@ -61,9 +61,13 @@ private:
     int derivedWeight;
     int solvedCount;
 
+    ConstraintEdge* origEdge;
+
+    Value* llvmValue;
+
 public:
     /// Constructor
-    ConstraintEdge(ConstraintNode* s, ConstraintNode* d, ConstraintEdgeK k, EdgeID id = 0) : GenericConsEdgeTy(s,d,k),edgeId(id)
+    ConstraintEdge(ConstraintNode* s, ConstraintNode* d, ConstraintEdgeK k, EdgeID id = 0) : GenericConsEdgeTy(s,d,k),edgeId(id),derivedWeight(0),origEdge(nullptr),llvmValue(nullptr)
     {
     }
     /// Destructor
@@ -87,6 +91,22 @@ public:
     }
     /// Constraint edge type
     typedef GenericNode<ConstraintNode,ConstraintEdge>::GEdgeSetTy ConstraintEdgeSetTy;
+
+    void setSourceEdge(ConstraintEdge* edge) {
+        origEdge = edge;
+    }
+
+    ConstraintEdge* getSourceEdge() {
+        return origEdge;
+    }
+
+    void setLLVMValue(const Value* val) {
+        llvmValue = const_cast<Value*>(val);
+    }
+
+    Value* getLLVMValue() {
+        return llvmValue;
+    }
 
     int getDerivedWeight() { return derivedWeight; } 
 
@@ -206,6 +226,7 @@ private:
     LoadCGEdge();                      ///< place holder
     LoadCGEdge(const LoadCGEdge &);  ///< place holder
     void operator=(const LoadCGEdge &); ///< place holder
+
 
 public:
     /// Methods for support type inquiry through isa, cast, and dyn_cast:

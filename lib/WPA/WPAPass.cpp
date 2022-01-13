@@ -74,12 +74,55 @@ WPAPass::~WPAPass()
  */
 void WPAPass::runOnModule(SVFModule* svfModule)
 {
-    for (u32_t i = 0; i<= PointerAnalysis::Default_PTA; i++)
-    {
-        if (Options::PASelected.isSet(i))
-            runPointerAnalysis(svfModule, i);
+    llvm::Module *module = SVF::LLVMModuleSet::getLLVMModuleSet()->getMainLLVMModule(); 
+
+    // Add the global map
+    // A map id: last-seen-value
+    LLVMContext& ctx = module->getContext();
+    Type* int8Ty = Type::getInt8Ty(ctx);
+    Type* int64Ty = Type::getInt64Ty(ctx);
+    Type* voidPtrTy = PointerType::get(int8Ty, 0);
+
+    // Add the view-switching function
+
+	// The switch-view function
+	llvm::ArrayRef<Type*> switchViewFnTypeArr = {};
+
+	FunctionType* switchViewFnTy = FunctionType::get(Type::getVoidTy(module->getContext()), switchViewFnTypeArr, false);
+	Function::Create(switchViewFnTy, Function::ExternalLinkage, "switch_view", module);
+
+	/*
+    std::vector<Type*> types;
+    types.push_back(voidPtrTy);
+    types.push_back(int64Ty);
+    llvm::ArrayRef<Type*> typesArrayRef(types);
+    StructType* mapElemTy = StructType::get(ctx, typesArrayRef);
+    */
+    ArrayType* mapTy = ArrayType::get(voidPtrTy, 100);
+    ConstantAggregateZero* zero = ConstantAggregateZero::get(mapTy);
+    GlobalVariable* kaliMap = new GlobalVariable(*module, 
+            /*Type=*/mapTy,
+            /*isConstant=*/false,
+            /*Linkage=*/GlobalValue::CommonLinkage,
+            /*Initializer=*/zero, 
+            /*Name=*/"kaliMap");
+
+    if (Options::KaliRunTestDriver) {
+        invariantInstrumentationDriver(*module);
+    } else {
+        for (u32_t i = 0; i<= PointerAnalysis::Default_PTA; i++)
+        {
+            if (Options::PASelected.isSet(i))
+                runPointerAnalysis(svfModule, i);
+        }
+        assert(!ptaVector.empty() && "No pointer analysis is specified.\n");
     }
-    assert(!ptaVector.empty() && "No pointer analysis is specified.\n");
+
+    std::error_code EC;
+    llvm::raw_fd_ostream OS("instrumented-module.bc", EC,
+            llvm::sys::fs::F_None);
+    WriteBitcodeToFile(*module, OS);
+    OS.flush();
 }
 
 /*!
@@ -90,6 +133,45 @@ bool WPAPass::runOnModule(Module& module)
     SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(module);
     runOnModule(svfModule);
     return false;
+}
+
+void WPAPass::invariantInstrumentationDriver(Module& module) {
+    PAG* pag = nullptr;
+    Andersen* andersen = new Andersen(pag);
+    for (Module::iterator MIterator = module.begin(); MIterator != module.end(); MIterator++) {
+        if (Function *F = SVFUtil::dyn_cast<Function>(&*MIterator)) {
+            std::vector<AllocaInst*> stackVars;
+            std::vector<LoadInst*> loadInsts;
+            std::vector<StoreInst*> storeInsts;
+            if (!F->isDeclaration()) {
+                // Find the AllocaInsts
+                for (llvm::inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F); I != E; ++I) {
+                    if (AllocaInst* stackVar = SVFUtil::dyn_cast<AllocaInst>(&*I)) {
+                        if (stackVar->hasName() && stackVar->getName() == "retval") {
+                            continue;
+                        }
+                        stackVars.push_back(stackVar);
+                    } else if (LoadInst* loadInst = SVFUtil::dyn_cast<LoadInst>(&*I)) {
+                        // Is it a pointer
+                        if (SVFUtil::isa<PointerType>(loadInst->getType())) {
+                            loadInsts.push_back(loadInst);
+                        }
+                    } else if (StoreInst* storeInst = SVFUtil::dyn_cast<StoreInst>(&*I)) {
+                        if (SVFUtil::isa<PointerType>(storeInst->getType())) {
+                            storeInsts.push_back(storeInst);
+                        }
+                    }
+                }
+                for (LoadInst* loadInst: loadInsts) {
+                    for (AllocaInst* stackVar: stackVars) {
+                        andersen->instrumentInvariant(loadInst, stackVar);
+                        break;
+                    }
+                    break;
+                }
+            }
+        }
+    }
 }
 
 /*!

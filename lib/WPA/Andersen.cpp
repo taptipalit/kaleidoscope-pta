@@ -30,6 +30,8 @@
 #include "Util/Options.h"
 #include "SVF-FE/LLVMUtil.h"
 #include "WPA/Andersen.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
+
 
 using namespace SVF;
 using namespace SVFUtil;
@@ -302,7 +304,7 @@ bool Andersen::processLoad(NodeID node, const ConstraintEdge* load)
     numOfProcessedLoad++;
 
     NodeID dst = load->getDstID();
-    return addCopyEdge(node, dst, 1);
+    return addCopyEdge(node, dst, 1, const_cast<ConstraintEdge*>(load));
 }
 
 /*!
@@ -322,7 +324,7 @@ bool Andersen::processStore(NodeID node, const ConstraintEdge* store)
     numOfProcessedStore++;
 
     NodeID src = store->getSrcID();
-    return addCopyEdge(src, node, 1);
+    return addCopyEdge(src, node, 1, const_cast<ConstraintEdge*>(store));
 }
 
 /*!
@@ -473,6 +475,33 @@ void Andersen::mergeSccCycle()
     }
 }
 
+bool Andersen::addInvariant(ConstraintEdge* edge) {
+    ConstraintEdge* srcEdge = edge->getSourceEdge();
+    if (LoadCGEdge* loadEdge = dyn_cast<LoadCGEdge>(srcEdge)) {
+        NodeID ptdID = edge->getSrcID();
+        PAGNode* ptdNode = pag->getPAGNode(ptdID);
+        if (!ptdNode->hasValue()) {
+            llvm::errs() << "ptd doesn't have value\n";
+            return false;
+        }
+        Value* ptdValue = const_cast<Value*>(ptdNode->getValue());
+        instrumentInvariant(loadEdge->getLLVMValue(), ptdValue);
+        return true;
+
+    } else if (StoreCGEdge* storeEdge = dyn_cast<StoreCGEdge>(srcEdge)) {
+        NodeID ptdID = edge->getDstID();
+        PAGNode* ptdNode = pag->getPAGNode(ptdID);
+        if (!ptdNode->hasValue()) {
+            llvm::errs() << "ptd doesn't have value\n";
+            return false;
+        }
+        Value* ptdValue = const_cast<Value*>(ptdNode->getValue());
+        instrumentInvariant(storeEdge->getLLVMValue(), ptdValue);
+        return true;
+
+    }
+    return false;
+}
 
 /**
  * Union points-to of subscc nodes into its rep nodes
@@ -524,8 +553,16 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                     if (!srcTy || !dstTy)
                         continue;
                 }
+
+                if (!cycleEdge->getSourceEdge()) {
+                    continue;
+                }
+
                 if (cycleEdge->getDerivedWeight() > 0 && cycleEdge->getSolvedCount() == 0) {
                     edgeToRemove = cycleEdge;
+                    if (!addInvariant(edgeToRemove)) {
+                        continue;
+                    }
                     //llvm::errs() << "Remove and blacklist edge: " << edgeToRemove->getSrcID() << " : " << edgeToRemove->getDstID() << "\n";
                     consCG->removeDirectEdge(cycleEdge);
                     consCG->blackListEdge(cycleEdge);
@@ -683,6 +720,125 @@ bool Andersen::updateCallGraph(const CallSiteToFunPtrMap& callsites)
     timeOfUpdateCallGraph += (cgUpdateEnd - cgUpdateStart) / TIMEINTERVAL;
 
     return (!newEdges.empty());
+}
+
+void Andersen::instrumentInvariant(Value* memoryInstVal, Value* target) {
+    // Some types
+    LLVMContext& C = target->getContext();
+    Type* voidPtrTy = PointerType::get(Type::getInt8Ty(C), 0);
+    IntegerType* i64Ty = IntegerType::get(C, 64);
+
+    // We need to check the pointer operand of the memory instruction
+    // does not point to target
+
+    // So first we record the last value of the address of the target (for
+    // stack targets), or the returned address for mallocs etc
+
+    Instruction* memoryInst = SVFUtil::dyn_cast<Instruction>(memoryInstVal);
+    assert(memoryInst && "origEdge not an instruction?");
+    Module* mod = memoryInst->getParent()->getParent()->getParent();
+    int id = -1;
+    bool targetRecorded = false;
+
+    if (valueToKaliIdMap.find(target) == valueToKaliIdMap.end()) {
+        // Give this guy a static id
+        id = kaliInvariantId++;
+        valueToKaliIdMap[target] = id;
+        kaliIdToValueMap[id] = target;
+    } else {
+        targetRecorded = true;
+    }
+
+    // Get the global map
+    GlobalVariable* kaliMapGVar = mod->getGlobalVariable("kaliMap");
+    assert(kaliMapGVar && "can't find KaliMap");
+
+    // Get the index into the kaliMap
+    Constant* zero = ConstantInt::get(i64Ty, 0);
+    Constant* idConstant = ConstantInt::get(i64Ty, id);
+    std::vector<Value*> idxVec;
+    idxVec.push_back(zero);
+    idxVec.push_back(idConstant);
+    llvm::ArrayRef<Value*> idxs(idxVec);
+
+    if (!targetRecorded) {
+        if (!SVFUtil::isa<GlobalVariable>(target)) {
+            assert(SVFUtil::isa<AllocaInst>(target) || SVFUtil::isa<CallInst>(target) && "what else can it be?");
+            Instruction* targetInst = SVFUtil::dyn_cast<Instruction>(target); 
+
+            // Now instrument the stack allocation to store the address into the
+            // the global kaliMap
+            IRBuilder builder(targetInst->getNextNode());
+
+            // Get the index into the kaliMap
+            Value* gepIndexMapEntry = builder.CreateGEP(kaliMapGVar, idxs);
+            Value* gepIndexAddress = builder.CreateGEP(gepIndexMapEntry, idConstant);
+
+            // Cast the address to void*
+            Value* voidPtrAddress = builder.CreateBitCast(targetInst, voidPtrTy);
+
+            // Do the store now!
+            StoreInst* storeInst = builder.CreateStore(voidPtrAddress, gepIndexAddress);
+        } else {
+            GlobalVariable* gvar = SVFUtil::dyn_cast<GlobalVariable>(target);
+
+            Function* mainFunction = mod->getFunction("main");
+            IRBuilder builder(mainFunction->getEntryBlock().getFirstNonPHIOrDbg());
+
+
+            Value* gepIndexMapEntry = builder.CreateGEP(kaliMapGVar, idxs);
+            Value* gepIndexAddress = builder.CreateGEP(gepIndexMapEntry, idConstant);
+
+            // Cast the address to void*
+            Value* voidPtrAddress = builder.CreateBitCast(target, voidPtrTy);
+
+            // Do the store now!
+            StoreInst* storeInst = builder.CreateStore(voidPtrAddress, gepIndexAddress);
+        }
+    }
+
+    // IN case of a load, the memory instruction does not need to be
+    // instrumented any further
+    LoadInst* ldPtrInst = nullptr;
+    if (LoadInst* ldInst = SVFUtil::dyn_cast<LoadInst>(memoryInst)) {
+        ldPtrInst = ldInst;
+    } else if (StoreInst* storeInst = SVFUtil::dyn_cast<StoreInst>(memoryInst)) {
+        Value* ptr = storeInst->getPointerOperand();
+        Instruction* storePtrInst = SVFUtil::dyn_cast<Instruction>(ptr);
+        assert(storePtrInst && "store pointer not inst?");
+        IRBuilder builder1(storePtrInst);
+        Type* loadTy = ptr->getType()->getPointerElementType();
+        assert(loadTy && "Should be of pointer type");
+        ldPtrInst = builder1.CreateLoad(loadTy, storePtrInst);
+    } else {
+        assert(false && "what is this instruction?");
+    }
+
+    IRBuilder builder(ldPtrInst->getNextNode());
+    // Cast it to void*
+    Value* bitCastInst = builder.CreateBitCast(ldPtrInst, voidPtrTy); // <== 1 
+    
+    // Load the target value from the kaliMap
+
+    Value* gepIndexMapEntry = builder.CreateGEP(kaliMapGVar, idxs);
+    Value* gepIndexAddress = builder.CreateGEP(gepIndexMapEntry, idConstant);
+
+    LoadInst* targetLoadVal = builder.CreateLoad(voidPtrTy, gepIndexAddress); // <=== 2
+
+    // Compare 1 and 2
+    Value* cmp = builder.CreateICmpEQ(bitCastInst, targetLoadVal);
+    Instruction* cmpInst = SVFUtil::dyn_cast<Instruction>(cmp);
+    assert(cmpInst && "Cmp must be instruction");
+
+    // Ah, now split the current basic block
+    BasicBlock* headBB = ldPtrInst->getParent();
+    Instruction* termInst = llvm::SplitBlockAndInsertIfThen(cmpInst, cmpInst->getNextNode(), false);
+
+    // Insert call to the switch view function
+    Function* switchViewFn = mod->getFunction("switch_view");
+    IRBuilder switcherBuilder(termInst);
+    switcherBuilder.CreateCall(switchViewFn->getFunctionType(), switchViewFn);
+    
 }
 
 void Andersen::heapAllocatorViaIndCall(CallSite cs, NodePairSet &cpySrcNodes)

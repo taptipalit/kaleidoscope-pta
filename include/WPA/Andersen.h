@@ -154,10 +154,11 @@ protected:
  */
 class Andersen:  public AndersenBase
 {
-
-
-
     int numChildren;
+    std::map<Value*, int> valueToKaliIdMap;
+    std::map<int, Value*> kaliIdToValueMap;
+    int kaliInvariantId;
+
 public:
     typedef SCCDetection<ConstraintGraph*> CGSCC;
     typedef OrderedMap<CallSite, NodeID> CallSite2DummyValPN;
@@ -181,6 +182,8 @@ public:
     /// Finalize analysis
     virtual void finalize();
 
+    bool addInvariant(ConstraintEdge*);
+
     void updateNumChildren() {
         numChildren++;
     }
@@ -188,6 +191,8 @@ public:
     int getNumChildren() {
         return numChildren;
     }
+
+    void instrumentInvariant(llvm::Value*, llvm::Value*);
 
     /// Reset data
     inline void resetData()
@@ -342,12 +347,13 @@ protected:
     //@}
 
     /// Add copy edge on constraint graph
-    virtual inline bool addCopyEdge(NodeID src, NodeID dst, int derivedWeight=0)
+    virtual inline bool addCopyEdge(NodeID src, NodeID dst, int derivedWeight=0, ConstraintEdge* sourceEdge=nullptr)
     {
         ConstraintEdge* copyEdge = consCG->addCopyCGEdge(src, dst);
         if (copyEdge)
         {
             copyEdge->setDerivedWeight(derivedWeight);
+            copyEdge->setSourceEdge(sourceEdge);
             updatePropaPts(src, dst);
             return true;
         }

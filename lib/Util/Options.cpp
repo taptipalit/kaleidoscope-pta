@@ -16,6 +16,11 @@ namespace SVF
         llvm::cl::desc("Kaleidoscope: compare null types"));
 
 
+    const llvm::cl::opt<bool> Options::KaliRunTestDriver(
+        "kali-run-test-driver",
+        llvm::cl::init(false),
+        llvm::cl::desc("Kaleidoscope: Kali run test driver"));
+
     const llvm::cl::opt<bool> Options::MarkedClocksOnly(
         "marked-clocks-only",
         llvm::cl::init(false),

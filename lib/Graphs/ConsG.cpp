@@ -62,7 +62,8 @@ void ConstraintGraph::buildCG()
                 copys.end(); iter != eiter; ++iter)
     {
         PAGEdge* edge = *iter;
-        addCopyCGEdge(edge->getSrcID(),edge->getDstID());
+        ConstraintEdge* consEdge = addCopyCGEdge(edge->getSrcID(),edge->getDstID());
+        consEdge->setLLVMValue(edge->getValue());
     }
 
     PAGEdge::PAGEdgeSetTy& calls = getPAGEdgeSet(PAGEdge::Call);
@@ -70,7 +71,8 @@ void ConstraintGraph::buildCG()
                 calls.end(); iter != eiter; ++iter)
     {
         PAGEdge* edge = *iter;
-        addCopyCGEdge(edge->getSrcID(),edge->getDstID());
+        ConstraintEdge* consEdge = addCopyCGEdge(edge->getSrcID(),edge->getDstID());
+        consEdge->setLLVMValue(edge->getValue());
     }
 
     PAGEdge::PAGEdgeSetTy& rets = getPAGEdgeSet(PAGEdge::Ret);
@@ -78,7 +80,8 @@ void ConstraintGraph::buildCG()
                 rets.end(); iter != eiter; ++iter)
     {
         PAGEdge* edge = *iter;
-        addCopyCGEdge(edge->getSrcID(),edge->getDstID());
+        ConstraintEdge* consEdge = addCopyCGEdge(edge->getSrcID(),edge->getDstID());
+        consEdge->setLLVMValue(edge->getValue());
     }
 
     PAGEdge::PAGEdgeSetTy& tdfks = getPAGEdgeSet(PAGEdge::ThreadFork);
@@ -86,7 +89,8 @@ void ConstraintGraph::buildCG()
                 tdfks.end(); iter != eiter; ++iter)
     {
         PAGEdge* edge = *iter;
-        addCopyCGEdge(edge->getSrcID(),edge->getDstID());
+        ConstraintEdge* consEdge = addCopyCGEdge(edge->getSrcID(),edge->getDstID());
+        consEdge->setLLVMValue(edge->getValue());
     }
 
     PAGEdge::PAGEdgeSetTy& tdjns = getPAGEdgeSet(PAGEdge::ThreadJoin);
@@ -94,7 +98,8 @@ void ConstraintGraph::buildCG()
                 tdjns.end(); iter != eiter; ++iter)
     {
         PAGEdge* edge = *iter;
-        addCopyCGEdge(edge->getSrcID(),edge->getDstID());
+        ConstraintEdge* consEdge = addCopyCGEdge(edge->getSrcID(),edge->getDstID());
+        consEdge->setLLVMValue(edge->getValue());
     }
 
     PAGEdge::PAGEdgeSetTy& ngeps = getPAGEdgeSet(PAGEdge::NormalGep);
@@ -118,7 +123,8 @@ void ConstraintGraph::buildCG()
                 stores.end(); iter != eiter; ++iter)
     {
         PAGEdge* edge = *iter;
-        addLoadCGEdge(edge->getSrcID(),edge->getDstID());
+        ConstraintEdge* consEdge = addLoadCGEdge(edge->getSrcID(),edge->getDstID());
+        consEdge->setLLVMValue(edge->getValue());
     }
 
     PAGEdge::PAGEdgeSetTy& loads = getPAGEdgeSet(PAGEdge::Store);
@@ -126,7 +132,8 @@ void ConstraintGraph::buildCG()
                 loads.end(); iter != eiter; ++iter)
     {
         PAGEdge* edge = *iter;
-        addStoreCGEdge(edge->getSrcID(),edge->getDstID());
+        ConstraintEdge* consEdge = addStoreCGEdge(edge->getSrcID(),edge->getDstID());
+        consEdge->setLLVMValue(edge->getValue());
     }
 }
 
