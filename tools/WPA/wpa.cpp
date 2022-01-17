@@ -54,6 +54,10 @@ int main(int argc, char ** argv)
     }
 
     SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
+
+   // llvm::Module *module = SVF::LLVMModuleSet::getLLVMModuleSet()->getMainLLVMModule(); 
+
+    
     svfModule->buildSymbolTableInfo();
 
     WPAPass *wpa = new WPAPass();

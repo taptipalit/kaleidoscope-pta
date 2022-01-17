@@ -62,6 +62,7 @@ SVFModule* LLVMModuleSet::buildSVFModule(Module &mod)
     svfModule = new SVFModule(mod.getModuleIdentifier());
     modules.emplace_back(mod);
 
+    
     build();
 
     return svfModule;
@@ -77,6 +78,40 @@ SVFModule* LLVMModuleSet::buildSVFModule(const std::vector<std::string> &moduleN
         svfModule = new SVFModule(*moduleNameVec.begin());
     else
         svfModule = new SVFModule();
+
+
+    llvm::Module *module = SVF::LLVMModuleSet::getLLVMModuleSet()->getMainLLVMModule();
+    // Add the global map
+    // A map id: last-seen-value
+    LLVMContext& ctx = module->getContext();
+    Type* int8Ty = Type::getInt8Ty(ctx);
+    Type* int64Ty = Type::getInt64Ty(ctx);
+    Type* voidPtrTy = PointerType::get(int8Ty, 0);
+
+    // Add the view-switching function
+
+    // The switch-view function
+    llvm::ArrayRef<Type*> switchViewFnTypeArr = {};
+
+    FunctionType* switchViewFnTy = FunctionType::get(Type::getVoidTy(module->getContext()), switchViewFnTypeArr, false);
+    Function::Create(switchViewFnTy, Function::ExternalLinkage, "switch_view", module);
+
+    /*
+       std::vector<Type*> types;
+       types.push_back(voidPtrTy);
+       types.push_back(int64Ty);
+       llvm::ArrayRef<Type*> typesArrayRef(types);
+       StructType* mapElemTy = StructType::get(ctx, typesArrayRef);
+       */
+    ArrayType* mapTy = ArrayType::get(voidPtrTy, 100);
+    ConstantAggregateZero* zero = ConstantAggregateZero::get(mapTy);
+    GlobalVariable* kaliMap = new GlobalVariable(*module, 
+            /*Type=*/mapTy,
+            /*isConstant=*/false,
+            /*Linkage=*/GlobalValue::CommonLinkage,
+            /*Initializer=*/zero, 
+            /*Name=*/"kaliMap");
+
 
     build();
 
