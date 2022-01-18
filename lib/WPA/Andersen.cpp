@@ -558,7 +558,7 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                     continue;
                 }
 
-                if (cycleEdge->getDerivedWeight() > 0 && cycleEdge->getSolvedCount() == 0) {
+                if (cycleEdge->getDerivedWeight() > 0 && cycleEdge->getSolvedCount() == 0 && SVFUtil::isa<StoreCGEdge>(cycleEdge->getSourceEdge())) {
                     edgeToRemove = cycleEdge;
                     if (!addInvariant(edgeToRemove)) {
                         continue;
@@ -722,7 +722,7 @@ bool Andersen::updateCallGraph(const CallSiteToFunPtrMap& callsites)
     return (!newEdges.empty());
 }
 
-void Andersen::instrumentInvariant(Value* memoryInstVal, Value* target) {
+bool Andersen::instrumentInvariant(Value* memoryInstVal, Value* target) {
     // Some types
     LLVMContext& C = target->getContext();
     Type* voidPtrTy = PointerType::get(Type::getInt8Ty(C), 0);
@@ -735,6 +735,16 @@ void Andersen::instrumentInvariant(Value* memoryInstVal, Value* target) {
     // stack targets), or the returned address for mallocs etc
 
     Instruction* memoryInst = SVFUtil::dyn_cast<Instruction>(memoryInstVal);
+    llvm::errs() << "Memory operation: " << *memoryInst << " in function: " << memoryInst->getParent()->getParent()->getName() << " and target: " << *target << "\n";
+
+    // Check if we're picking obviously bad edges
+    if (LoadInst* loadInst = SVFUtil::dyn_cast<LoadInst>(memoryInst)) {
+        if (loadInst->getPointerOperand() == target)
+            return false;
+    } else if (StoreInst* storeInst = SVFUtil::dyn_cast<StoreInst>(memoryInst)) {
+        if (storeInst->getPointerOperand() == target) 
+            return false;
+    }
     assert(memoryInst && "origEdge not an instruction?");
     Module* mod = memoryInst->getParent()->getParent()->getParent();
     int id = -1;
@@ -746,6 +756,7 @@ void Andersen::instrumentInvariant(Value* memoryInstVal, Value* target) {
         valueToKaliIdMap[target] = id;
         kaliIdToValueMap[id] = target;
     } else {
+        id = valueToKaliIdMap[target];
         targetRecorded = true;
     }
 
@@ -806,7 +817,8 @@ void Andersen::instrumentInvariant(Value* memoryInstVal, Value* target) {
         Value* ptr = storeInst->getPointerOperand();
         Instruction* storePtrInst = SVFUtil::dyn_cast<Instruction>(ptr);
         assert(storePtrInst && "store pointer not inst?");
-        IRBuilder builder1(storePtrInst);
+        IRBuilder builder1(storePtrInst->getNextNode());
+        // llvm::errs() << "Adding instrumentation after store inst: " << *storePtrInst << " in function: " << storePtrInst->getParent()->getParent()->getName() << "\n";
         Type* loadTy = ptr->getType()->getPointerElementType();
         assert(loadTy && "Should be of pointer type");
         ldPtrInst = builder1.CreateLoad(loadTy, storePtrInst);
@@ -838,6 +850,8 @@ void Andersen::instrumentInvariant(Value* memoryInstVal, Value* target) {
     Function* switchViewFn = mod->getFunction("switch_view");
     IRBuilder switcherBuilder(termInst);
     switcherBuilder.CreateCall(switchViewFn->getFunctionType(), switchViewFn);
+    
+    return true;
     
 }
 

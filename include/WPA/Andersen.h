@@ -192,7 +192,7 @@ public:
         return numChildren;
     }
 
-    void instrumentInvariant(llvm::Value*, llvm::Value*);
+    bool instrumentInvariant(llvm::Value*, llvm::Value*);
 
     /// Reset data
     inline void resetData()

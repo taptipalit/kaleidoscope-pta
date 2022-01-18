@@ -87,6 +87,7 @@ void WPAPass::runOnModule(SVFModule* svfModule)
         assert(!ptaVector.empty() && "No pointer analysis is specified.\n");
     }
 
+    //module->dump();
     std::error_code EC;
     llvm::raw_fd_ostream OS("instrumented-module.bc", EC,
             llvm::sys::fs::F_None);
