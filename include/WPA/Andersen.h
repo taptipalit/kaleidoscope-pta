@@ -168,6 +168,7 @@ public:
         :  AndersenBase(_pag, type, alias_check), pwcOpt(false), diffOpt(true)
     {
         numChildren = 0;
+        kaliInvariantId = 0;
     }
 
     /// Destructor

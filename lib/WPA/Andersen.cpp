@@ -477,6 +477,10 @@ void Andersen::mergeSccCycle()
 
 bool Andersen::addInvariant(ConstraintEdge* edge) {
     ConstraintEdge* srcEdge = edge->getSourceEdge();
+    // Some complex shit
+    if (!SVFUtil::isa<LoadInst>(srcEdge->getLLVMValue()) && !SVFUtil::isa<StoreInst>(srcEdge->getLLVMValue())) {
+        return false;
+    }
     if (LoadCGEdge* loadEdge = dyn_cast<LoadCGEdge>(srcEdge)) {
         NodeID ptdID = edge->getSrcID();
         PAGNode* ptdNode = pag->getPAGNode(ptdID);
@@ -485,8 +489,9 @@ bool Andersen::addInvariant(ConstraintEdge* edge) {
             return false;
         }
         Value* ptdValue = const_cast<Value*>(ptdNode->getValue());
-        instrumentInvariant(loadEdge->getLLVMValue(), ptdValue);
-        return true;
+        if (instrumentInvariant(loadEdge->getLLVMValue(), ptdValue)) {
+            return true;
+        }
 
     } else if (StoreCGEdge* storeEdge = dyn_cast<StoreCGEdge>(srcEdge)) {
         NodeID ptdID = edge->getDstID();
@@ -496,8 +501,9 @@ bool Andersen::addInvariant(ConstraintEdge* edge) {
             return false;
         }
         Value* ptdValue = const_cast<Value*>(ptdNode->getValue());
-        instrumentInvariant(storeEdge->getLLVMValue(), ptdValue);
-        return true;
+        if (instrumentInvariant(storeEdge->getLLVMValue(), ptdValue)) {
+            return true;
+        }
 
     }
     return false;
@@ -534,21 +540,37 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
 
         ConstraintEdge* edgeToRemove = nullptr;
         // Find the first indirect cycle edges
-        if (isPWC) {
+        if (cycleEdges.size() > 0 /*&& isPWC*/) {
+            //llvm::errs() << "Cycle edges start:\n";
             for (ConstraintEdge* cycleEdge: cycleEdges) {
                 PAGNode* srcNode = pag->getPAGNode(cycleEdge->getSrcID());
                 PAGNode* dstNode = pag->getPAGNode(cycleEdge->getDstID());
                 Type* srcTy = nullptr;
                 Type* dstTy = nullptr;
+
                 if (srcNode) {
                     srcTy = const_cast<Type*>(srcNode->getType());
                 }
-                if (dstTy) {
+                if (dstNode) {
                     dstTy = const_cast<Type*>(dstNode->getType());
+                }
+                /*
+                if (srcTy) {
+                    llvm::errs() << *srcTy << "--";
+                } else {
+                    llvm::errs() << "nullptr " << *srcNode << "--";
+                }
+                if (dstTy) {
+                    llvm::errs() << *dstTy << "--";
+                } else {
+                    llvm::errs() << "nullptr " << *dstNode << "--";
                 }
                 if (srcTy == dstTy) // don't remove same typed nodes
                     continue;
+                    */
 
+
+                llvm::errs() << "\n";
                 if (!Options::KaliBreakNullTypeEdges) {
                     if (!srcTy || !dstTy)
                         continue;
@@ -558,18 +580,21 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                     continue;
                 }
 
-                if (cycleEdge->getDerivedWeight() > 0 && cycleEdge->getSolvedCount() == 0 && SVFUtil::isa<StoreCGEdge>(cycleEdge->getSourceEdge())) {
+                if (cycleEdge->getDerivedWeight() > 0 /*&& SVFUtil::isa<StoreCGEdge>(cycleEdge->getSourceEdge())*/) {
                     edgeToRemove = cycleEdge;
                     if (!addInvariant(edgeToRemove)) {
                         continue;
                     }
-                    //llvm::errs() << "Remove and blacklist edge: " << edgeToRemove->getSrcID() << " : " << edgeToRemove->getDstID() << "\n";
+                    llvm::errs() << "Remove and blacklist edge: " << edgeToRemove->getSrcID() << " : " << edgeToRemove->getDstID() << "\n";
                     consCG->removeDirectEdge(cycleEdge);
-                    consCG->blackListEdge(cycleEdge);
+                    //consCG->blackListEdge(cycleEdge);
+                    // Shouldn't blacklist because this edge can be derived
+                    // along another path
                     skipCycle = true;
                     break;
                 }
             }
+            //llvm::errs() << "Cycle edges end:\n";
         }
     }
     
@@ -586,6 +611,8 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
         if (subNodes.count() > 1 && isPWC) {
             llvm::errs() << "Could not prevent cycle collapse\n";
         }
+    } else {
+        llvm::errs() << "Successfully prevented cycle collapse\n";
     }
 }
 
@@ -735,7 +762,7 @@ bool Andersen::instrumentInvariant(Value* memoryInstVal, Value* target) {
     // stack targets), or the returned address for mallocs etc
 
     Instruction* memoryInst = SVFUtil::dyn_cast<Instruction>(memoryInstVal);
-    llvm::errs() << "Memory operation: " << *memoryInst << " in function: " << memoryInst->getParent()->getParent()->getName() << " and target: " << *target << "\n";
+    //llvm::errs() << "Memory operation: " << *memoryInst << " in function: " << memoryInst->getParent()->getParent()->getName() << " and target: " << *target << "\n";
 
     // Check if we're picking obviously bad edges
     if (LoadInst* loadInst = SVFUtil::dyn_cast<LoadInst>(memoryInst)) {
@@ -774,7 +801,9 @@ bool Andersen::instrumentInvariant(Value* memoryInstVal, Value* target) {
 
     if (!targetRecorded) {
         if (!SVFUtil::isa<GlobalVariable>(target)) {
-            assert(SVFUtil::isa<AllocaInst>(target) || SVFUtil::isa<CallInst>(target) && "what else can it be?");
+            // TODO: Can also be a GEP
+            // Need to assess this carefully for both the source and target
+            assert(SVFUtil::isa<AllocaInst>(target) || SVFUtil::isa<CallInst>(target) || SVFUtil::isa<LoadInst>(target) || SVFUtil::isa<GetElementPtrInst>(target) && "what else can it be?");
             Instruction* targetInst = SVFUtil::dyn_cast<Instruction>(target); 
 
             // Now instrument the stack allocation to store the address into the
@@ -783,28 +812,30 @@ bool Andersen::instrumentInvariant(Value* memoryInstVal, Value* target) {
 
             // Get the index into the kaliMap
             Value* gepIndexMapEntry = builder.CreateGEP(kaliMapGVar, idxs);
-            Value* gepIndexAddress = builder.CreateGEP(gepIndexMapEntry, idConstant);
+            //Value* gepIndexAddress = builder.CreateGEP(gepIndexMapEntry, idConstant);
 
             // Cast the address to void*
             Value* voidPtrAddress = builder.CreateBitCast(targetInst, voidPtrTy);
 
             // Do the store now!
-            StoreInst* storeInst = builder.CreateStore(voidPtrAddress, gepIndexAddress);
+            StoreInst* storeInst = builder.CreateStore(voidPtrAddress, gepIndexMapEntry);
         } else {
             GlobalVariable* gvar = SVFUtil::dyn_cast<GlobalVariable>(target);
 
             Function* mainFunction = mod->getFunction("main");
-            IRBuilder builder(mainFunction->getEntryBlock().getFirstNonPHIOrDbg());
+            Instruction* inst = mainFunction->getEntryBlock().getFirstNonPHIOrDbg();
+            IRBuilder builder(inst);
 
 
             Value* gepIndexMapEntry = builder.CreateGEP(kaliMapGVar, idxs);
-            Value* gepIndexAddress = builder.CreateGEP(gepIndexMapEntry, idConstant);
+            //Value* gepIndexAddress = builder.CreateGEP(gepIndexMapEntry, idConstant);
 
             // Cast the address to void*
             Value* voidPtrAddress = builder.CreateBitCast(target, voidPtrTy);
 
             // Do the store now!
-            StoreInst* storeInst = builder.CreateStore(voidPtrAddress, gepIndexAddress);
+            StoreInst* storeInst = builder.CreateStore(voidPtrAddress, gepIndexMapEntry);
+            inst->getParent()->dump();
         }
     }
 

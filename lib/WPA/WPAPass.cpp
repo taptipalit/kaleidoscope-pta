@@ -69,6 +69,126 @@ WPAPass::~WPAPass()
     ptaVector.clear();
 }
 
+void WPAPass::doCFI(Module& M) {
+
+    std::map<Value*, std::vector<Function*>> indCallMap;
+    std::vector<llvm::CallInst*> indCallProhibited;
+
+    PAG* pag = _pta->getPAG();
+    for (Module::iterator MIterator = M.begin(); MIterator != M.end(); MIterator++) {
+        if (Function* F = SVFUtil::dyn_cast<Function>(&*MIterator)) {
+            for (inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F); I != E; ++I) {
+                if (CallInst* callInst = SVFUtil::dyn_cast<CallInst>(&*I)) {
+                    if (callInst->isIndirectCall()) {
+                        NodeID callNodePtr = pag->getPAGNode(pag->getValueNode(callInst->getCalledOperand()))->getId(); 
+                        const PointsTo& pts = _pta->getPts(callNodePtr);
+                        bool hasTarget = false;
+                        for (PointsTo::iterator piter = pts.begin(), epiter = pts.end(); piter != epiter; ++piter) {
+                            NodeID ptd = *piter;
+                            PAGNode* tgtNode = pag->getPAGNode(ptd);
+                            if (tgtNode->hasValue()) {
+                                if (const Function* tgtFunction = SVFUtil::dyn_cast<Function>(tgtNode->getValue())) {
+                                    hasTarget = true;
+                                    indCallMap[callInst].push_back(const_cast<Function*>(tgtFunction));
+                                }
+                            }
+                        }
+                        if (!hasTarget) {
+                            indCallProhibited.push_back(callInst);
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
+
+    /*
+    for (auto const& x : indCallMap)
+    {
+        llvm::errs() << "tgt: " << x.second.size() << "\n";
+    }
+    */
+
+    // The block function
+    std::vector<Type*> blockTypes;
+    llvm::ArrayRef<Type*> blockArr(blockTypes);
+
+    FunctionType* blockCFIFnTy = FunctionType::get(Type::getVoidTy(M.getContext()), blockArr, false);
+    Function* blockCFI = Function::Create(blockCFIFnTy, Function::ExternalLinkage, "blockCFI", &M);
+
+    // The checkCFI function
+    std::vector<Type*> typeCheckCFI;
+
+    Type* longType = IntegerType::get(M.getContext(), 64);
+    Type* intType = IntegerType::get(M.getContext(), 32);
+    Type* ptrToLongType = PointerType::get(longType, 0);
+    typeCheckCFI.push_back(ptrToLongType);
+    typeCheckCFI.push_back(intType);
+    typeCheckCFI.push_back(ptrToLongType); // checkCFI(unsigned long* valid_tgts, int len, unsigned long* tgt);
+
+    llvm::ArrayRef<Type*> typeCheckCFIArr(typeCheckCFI);
+
+    FunctionType* checkCFIFnTy = FunctionType::get(Type::getVoidTy(M.getContext()), typeCheckCFIArr, false);
+    Function* checkCFI = Function::Create(checkCFIFnTy, Function::ExternalLinkage, "checkCFI", &M);
+
+    for (auto pair: indCallMap) {
+        Value* key = pair.first;
+        // Need an alloca inst, of type arraytype, with len =
+        // indCallMap[key].size()
+        int len = pair.second.size();
+        ArrayType* checkArrTy = ArrayType::get(ptrToLongType, len);
+        // Create an AllocaInst
+        CallInst* indCall = SVFUtil::dyn_cast<CallInst>(key);
+        assert(indCall && "Should be a call instruction");
+        IRBuilder Builder(indCall);
+
+        // Create the arguments
+        // 1. a. Create an array (allocainst) with list of function pointers, each casted
+        // to ulong*
+        // b. Cast it to a ulong*, this is your first argument
+        // 2. Create a i32 from the length, this is your second argument
+        // 3. Cast the actual target in callInst->getCalledValue(), this is
+        // your last argument
+
+        Constant* clen = ConstantInt::get(intType, len);
+        std::vector<Constant*> tgtVec;
+        for (Function* validTgt: pair.second) {
+            tgtVec.push_back(ConstantExpr::getBitCast(validTgt, ptrToLongType));
+
+        }
+        llvm::ArrayRef<Constant*> tgtArrRef(tgtVec);
+        Constant* validTgtsConstArr = ConstantArray::get(checkArrTy, tgtArrRef);
+
+        GlobalVariable* validTgtsGVar = new GlobalVariable(M, checkArrTy, true, GlobalValue::ExternalLinkage,
+                validTgtsConstArr);
+
+        // Cast to ulong*
+        Value* arg1 = Builder.CreateBitOrPointerCast(validTgtsGVar, ptrToLongType);
+        Value* arg2 = clen;
+        Value* arg3 = Builder.CreateBitOrPointerCast(indCall->getCalledOperand(), ptrToLongType);
+
+        Builder.CreateCall(checkCFI, {arg1, arg2, arg3});
+    }
+
+    for (CallInst* prohibCall: indCallProhibited) {
+        IRBuilder Builder(prohibCall);
+        Builder.CreateCall(blockCFI, {});
+    }
+    /*
+
+    // Finally, set the startCFI
+    GlobalVariable* startCFI = new GlobalVariable(M, intType, true, GlobalValue::ExternalLinkage,
+            0, "startCFI");
+
+    IRBuilder<> CFIBuilder(wpaPass->getCurrInst());
+    Constant* one = ConstantInt::get(intType, 1);
+    CFIBuilder.CreateStore(one, startCFI);
+    */
+
+}
+
 /*!
  * We start from here
  */
@@ -85,7 +205,10 @@ void WPAPass::runOnModule(SVFModule* svfModule)
                 runPointerAnalysis(svfModule, i);
         }
         assert(!ptaVector.empty() && "No pointer analysis is specified.\n");
+
+        doCFI(*module);
     }
+
 
     //module->dump();
     std::error_code EC;
@@ -108,6 +231,7 @@ bool WPAPass::runOnModule(Module& module)
 void WPAPass::invariantInstrumentationDriver(Module& module) {
     PAG* pag = nullptr;
     Andersen* andersen = new Andersen(pag);
+    Module::GlobalListType &Globals = module.getGlobalList();
     for (Module::iterator MIterator = module.begin(); MIterator != module.end(); MIterator++) {
         if (Function *F = SVFUtil::dyn_cast<Function>(&*MIterator)) {
             std::vector<AllocaInst*> stackVars;
@@ -133,11 +257,18 @@ void WPAPass::invariantInstrumentationDriver(Module& module) {
                     }
                 }
                 for (LoadInst* loadInst: loadInsts) {
+                    /*
                     for (AllocaInst* stackVar: stackVars) {
                         andersen->instrumentInvariant(loadInst, stackVar);
-                        //break;
+                        break;
                     }
-                    //break;
+                    break;
+                    */
+                    for (GlobalVariable& globalVar: Globals) {
+                        if (globalVar.getName() == "myGlobal") {
+                            andersen->instrumentInvariant(loadInst, &globalVar);
+                        }
+                    }
                 }
             }
         }

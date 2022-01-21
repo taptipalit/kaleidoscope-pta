@@ -130,6 +130,8 @@ public:
 
     virtual void invariantInstrumentationDriver(llvm::Module&);
 
+    virtual void doCFI(llvm::Module&);
+
 private:
     /// Create pointer analysis according to specified kind and analyze the module.
     void runPointerAnalysis(SVFModule* svfModule, u32_t kind);
