@@ -484,11 +484,20 @@ bool Andersen::addInvariant(ConstraintEdge* edge) {
     if (LoadCGEdge* loadEdge = dyn_cast<LoadCGEdge>(srcEdge)) {
         NodeID ptdID = edge->getSrcID();
         PAGNode* ptdNode = pag->getPAGNode(ptdID);
+        if (SVFUtil::isa<GepObjPN>(ptdNode)) {
+            return false;
+        } else if(isFieldInsensitive(ptdID)) {
+            return false;
+        }
+
         if (!ptdNode->hasValue()) {
             llvm::errs() << "ptd doesn't have value\n";
             return false;
         }
         Value* ptdValue = const_cast<Value*>(ptdNode->getValue());
+        if (SVFUtil::isa<CallInst>(ptdValue)) {
+            return true;
+        }
         if (instrumentInvariant(loadEdge->getLLVMValue(), ptdValue)) {
             return true;
         }
@@ -496,11 +505,19 @@ bool Andersen::addInvariant(ConstraintEdge* edge) {
     } else if (StoreCGEdge* storeEdge = dyn_cast<StoreCGEdge>(srcEdge)) {
         NodeID ptdID = edge->getDstID();
         PAGNode* ptdNode = pag->getPAGNode(ptdID);
+        if (SVFUtil::isa<GepObjPN>(ptdNode)) {
+            return false;
+        } else if(isFieldInsensitive(ptdID)) {
+                return false;
+        }
         if (!ptdNode->hasValue()) {
             llvm::errs() << "ptd doesn't have value\n";
             return false;
         }
         Value* ptdValue = const_cast<Value*>(ptdNode->getValue());
+        if (SVFUtil::isa<CallInst>(ptdValue)) {
+            return true;
+        }
         if (instrumentInvariant(storeEdge->getLLVMValue(), ptdValue)) {
             return true;
         }
@@ -565,15 +582,18 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                 } else {
                     llvm::errs() << "nullptr " << *dstNode << "--";
                 }
+
+                */
                 if (srcTy == dstTy) // don't remove same typed nodes
                     continue;
-                    */
 
 
-                llvm::errs() << "\n";
+                //llvm::errs() << "\n";
                 if (!Options::KaliBreakNullTypeEdges) {
-                    if (!srcTy || !dstTy)
+                    if (!srcTy || !dstTy) {
+                        llvm::errs() << "srcTy = null? " << srcTy << " dstTy = null? " << dstTy << "\n";
                         continue;
+                    }
                 }
 
                 if (!cycleEdge->getSourceEdge()) {
@@ -755,6 +775,7 @@ bool Andersen::instrumentInvariant(Value* memoryInstVal, Value* target) {
     Type* voidPtrTy = PointerType::get(Type::getInt8Ty(C), 0);
     IntegerType* i64Ty = IntegerType::get(C, 64);
 
+    //llvm::errs() << "Target = " << *target << "\n";
     // We need to check the pointer operand of the memory instruction
     // does not point to target
 

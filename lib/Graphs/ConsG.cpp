@@ -262,6 +262,9 @@ VariantGepCGEdge* ConstraintGraph::addVariantGepCGEdge(NodeID src, NodeID dst)
  */
 LoadCGEdge* ConstraintGraph::addLoadCGEdge(NodeID src, NodeID dst)
 {
+    if (src == 224119 && dst == 74467) {
+        llvm::errs() << "break!\n";
+    }
     ConstraintNode* srcNode = getConstraintNode(src);
     ConstraintNode* dstNode = getConstraintNode(dst);
     if(hasEdge(srcNode,dstNode,ConstraintEdge::Load))
@@ -305,31 +308,49 @@ void ConstraintGraph::reTargetDstOfEdge(ConstraintEdge* edge, ConstraintNode* ne
 {
     NodeID newDstNodeID = newDstNode->getId();
     NodeID srcId = edge->getSrcID();
+
+    Value* oldValue = edge->getLLVMValue();
     if(LoadCGEdge* load = SVFUtil::dyn_cast<LoadCGEdge>(edge))
     {
         removeLoadEdge(load);
-        addLoadCGEdge(srcId,newDstNodeID);
+        ConstraintEdge* newEdge = addLoadCGEdge(srcId,newDstNodeID);
+        if (newEdge) {
+            newEdge->setLLVMValue(oldValue);
+        }
     }
     else if(StoreCGEdge* store = SVFUtil::dyn_cast<StoreCGEdge>(edge))
     {
         removeStoreEdge(store);
-        addStoreCGEdge(srcId,newDstNodeID);
+        ConstraintEdge* newEdge = addStoreCGEdge(srcId,newDstNodeID);
+        if (newEdge) {
+            newEdge->setLLVMValue(oldValue);
+        }
     }
     else if(CopyCGEdge* copy = SVFUtil::dyn_cast<CopyCGEdge>(edge))
     {
         removeDirectEdge(copy);
-        addCopyCGEdge(srcId,newDstNodeID);
+        ConstraintEdge* newEdge = addCopyCGEdge(srcId,newDstNodeID);
+        if (newEdge) {
+            newEdge->setLLVMValue(oldValue);
+        }
     }
     else if(NormalGepCGEdge* gep = SVFUtil::dyn_cast<NormalGepCGEdge>(edge))
     {
         const LocationSet ls = gep->getLocationSet();
         removeDirectEdge(gep);
-        addNormalGepCGEdge(srcId,newDstNodeID,ls);
+        ConstraintEdge* newEdge = addNormalGepCGEdge(srcId,newDstNodeID,ls);
+        if (newEdge) {
+            newEdge->setLLVMValue(oldValue);
+        }
     }
     else if(VariantGepCGEdge* gep = SVFUtil::dyn_cast<VariantGepCGEdge>(edge))
     {
+
         removeDirectEdge(gep);
-        addVariantGepCGEdge(srcId,newDstNodeID);
+        ConstraintEdge* newEdge = addVariantGepCGEdge(srcId,newDstNodeID);
+        if (newEdge) {
+            newEdge->setLLVMValue(oldValue);
+        }
     }
     else if(AddrCGEdge* addr = SVFUtil::dyn_cast<AddrCGEdge>(edge))
     {
@@ -349,31 +370,48 @@ void ConstraintGraph::reTargetSrcOfEdge(ConstraintEdge* edge, ConstraintNode* ne
 {
     NodeID newSrcNodeID = newSrcNode->getId();
     NodeID dstId = edge->getDstID();
+    Value* oldValue = edge->getLLVMValue();
+
     if(LoadCGEdge* load = SVFUtil::dyn_cast<LoadCGEdge>(edge))
     {
         removeLoadEdge(load);
-        addLoadCGEdge(newSrcNodeID,dstId);
+        ConstraintEdge* newEdge = addLoadCGEdge(newSrcNodeID,dstId);
+        if (newEdge) {
+            newEdge->setLLVMValue(oldValue);
+        }
     }
     else if(StoreCGEdge* store = SVFUtil::dyn_cast<StoreCGEdge>(edge))
     {
         removeStoreEdge(store);
-        addStoreCGEdge(newSrcNodeID,dstId);
+        ConstraintEdge* newEdge = addStoreCGEdge(newSrcNodeID,dstId);
+        if (newEdge) {
+            newEdge->setLLVMValue(oldValue);
+        }
     }
     else if(CopyCGEdge* copy = SVFUtil::dyn_cast<CopyCGEdge>(edge))
     {
         removeDirectEdge(copy);
-        addCopyCGEdge(newSrcNodeID,dstId);
+        ConstraintEdge* newEdge = addCopyCGEdge(newSrcNodeID,dstId);
+        if (newEdge) {
+            newEdge->setLLVMValue(oldValue);
+        }
     }
     else if(NormalGepCGEdge* gep = SVFUtil::dyn_cast<NormalGepCGEdge>(edge))
     {
         const LocationSet ls = gep->getLocationSet();
         removeDirectEdge(gep);
-        addNormalGepCGEdge(newSrcNodeID,dstId,ls);
+        ConstraintEdge* newEdge = addNormalGepCGEdge(newSrcNodeID,dstId,ls);
+        if (newEdge) {
+            newEdge->setLLVMValue(oldValue);
+        }
     }
     else if(VariantGepCGEdge* gep = SVFUtil::dyn_cast<VariantGepCGEdge>(edge))
     {
         removeDirectEdge(gep);
-        addVariantGepCGEdge(newSrcNodeID,dstId);
+        ConstraintEdge* newEdge = addVariantGepCGEdge(newSrcNodeID,dstId);
+        if (newEdge) {
+            newEdge->setLLVMValue(oldValue);
+        }
     }
     else if(AddrCGEdge* addr = SVFUtil::dyn_cast<AddrCGEdge>(edge))
     {
