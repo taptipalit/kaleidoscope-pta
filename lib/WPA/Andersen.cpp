@@ -475,12 +475,9 @@ void Andersen::mergeSccCycle()
     }
 }
 
+/*
 bool Andersen::addInvariant(ConstraintEdge* edge) {
     ConstraintEdge* srcEdge = edge->getSourceEdge();
-    // Some complex shit
-    if (!SVFUtil::isa<LoadInst>(srcEdge->getLLVMValue()) && !SVFUtil::isa<StoreInst>(srcEdge->getLLVMValue())) {
-        return false;
-    }
     if (LoadCGEdge* loadEdge = dyn_cast<LoadCGEdge>(srcEdge)) {
         NodeID ptdID = edge->getSrcID();
         PAGNode* ptdNode = pag->getPAGNode(ptdID);
@@ -525,6 +522,7 @@ bool Andersen::addInvariant(ConstraintEdge* edge) {
     }
     return false;
 }
+*/
 
 /**
  * Union points-to of subscc nodes into its rep nodes
@@ -559,62 +557,18 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
         // Find the first indirect cycle edges
         if (cycleEdges.size() > 0 /*&& isPWC*/) {
             //llvm::errs() << "Cycle edges start:\n";
-            for (ConstraintEdge* cycleEdge: cycleEdges) {
-                PAGNode* srcNode = pag->getPAGNode(cycleEdge->getSrcID());
-                PAGNode* dstNode = pag->getPAGNode(cycleEdge->getDstID());
-                Type* srcTy = nullptr;
-                Type* dstTy = nullptr;
-
-                if (srcNode) {
-                    srcTy = const_cast<Type*>(srcNode->getType());
-                }
-                if (dstNode) {
-                    dstTy = const_cast<Type*>(dstNode->getType());
-                }
-                /*
-                if (srcTy) {
-                    llvm::errs() << *srcTy << "--";
-                } else {
-                    llvm::errs() << "nullptr " << *srcNode << "--";
-                }
-                if (dstTy) {
-                    llvm::errs() << *dstTy << "--";
-                } else {
-                    llvm::errs() << "nullptr " << *dstNode << "--";
-                }
-
-                */
-                if (srcTy == dstTy) // don't remove same typed nodes
-                    continue;
-
-
-                //llvm::errs() << "\n";
-                if (!Options::KaliBreakNullTypeEdges) {
-                    if (!srcTy || !dstTy) {
-                        llvm::errs() << "srcTy = null? " << srcTy << " dstTy = null? " << dstTy << "\n";
-                        continue;
-                    }
-                }
-
-                if (!cycleEdge->getSourceEdge()) {
-                    continue;
-                }
-
-                if (cycleEdge->getDerivedWeight() > 0 /*&& SVFUtil::isa<StoreCGEdge>(cycleEdge->getSourceEdge())*/) {
-                    edgeToRemove = cycleEdge;
-                    if (!addInvariant(edgeToRemove)) {
-                        continue;
-                    }
-                    llvm::errs() << "Remove and blacklist edge: " << edgeToRemove->getSrcID() << " : " << edgeToRemove->getDstID() << "\n";
-                    consCG->removeDirectEdge(cycleEdge);
-                    //consCG->blackListEdge(cycleEdge);
-                    // Shouldn't blacklist because this edge can be derived
-                    // along another path
-                    skipCycle = true;
-                    break;
-                }
+            std::tuple<ConstraintEdge*, Instruction*, Value*> tup = pickCycleEdgeToBreak(cycleEdges);
+            ConstraintEdge* candidateEdge = std::get<0>(tup);
+            Instruction* memInst = std::get<1>(tup);
+            Value* tgtValue = std::get<2>(tup);
+            if (memInst && tgtValue) {
+                instrumentInvariant(memInst, tgtValue);
+                consCG->removeDirectEdge(candidateEdge);
+                //consCG->blackListEdge(cycleEdge);
+                // Shouldn't blacklist because this edge can be derived
+                // along another path
+                skipCycle = true;
             }
-            //llvm::errs() << "Cycle edges end:\n";
         }
     }
     
@@ -769,31 +723,108 @@ bool Andersen::updateCallGraph(const CallSiteToFunPtrMap& callsites)
     return (!newEdges.empty());
 }
 
-bool Andersen::instrumentInvariant(Value* memoryInstVal, Value* target) {
+std::tuple<ConstraintEdge*, Instruction*, Value*> Andersen::pickCycleEdgeToBreak(std::set<ConstraintEdge*>& cycleEdges) {
+    ConstraintEdge* candidateEdge = nullptr;
+    for (ConstraintEdge* candidateEdge: cycleEdges) {
+        PAGNode* srcNode = pag->getPAGNode(candidateEdge->getSrcID());
+        PAGNode* dstNode = pag->getPAGNode(candidateEdge->getDstID());
+        Type* srcTy = nullptr;
+        Type* dstTy = nullptr;
+
+        if (srcNode) {
+            srcTy = const_cast<Type*>(srcNode->getType());
+        }
+        if (dstNode) {
+            dstTy = const_cast<Type*>(dstNode->getType());
+        }
+
+        if (srcTy == dstTy)
+            continue;
+
+        if (!Options::KaliBreakNullTypeEdges) {
+            if (!srcTy || !dstTy) {
+                llvm::errs() << "srcTy = null? " << srcTy << " dstTy = null? " << dstTy << "\n";
+                continue;
+            }
+        }
+
+        if (!candidateEdge->getSourceEdge()) {
+            continue;
+        }
+
+        if (candidateEdge->getDerivedWeight() > 0) {
+            ConstraintEdge* srcEdge = candidateEdge->getSourceEdge();
+
+            LoadInst* loadMemInst = SVFUtil::dyn_cast<LoadInst>(srcEdge->getLLVMValue());
+            StoreInst* storeMemInst = SVFUtil::dyn_cast<StoreInst>(srcEdge->getLLVMValue());
+
+            // We don't handle any edge other than load and store
+            if (!loadMemInst && !storeMemInst) {
+                continue;
+            }
+
+            PAGNode* tgtPtdNode = nullptr;
+            if (LoadCGEdge* loadEdge = SVFUtil::dyn_cast<LoadCGEdge>(srcEdge)) {
+                NodeID ptdID = candidateEdge->getSrcID();
+                tgtPtdNode = pag->getPAGNode(ptdID);
+                
+            } else if (StoreCGEdge* storeEdge = SVFUtil::dyn_cast<StoreCGEdge>(srcEdge)) {
+                NodeID ptdID = candidateEdge->getDstID();
+                tgtPtdNode = pag->getPAGNode(ptdID);
+            }
+
+            if (SVFUtil::isa<GepObjPN>(tgtPtdNode)) {
+                continue;
+            } else if(isFieldInsensitive(tgtPtdNode->getId())) {
+                continue;
+            }
+
+            if (!tgtPtdNode->hasValue()) {
+                continue;
+            }
+            Value* tgtValue = const_cast<Value*>(tgtPtdNode->getValue());
+            
+            if (SVFUtil::isa<CallInst>(tgtValue)) {
+                continue;
+            }
+
+            Instruction* memInst = nullptr;
+            // Don't pick obvious edges. These are the ones that were created
+            // by the C -> IR transformations
+            if (loadMemInst) {
+                if (loadMemInst->getPointerOperand() == tgtValue) {
+                    continue;
+                }
+                memInst = loadMemInst;
+            } else if (storeMemInst) {
+                if (storeMemInst->getPointerOperand() == tgtValue) {
+                    continue;
+                }
+                memInst = storeMemInst;
+            } else {
+                assert(false && "What else?");
+            }
+
+            return std::make_tuple(candidateEdge, memInst, tgtValue);
+
+        }
+    }
+    return std::make_tuple(nullptr, nullptr, nullptr);
+}
+
+void Andersen::instrumentInvariant(Instruction* memoryInst, Value* target) {
     // Some types
     LLVMContext& C = target->getContext();
     Type* voidPtrTy = PointerType::get(Type::getInt8Ty(C), 0);
     IntegerType* i64Ty = IntegerType::get(C, 64);
 
-    //llvm::errs() << "Target = " << *target << "\n";
     // We need to check the pointer operand of the memory instruction
     // does not point to target
 
     // So first we record the last value of the address of the target (for
     // stack targets), or the returned address for mallocs etc
 
-    Instruction* memoryInst = SVFUtil::dyn_cast<Instruction>(memoryInstVal);
-    //llvm::errs() << "Memory operation: " << *memoryInst << " in function: " << memoryInst->getParent()->getParent()->getName() << " and target: " << *target << "\n";
 
-    // Check if we're picking obviously bad edges
-    if (LoadInst* loadInst = SVFUtil::dyn_cast<LoadInst>(memoryInst)) {
-        if (loadInst->getPointerOperand() == target)
-            return false;
-    } else if (StoreInst* storeInst = SVFUtil::dyn_cast<StoreInst>(memoryInst)) {
-        if (storeInst->getPointerOperand() == target) 
-            return false;
-    }
-    assert(memoryInst && "origEdge not an instruction?");
     Module* mod = memoryInst->getParent()->getParent()->getParent();
     int id = -1;
     bool targetRecorded = false;
@@ -860,6 +891,8 @@ bool Andersen::instrumentInvariant(Value* memoryInstVal, Value* target) {
         }
     }
 
+
+    //llvm::errs() << "Target = " << *target << "\n";
     // IN case of a load, the memory instruction does not need to be
     // instrumented any further
     LoadInst* ldPtrInst = nullptr;
@@ -902,8 +935,6 @@ bool Andersen::instrumentInvariant(Value* memoryInstVal, Value* target) {
     Function* switchViewFn = mod->getFunction("switch_view");
     IRBuilder switcherBuilder(termInst);
     switcherBuilder.CreateCall(switchViewFn->getFunctionType(), switchViewFn);
-    
-    return true;
     
 }
 

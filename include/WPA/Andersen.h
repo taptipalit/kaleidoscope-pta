@@ -36,6 +36,7 @@
 #include "Graphs/PAG.h"
 #include "Graphs/ConsG.h"
 #include "Graphs/OfflineConsG.h"
+#include <tuple>
 
 namespace SVF
 {
@@ -183,7 +184,7 @@ public:
     /// Finalize analysis
     virtual void finalize();
 
-    bool addInvariant(ConstraintEdge*);
+    // bool addInvariant(ConstraintEdge*);
 
     void updateNumChildren() {
         numChildren++;
@@ -193,7 +194,9 @@ public:
         return numChildren;
     }
 
-    bool instrumentInvariant(llvm::Value*, llvm::Value*);
+    std::tuple<ConstraintEdge*, llvm::Instruction*, llvm::Value*> pickCycleEdgeToBreak(std::set<ConstraintEdge*>&);
+
+    void instrumentInvariant(llvm::Instruction*, llvm::Value*);
 
     /// Reset data
     inline void resetData()
