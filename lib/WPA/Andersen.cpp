@@ -783,6 +783,8 @@ std::tuple<ConstraintEdge*, Instruction*, Value*> Andersen::pickCycleEdgeToBreak
                 continue;
             }
             Value* tgtValue = const_cast<Value*>(tgtPtdNode->getValue());
+
+            NodeID valID = (pag->hasValueNode(tgtValue)? pag->getValueNode(tgtValue): -1);
             
             if (SVFUtil::isa<CallInst>(tgtValue)) {
                 continue;
@@ -805,6 +807,7 @@ std::tuple<ConstraintEdge*, Instruction*, Value*> Andersen::pickCycleEdgeToBreak
                 assert(false && "What else?");
             }
 
+            llvm::errs() << "Adding invariant on target obj: " << tgtPtdNode->getId() << " val: " << valID << "\n";
             return std::make_tuple(candidateEdge, memInst, tgtValue);
 
         }
@@ -1090,6 +1093,7 @@ bool Andersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
 void Andersen::mergeNodeToRep(NodeID nodeId,NodeID newRepId)
 {
 
+    llvm::errs() << "Merging node: " << nodeId << " to newRepId " << newRepId << "\n";
     ConstraintNode* node = consCG->getConstraintNode(nodeId);
     bool gepInsideScc = mergeSrcToTgt(nodeId,newRepId);
     /// 1. if find gep edges inside SCC cycle, the rep node will become a PWC node and
