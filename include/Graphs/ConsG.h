@@ -105,6 +105,7 @@ public:
     }
 
     inline void blackListEdge(ConstraintEdge* edge) {
+        llvm::errs() << "Blacklist edge: " << edge->getSrcID() << " " << edge->getDstID() << "\n";
         blackListEdges.insert(std::make_tuple(edge->getSrcID(), edge->getDstID()));
     }
 

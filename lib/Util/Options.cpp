@@ -286,7 +286,7 @@ namespace SVF
 
     const llvm::cl::opt<unsigned> Options::StatBudget(
         "stat-limit", 
-        llvm::cl::init(20),
+        llvm::cl::init(200),
         llvm::cl::desc("Iteration budget for On-the-fly statistics")
     );
 
@@ -322,7 +322,7 @@ namespace SVF
 
     const llvm::cl::opt<unsigned> Options::IndirectCallLimit(
         "ind-call-limit",  
-        llvm::cl::init(50000),
+        llvm::cl::init(500000),
         llvm::cl::desc("Indirect solved call edge limit")
     );
 

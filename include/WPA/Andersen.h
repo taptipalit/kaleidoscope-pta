@@ -302,6 +302,7 @@ protected:
     virtual inline const PointsTo& getDiffPts(NodeID id)
     {
         NodeID rep = sccRepNode(id);
+        //llvm::errs() << "Node ID: " << id << " Rep id: " << rep << "\n";
         if (enableDiff())
             return getDiffPTDataTy()->getDiffPts(rep);
         else

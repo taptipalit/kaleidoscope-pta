@@ -532,12 +532,15 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
 {
     bool skipCycle = false;
 
+    // For Kaleidoscope: Find the edges in the cycle
+    std::set<ConstraintEdge*> cycleEdges;
+
     bool isPWC = false;
     if (Options::Kaleidoscope) {
-        // Find the edges in the cycle
-        std::set<ConstraintEdge*> cycleEdges;
-
+      
         if (subNodes.count() > 1) {
+            // Dump the constraint graph
+            //consCG->dump("consCG_before_cyc");
             for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
             {
                 NodeID subNodeId = *nodeIt;
@@ -562,17 +565,36 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
             Instruction* memInst = std::get<1>(tup);
             Value* tgtValue = std::get<2>(tup);
             if (memInst && tgtValue) {
+                llvm::errs() << "Adding invariant\n";
                 instrumentInvariant(memInst, tgtValue);
                 consCG->removeDirectEdge(candidateEdge);
-                //consCG->blackListEdge(cycleEdge);
+                cycleEdges.erase(candidateEdge);
+                // TODO FIX THIS
+                consCG->blackListEdge(candidateEdge);
                 // Shouldn't blacklist because this edge can be derived
                 // along another path
                 skipCycle = true;
+                // Dump the constraint graph
+                //consCG->dump("consCG_after_cyc");
+
             }
         }
     }
-    
+
     if (!skipCycle) {
+        if (Options::Kaleidoscope) {
+            if (subNodes.count() > 1 && isPWC) {
+                llvm::errs() << "Could not prevent PWC collapse of cycle size: " << subNodes.count() << "\n";
+                /*
+                for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
+                {
+                    NodeID subNodeId = *nodeIt;
+                    llvm::errs() << subNodeId << " ";
+                }
+                llvm::errs() << "\n";
+                */
+            }
+        }
         for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
         {
             NodeID subNodeId = *nodeIt;
@@ -582,11 +604,33 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
             }
         }
 
-        if (subNodes.count() > 1 && isPWC) {
-            llvm::errs() << "Could not prevent cycle collapse\n";
-        }
+        
     } else {
-        llvm::errs() << "Successfully prevented cycle collapse\n";
+        if (Options::Kaleidoscope) {
+            /*
+            llvm::errs() << "Successfully prevented cycle collapse... solve the cycle\n";
+            for (ConstraintEdge* candidateEdge: cycleEdges) {
+                if (CopyCGEdge* copyCGEdge = SVFUtil::dyn_cast<CopyCGEdge>(candidateEdge)) {
+                    processCopy(copyCGEdge->getSrcID(), copyCGEdge);
+                } else if (GepCGEdge* gepCGEdge = SVFUtil::dyn_cast<GepCGEdge>(candidateEdge)) {
+                    processGep(gepCGEdge->getSrcID(), gepCGEdge);
+                }
+            }
+            */
+            if (subNodes.count() > 1 && isPWC) {
+                llvm::errs() << "Successfully prevented PWC collapse of cycle size: " << subNodes.count() << "\n";
+                /*
+                for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
+                {
+                    NodeID subNodeId = *nodeIt;
+                    llvm::errs() << subNodeId << " ";
+                }
+                llvm::errs() << "\n";
+                */
+
+            }
+            reanalyze = true;
+        }
     }
 }
 
@@ -743,7 +787,7 @@ std::tuple<ConstraintEdge*, Instruction*, Value*> Andersen::pickCycleEdgeToBreak
 
         if (!Options::KaliBreakNullTypeEdges) {
             if (!srcTy || !dstTy) {
-                llvm::errs() << "srcTy = null? " << srcTy << " dstTy = null? " << dstTy << "\n";
+                //llvm::errs() << "srcTy = null? " << srcTy << " dstTy = null? " << dstTy << "\n";
                 continue;
             }
         }
@@ -771,6 +815,11 @@ std::tuple<ConstraintEdge*, Instruction*, Value*> Andersen::pickCycleEdgeToBreak
             } else if (StoreCGEdge* storeEdge = SVFUtil::dyn_cast<StoreCGEdge>(srcEdge)) {
                 NodeID ptdID = candidateEdge->getDstID();
                 tgtPtdNode = pag->getPAGNode(ptdID);
+            }
+
+            // TODO: Sometimes getting a ValPN here... why? 
+            if (!SVFUtil::isa<ObjPN>(tgtPtdNode)) {
+                continue;
             }
 
             if (SVFUtil::isa<GepObjPN>(tgtPtdNode)) {
@@ -807,7 +856,6 @@ std::tuple<ConstraintEdge*, Instruction*, Value*> Andersen::pickCycleEdgeToBreak
                 assert(false && "What else?");
             }
 
-            llvm::errs() << "Adding invariant on target obj: " << tgtPtdNode->getId() << " val: " << valID << "\n";
             return std::make_tuple(candidateEdge, memInst, tgtValue);
 
         }
@@ -1093,7 +1141,7 @@ bool Andersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
 void Andersen::mergeNodeToRep(NodeID nodeId,NodeID newRepId)
 {
 
-    llvm::errs() << "Merging node: " << nodeId << " to newRepId " << newRepId << "\n";
+    //llvm::errs() << "Merging node: " << nodeId << " to newRepId " << newRepId << "\n";
     ConstraintNode* node = consCG->getConstraintNode(nodeId);
     bool gepInsideScc = mergeSrcToTgt(nodeId,newRepId);
     /// 1. if find gep edges inside SCC cycle, the rep node will become a PWC node and

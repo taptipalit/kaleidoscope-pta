@@ -206,6 +206,8 @@ CopyCGEdge* ConstraintGraph::addCopyCGEdge(NodeID src, NodeID dst)
         return nullptr;
     }
 
+    //llvm::errs() << "Adding copy edge: " << src << " --> " << dst << "\n";
+
     ConstraintNode* srcNode = getConstraintNode(src);
     ConstraintNode* dstNode = getConstraintNode(dst);
     if(hasEdge(srcNode,dstNode,ConstraintEdge::Copy)
