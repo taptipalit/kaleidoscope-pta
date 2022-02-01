@@ -26,7 +26,7 @@
  *  Created on: Nov 1, 2013
  *      Author: Yulei Sui
  */
-
+#include "Util/Options.h"
 #include "SVF-FE/PAGBuilder.h"
 #include "Util/SVFModule.h"
 #include "Util/SVFUtil.h"
@@ -584,7 +584,11 @@ void PAGBuilder::visitGetElementPtrInst(GetElementPtrInst &inst)
 
     LocationSet ls;
     bool constGep = computeGepOffset(&inst, ls);
-    addGepEdge(src, dst, ls, constGep);
+    if (!constGep && !Options::HandleVGEP) {
+        addCopyEdge(src, dst);
+    } else {
+        addGepEdge(src, dst, ls, constGep);
+    }
 }
 
 /*

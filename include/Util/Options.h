@@ -18,6 +18,7 @@ class Options
 public:
     Options(void) = delete;
 
+    static const llvm::cl::opt<bool> HandleVGEP;
     static const llvm::cl::opt<bool> Kaleidoscope;
 
     static const llvm::cl::opt<bool> KaliBreakNullTypeEdges;

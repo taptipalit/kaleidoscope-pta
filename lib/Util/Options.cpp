@@ -21,6 +21,11 @@ namespace SVF
         llvm::cl::init(false),
         llvm::cl::desc("Kaleidoscope: Kali run test driver"));
 
+    const llvm::cl::opt<bool> Options::HandleVGEP(
+            "handle-vgep",
+            llvm::cl::init(true),
+            llvm::cl::desc("Handle VGEP"));
+
     const llvm::cl::opt<bool> Options::MarkedClocksOnly(
         "marked-clocks-only",
         llvm::cl::init(false),

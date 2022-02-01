@@ -583,8 +583,8 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
 
     if (!skipCycle) {
         if (Options::Kaleidoscope) {
-            if (subNodes.count() > 1 && isPWC) {
-                llvm::errs() << "Could not prevent PWC collapse of cycle size: " << subNodes.count() << "\n";
+            if (subNodes.count() > 1 /*&& isPWC*/) {
+                llvm::errs() << "Could not prevent collapse of cycle size: " << subNodes.count() << "\n";
                 /*
                 for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
                 {
@@ -617,8 +617,8 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                 }
             }
             */
-            if (subNodes.count() > 1 && isPWC) {
-                llvm::errs() << "Successfully prevented PWC collapse of cycle size: " << subNodes.count() << "\n";
+            if (subNodes.count() > 1 /*&& isPWC*/) {
+                llvm::errs() << "Successfully prevented collapse of cycle size: " << subNodes.count() << "\n";
                 /*
                 for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
                 {
@@ -641,6 +641,7 @@ bool Andersen::collapseNodePts(NodeID nodeId)
 {
     bool changed = false;
     const PointsTo& nodePts = getPts(nodeId);
+    llvm::errs() << "Collapsing node: " << nodeId << "\n";
     /// Points to set may be changed during collapse, so use a clone instead.
     PointsTo ptsClone = nodePts;
     for (PointsTo::iterator ptsIt = ptsClone.begin(), ptsEit = ptsClone.end(); ptsIt != ptsEit; ptsIt++)
@@ -659,6 +660,7 @@ bool Andersen::collapseNodePts(NodeID nodeId)
  */
 bool Andersen::collapseField(NodeID nodeId)
 {
+    llvm::errs() << "collapsing field\n";
     /// Black hole doesn't have structures, no collapse is needed.
     /// In later versions, instead of using base node to represent the struct,
     /// we'll create new field-insensitive node. To avoid creating a new "black hole"
