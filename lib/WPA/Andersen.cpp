@@ -537,7 +537,6 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
 
     bool isPWC = false;
     if (Options::Kaleidoscope) {
-      
         if (subNodes.count() > 1) {
             // Dump the constraint graph
             //consCG->dump("consCG_before_cyc");
@@ -576,7 +575,6 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                 skipCycle = true;
                 // Dump the constraint graph
                 //consCG->dump("consCG_after_cyc");
-
             }
         }
     }
@@ -584,15 +582,18 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
     if (!skipCycle) {
         if (Options::Kaleidoscope) {
             if (subNodes.count() > 1 /*&& isPWC*/) {
-                llvm::errs() << "Could not prevent collapse of cycle size: " << subNodes.count() << "\n";
+                llvm::errs() << "Cycle collapse failure: "; /* << subNodes.count() << "\n"*/;
+                for (ConstraintEdge* cycleEdge: cycleEdges) {
+                    llvm::errs() << cycleEdge->getSrcID() << " " << cycleEdge->getDstID() << " ";
+                }
                 /*
                 for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
                 {
                     NodeID subNodeId = *nodeIt;
                     llvm::errs() << subNodeId << " ";
                 }
-                llvm::errs() << "\n";
                 */
+                llvm::errs() << "\n";
             }
         }
         for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
@@ -603,8 +604,6 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                 mergeNodeToRep(subNodeId, repNodeId);
             }
         }
-
-        
     } else {
         if (Options::Kaleidoscope) {
             /*
@@ -618,15 +617,21 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
             }
             */
             if (subNodes.count() > 1 /*&& isPWC*/) {
-                llvm::errs() << "Successfully prevented collapse of cycle size: " << subNodes.count() << "\n";
+                dbgCycleProcessId++;
+                llvm::errs() << "Successful cycle collapse: " << dbgCycleProcessId << " -- " ; /* << subNodes.count() << "\n";*/
+
+                for (ConstraintEdge* cycleEdge: cycleEdges) {
+                    llvm::errs() << cycleEdge->getSrcID() << " " << cycleEdge->getDstID() << " ";
+                }
+
                 /*
                 for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
                 {
                     NodeID subNodeId = *nodeIt;
                     llvm::errs() << subNodeId << " ";
                 }
-                llvm::errs() << "\n";
                 */
+                llvm::errs() << "\n";
 
             }
             reanalyze = true;

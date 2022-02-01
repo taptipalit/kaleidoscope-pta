@@ -160,6 +160,8 @@ class Andersen:  public AndersenBase
     std::map<int, Value*> kaliIdToValueMap;
     int kaliInvariantId;
 
+    int dbgCycleProcessId;
+
 public:
     typedef SCCDetection<ConstraintGraph*> CGSCC;
     typedef OrderedMap<CallSite, NodeID> CallSite2DummyValPN;
@@ -170,6 +172,7 @@ public:
     {
         numChildren = 0;
         kaliInvariantId = 0;
+        dbgCycleProcessId = 0;
     }
 
     /// Destructor
