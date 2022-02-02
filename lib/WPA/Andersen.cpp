@@ -535,6 +535,7 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
     // For Kaleidoscope: Find the edges in the cycle
     std::set<ConstraintEdge*> cycleEdges;
 
+    ConstraintEdge* edgeToRemove = nullptr;
     bool isPWC = false;
     if (Options::Kaleidoscope) {
         if (subNodes.count() > 1) {
@@ -555,7 +556,6 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
             }   
         }
 
-        ConstraintEdge* edgeToRemove = nullptr;
         // Find the first indirect cycle edges
         if (cycleEdges.size() > 0 /*&& isPWC*/) {
             //llvm::errs() << "Cycle edges start:\n";
@@ -565,9 +565,10 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
             Value* tgtValue = std::get<2>(tup);
             if (memInst && tgtValue) {
                 llvm::errs() << "Adding invariant\n";
+                edgeToRemove = candidateEdge;
                 instrumentInvariant(memInst, tgtValue);
                 consCG->removeDirectEdge(candidateEdge);
-                cycleEdges.erase(candidateEdge);
+                //cycleEdges.erase(candidateEdge);
                 // TODO FIX THIS
                 consCG->blackListEdge(candidateEdge);
                 // Shouldn't blacklist because this edge can be derived
@@ -618,8 +619,10 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
             */
             if (subNodes.count() > 1 /*&& isPWC*/) {
                 dbgCycleProcessId++;
-                llvm::errs() << "Successful cycle collapse: " << dbgCycleProcessId << " -- " ; /* << subNodes.count() << "\n";*/
+                llvm::errs() << "BlackListing edge: " << edgeToRemove->getSrcID() << " : " << edgeToRemove->getDstID() << " : " << dbgCycleProcessId << "\n";
 
+
+                llvm::errs() << "Successful cycle collapse: " << dbgCycleProcessId << " -- " ; /* << subNodes.count() << "\n";*/
                 for (ConstraintEdge* cycleEdge: cycleEdges) {
                     llvm::errs() << cycleEdge->getSrcID() << " " << cycleEdge->getDstID() << " ";
                 }
