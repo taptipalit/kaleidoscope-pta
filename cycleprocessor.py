@@ -6,19 +6,21 @@ class Edge:
     """
 
     def __init__(self, srcId, dstId):
-        self.srcId = srcId
-        self.dstId = dstId
+        self.srcId = int(srcId)
+        self.dstId = int(dstId)
 
     def __eq__(self, other):
-        if (isinstance(other, Edge)):
-            if other.srcId == self.srcId and other.dstId == self.dstId:
-                return True
-            else:
-                return False
+        #if (isinstance(other, Edge)):
+        if other.srcId == self.srcId and other.dstId == self.dstId:
+            return True
         else:
             return False
+        """
+        else:
+            return False
+        """
     def __hash__(self):
-        return (hash(str(self.srcId+self.dstId)))
+        return (hash(self.srcId+self.dstId))
 
     def __str__(self):
         return (str(self.srcId) + " --> " + str(self.dstId))
@@ -33,7 +35,7 @@ class BlacklistedEdge(Edge):
 
     def __init__(self, cycleId, srcId, dstId):
         Edge.__init__(self, srcId, dstId)
-        self.cycleId = cycleId
+        self.cycleId = int(cycleId)
 
     def __str__(self):
         return (" : ".join([str(self.cycleId), str(self.srcId), str(self.dstId)]))
@@ -41,14 +43,12 @@ class BlacklistedEdge(Edge):
         desc = "(" + " : ".join([str(self.cycleId), str(self.srcId), str(self.dstId)]) + ")"
         return desc
 
-
-
 class Cycle:
     """ 
     Class to represent a cycle
     """
     def __init__(self, cycleId, edges):
-        self.cycleId = cycleId
+        self.cycleId = int(cycleId)
         self.edges = edges
 
     def __str__(self):
@@ -72,8 +72,8 @@ class Intersection:
     Class to represent an intersection between two cycles
     """
     def __init__(self, srcCycleId, tgtCycleId, edges):
-        self.srcCycleId = srcCycleId
-        self.tgtCycleId = tgtCycleId
+        self.srcCycleId = int(srcCycleId)
+        self.tgtCycleId = int(tgtCycleId)
         self.edges = edges 
 
 def processCycles(brokenCycles, failBrokenCycles): 
@@ -109,16 +109,14 @@ def processCycles(brokenCycles, failBrokenCycles):
 
         # Print the top intersection
         highestMatch = intersections[0]
-        print (" ".join([cycleId, "("+str(len(cycle.edges))+")", "\u2229", highestMatch.tgtCycleId, \
-            "("+str(len(brokenCyclesMap[highestMatch.tgtCycleId].edges))+")", "=", str(len(highestMatch.edges))]))
-
-        """
-        print("For cycle " + cycleId + " of size:" + str(len(cycle.edges)) + " found intersection with cycle " + highestMatch.tgtCycleId + " of size: " + str(len(brokenCyclesMap[highestMatch.tgtCycleId].edges)) + " with maximum edges " + str(len(highestMatch.edges)) + " in another cycle")
-        """
-        """
-        for intersection in intersections[0: 5 if len(intersections) > 5 else len(intersections)]:
-            print (intersection)
-        """
+        if len(highestMatch.edges) == len(cycle.edges) :
+            print (" ".join([str(cycleId), "("+str(len(cycle.edges))+")", "\u2229", str(highestMatch.tgtCycleId), \
+                "("+str(len(brokenCyclesMap[highestMatch.tgtCycleId].edges))+")",
+                "=", str(len(highestMatch.edges)), " ----- "]))
+        else:
+            print (" ".join([str(cycleId), "("+str(len(cycle.edges))+")", "\u2229", str(highestMatch.tgtCycleId), \
+                "("+str(len(brokenCyclesMap[highestMatch.tgtCycleId].edges))+")",
+                "=", str(len(highestMatch.edges))]))
         sys.stdout.flush()
 
 def processBlacklistEdges(blacklistEdges, brokenCycles):
@@ -133,7 +131,7 @@ def processBlacklistEdges(blacklistEdges, brokenCycles):
     edgeToCycleListMap = {edge : [cycle.cycleId for cycle in brokenCycles if edge in cycle.edges] for edge in blacklistEdges}
 
     for edge, cycles in edgeToCycleListMap.items():
-        print ("Edge = " + edge.cycleId + " " + str(cycles))
+        print ("Edge = " + str(edge.cycleId) + " " + str(cycles))
 
 def parseLog(filename):
     """
@@ -174,12 +172,12 @@ def parseLog(filename):
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
-        e1 = Edge("10","20")
-        e2 = Edge("20","30")
-        e3 = Edge("30","40")
-        c1 = Cycle("1", [e1, e2, e3])
-        c2 = Cycle("2", [e1,e2])
-        b1 = BlacklistedEdge("1", e2.srcId, e2.dstId)
+        e1 = Edge(10,20)
+        e2 = Edge(20,30)
+        e3 = Edge(30,40)
+        c1 = Cycle(1, [e1, e2, e3])
+        c2 = Cycle(2, [e1,e2])
+        b1 = BlacklistedEdge(1, e2.srcId, e2.dstId)
         #processCycles([c1, c2], [c1])
         processBlacklistEdges([b1], [c1, c2])
     else:

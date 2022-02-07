@@ -41,6 +41,22 @@ void AndersenWaveDiff::solveWorklist()
 {
     // Initialize the nodeStack via a whole SCC detection
     // Nodes in nodeStack are in topological order by default.
+    /*
+    llvm::errs() << "Before SCC Detect: Blacklisted edges and edges in constraint graph:\n";
+    for (auto& tup: consCG->getBlackListEdges()) {
+        NodeID src = std::get<0>(tup);
+        NodeID dst = std::get<1>(tup);
+        llvm::errs() << "blacklist edge details: " << src << " : " << dst << "\n";
+        if (consCG->hasConstraintNode(src) && consCG->hasConstraintNode(dst)) {
+            ConstraintNode* srcNode = consCG->getConstraintNode(src);
+            ConstraintNode* dstNode = consCG->getConstraintNode(dst);
+            llvm::errs() << "constraint node found\n";
+            if (consCG->hasEdge(srcNode, dstNode, ConstraintEdge::Copy)) {
+                llvm::errs() << "----> blacklisted edge " << src << " " << dst << " reappeared!!!\n";
+            }
+        }
+    }
+    */
     NodeStack& nodeStack = SCCDetect();
 
     // Process nodeStack and put the changed nodes into workList.

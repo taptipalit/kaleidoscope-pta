@@ -200,6 +200,7 @@ AddrCGEdge* ConstraintGraph::addAddrCGEdge(NodeID src, NodeID dst)
  */
 CopyCGEdge* ConstraintGraph::addCopyCGEdge(NodeID src, NodeID dst)
 {
+//    llvm::errs() << "src = " << src << " dst = " << dst << "\n";
     // Did we blacklist this edge? 
     if (blackListEdges.find(std::make_tuple(src, dst)) != 
             blackListEdges.end()) {

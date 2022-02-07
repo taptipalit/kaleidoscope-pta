@@ -109,6 +109,10 @@ public:
         blackListEdges.insert(std::make_tuple(edge->getSrcID(), edge->getDstID()));
     }
 
+    std::set<std::tuple<NodeID, NodeID>>& getBlackListEdges() {
+        return blackListEdges;
+    }
+
     /// Get/add/remove constraint node
     //@{
     inline ConstraintNode* getConstraintNode(NodeID id) const
