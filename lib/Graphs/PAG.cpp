@@ -578,6 +578,7 @@ TDJoinPE* PAG::addThreadJoinPE(NodeID src, NodeID dst, const CallBlockNode* cs)
 GepPE* PAG::addGepPE(NodeID src, NodeID dst, const LocationSet& ls, bool constGep)
 {
 
+//    llvm::errs() << "adding gep edge with consGep = " << constGep << "\n";
     PAGNode* node = getPAGNode(src);
     if (!constGep || node->hasIncomingVariantGepEdge())
     {

@@ -7,8 +7,14 @@ namespace SVF
 {
     const llvm::cl::opt<bool> Options::Kaleidoscope(
         "kaleidoscope",
-        llvm::cl::init(true),
+        llvm::cl::init(false),
         llvm::cl::desc("Analyze with the kaleidoscope system"));
+
+    const llvm::cl::opt<bool> Options::Invariantvgep(
+        "invariant-gep",
+        llvm::cl::init(false),
+        llvm::cl::desc("Add invariant for the vgep"));
+
 
     const llvm::cl::opt<bool> Options::KaliBreakNullTypeEdges(
         "kali-break-null-type-edges",
@@ -21,10 +27,12 @@ namespace SVF
         llvm::cl::init(false),
         llvm::cl::desc("Kaleidoscope: Kali run test driver"));
 
+    /*
     const llvm::cl::opt<bool> Options::HandleVGEP(
             "handle-vgep",
             llvm::cl::init(true),
             llvm::cl::desc("Handle VGEP"));
+            */
 
     const llvm::cl::opt<bool> Options::MarkedClocksOnly(
         "marked-clocks-only",

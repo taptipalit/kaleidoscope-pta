@@ -632,7 +632,7 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                 */
                 dbgCycleProcessId++;
                 /*
-                llvm::errs() << "Successful cycle collapse: " << dbgCycleProcessId << " -- " ; /* << subNodes.count() << "\n";*/
+                llvm::errs() << "Successful cycle collapse: " << dbgCycleProcessId << " -- " ;
                 for (ConstraintEdge* cycleEdge: cycleEdges) {
                     llvm::errs() << cycleEdge->getSrcID() << " " << cycleEdge->getDstID() << " ";
                 }
@@ -667,8 +667,9 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                     NodeID subNodeId = *nodeIt;
                     llvm::errs() << subNodeId << " ";
                 }
-                */
                 llvm::errs() << "\n";
+
+                */
             }
         }
         for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)

@@ -98,10 +98,18 @@ void CHGraph::buildCHG()
         readInheritanceMetadataFromModule(*M);
         for (Module::const_global_iterator I = M->global_begin(), E = M->global_end(); I != E; ++I)
             buildCHGNodes(&(*I));
-        for (Module::const_iterator F = M->begin(), E = M->end(); F != E; ++F)
+        for (Module::const_iterator F = M->begin(), E = M->end(); F != E; ++F) {
+            if ((*F).getName() == "switch_view") {
+                continue;
+            }
             buildCHGNodes(getDefFunForMultipleModule(&(*F)));
-        for (Module::const_iterator F = M->begin(), E = M->end(); F != E; ++F)
+        }
+        for (Module::const_iterator F = M->begin(), E = M->end(); F != E; ++F) {
+            if ((*F).getName() == "switch_view") {
+                continue;
+            }
             buildCHGEdges(getDefFunForMultipleModule(&(*F)));
+        }
 
         analyzeVTables(*M);
     }

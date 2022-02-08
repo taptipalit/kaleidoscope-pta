@@ -45,6 +45,8 @@
 #include "WPA/TypeAnalysis.h"
 #include "WPA/Steensgaard.h"
 #include "SVF-FE/PAGBuilder.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
+
 
 using namespace SVF;
 
@@ -283,6 +285,39 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 	/// Build PAG
 	PAGBuilder builder;
 	PAG* pag = builder.build(svfModule);
+
+    for (GetElementPtrInst* gepInst: builder.getVgeps()) {
+        llvm::Module* mod = gepInst->getParent()->getParent()->getParent();
+        Type* gepSrcTy = gepInst->getResultElementType();
+        Value* index = gepInst->getOperand(gepInst->getNumOperands() - 1);
+        StructType* stTy = SVFUtil::dyn_cast<StructType>(gepSrcTy);
+
+        // Create a Constant with the size of the struct
+        const StructLayout* stL = mod->getDataLayout().getStructLayout(stTy);
+        uint64_t size = stL->getSizeInBytes();
+        Constant* sizeConstant = ConstantInt::get(IntegerType::get(gepInst->getContext(), 64), size);
+        IRBuilder builder(gepInst);
+        Value* cmp = builder.CreateICmpUGT(sizeConstant, index);
+        Instruction* cmpInst = SVFUtil::dyn_cast<Instruction>(cmp);
+        assert(cmpInst && "not cmp inst?");
+
+        // Ah, now split the current basic block
+        BasicBlock* headBB = gepInst->getParent();
+        Instruction* termInst = llvm::SplitBlockAndInsertIfThen(cmpInst, cmpInst->getNextNode(), false);
+
+        // Insert call to the switch view function
+        Function* switchViewFn = mod->getFunction("switch_view");
+        if (!switchViewFn) {
+            // TODO: for some reason the module gets switched from under me
+            // The switch-view function
+            llvm::ArrayRef<Type*> switchViewFnTypeArr = {};
+
+            FunctionType* switchViewFnTy = FunctionType::get(Type::getVoidTy(mod->getContext()), switchViewFnTypeArr, false);
+            switchViewFn = Function::Create(switchViewFnTy, Function::ExternalLinkage, "switch_view", mod);
+        }
+        IRBuilder switcherBuilder(termInst);
+        switcherBuilder.CreateCall(switchViewFn->getFunctionType(), switchViewFn);
+    }
     /// Initialize pointer analysis.
     switch (kind)
     {

@@ -35,6 +35,8 @@
 #include "Graphs/ExternalPAG.h"
 #include "Util/BasicTypes.h"
 #include "MemoryModel/PAGBuilderFromFile.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
+
 
 using namespace std;
 using namespace SVF;
@@ -561,6 +563,23 @@ void PAGBuilder::visitStoreInst(StoreInst &inst)
 
 }
 
+bool PAGBuilder::instrumentInvariant(GetElementPtrInst* gepInst) {
+    // assert that the pointer isn't pointing in the middle of an object
+    Type* gepSrcTy = gepInst->getResultElementType();
+    Value* index = gepInst->getOperand(gepInst->getNumOperands() - 1);
+
+    llvm::Module *mod = SVF::LLVMModuleSet::getLLVMModuleSet()->getMainLLVMModule();
+    if (StructType* stTy = SVFUtil::dyn_cast<StructType>(gepSrcTy)) {
+        vgeps.push_back(gepInst);
+        return true;
+    } else if (ArrayType* arrTy = SVFUtil::dyn_cast<ArrayType>(gepSrcTy)) {
+        // No need to add any invaraints
+        return true;
+    } else {
+        return false;
+    }
+}
+
 /*!
  * Visit getelementptr instructions
  */
@@ -584,9 +603,16 @@ void PAGBuilder::visitGetElementPtrInst(GetElementPtrInst &inst)
 
     LocationSet ls;
     bool constGep = computeGepOffset(&inst, ls);
-    if (!constGep && !Options::HandleVGEP) {
-        addCopyEdge(src, dst);
-    } else {
+    bool skipAddingGep = false;
+    if (!constGep) {
+        if (Options::Invariantvgep) {
+            if (instrumentInvariant(&inst)) {
+                addCopyEdge(src, dst);
+                skipAddingGep = true;
+            }
+        }
+    }
+    if (!skipAddingGep) {
         addGepEdge(src, dst, ls, constGep);
     }
 }
