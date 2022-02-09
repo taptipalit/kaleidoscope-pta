@@ -284,6 +284,8 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 {
 	/// Build PAG
 	PAGBuilder builder;
+
+    Options::Invariantvgep = true;
 	PAG* pag = builder.build(svfModule);
 
     for (GetElementPtrInst* gepInst: builder.getVgeps()) {
@@ -318,6 +320,22 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
         IRBuilder switcherBuilder(termInst);
         switcherBuilder.CreateCall(switchViewFn->getFunctionType(), switchViewFn);
     }
+
+    _pta = new AndersenWaveDiff(pag);
+    ptaVector.push_back(_pta);
+    _pta->analyze();
+
+    Options::Invariantvgep = false;
+    PAG::releasePAG();
+    PAGBuilder builder2;
+    PAG* pag2 = builder2.build(svfModule);
+
+    _pta = new AndersenWaveDiff(pag2);
+    ptaVector.push_back(_pta);
+    _pta->analyze();
+
+    /*
+
     /// Initialize pointer analysis.
     switch (kind)
     {
@@ -367,6 +385,9 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 
     ptaVector.push_back(_pta);
     _pta->analyze();
+    */
+
+    /*
     if (Options::AnderSVFG)
     {
         SVFGBuilder memSSA(true);
@@ -387,6 +408,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 
     if (Options::PrintAliases)
         PrintAliasPairs(_pta);
+    */
 }
 
 void WPAPass::PrintAliasPairs(PointerAnalysis* pta)

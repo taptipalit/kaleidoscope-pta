@@ -169,8 +169,11 @@ public:
     }
     static void releasePAG()
     {
+        // TODO: Horrible hack to prevent SymbolTableInfo from being freed
+        /*
         if (pag)
             delete pag;
+        */ 
         pag = nullptr;
     }
     //@}

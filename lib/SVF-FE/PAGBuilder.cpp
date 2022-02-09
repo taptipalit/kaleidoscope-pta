@@ -606,10 +606,10 @@ void PAGBuilder::visitGetElementPtrInst(GetElementPtrInst &inst)
     bool skipAddingGep = false;
     if (!constGep) {
         if (Options::Invariantvgep) {
-            if (instrumentInvariant(&inst)) {
+            //if (instrumentInvariant(&inst)) {
                 addCopyEdge(src, dst);
                 skipAddingGep = true;
-            }
+            //}
         }
     }
     if (!skipAddingGep) {
