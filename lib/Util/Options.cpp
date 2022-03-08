@@ -10,7 +10,7 @@ namespace SVF
         llvm::cl::init(false),
         llvm::cl::desc("Analyze with the kaleidoscope system"));
 
-    llvm::cl::opt<bool> Options::Invariantvgep(
+    llvm::cl::opt<bool> Options::InvariantVGEP(
         "invariant-gep",
         llvm::cl::init(false),
         llvm::cl::desc("Add invariant for the vgep"));

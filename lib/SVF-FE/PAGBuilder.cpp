@@ -563,6 +563,7 @@ void PAGBuilder::visitStoreInst(StoreInst &inst)
 
 }
 
+/*
 bool PAGBuilder::instrumentInvariant(GetElementPtrInst* gepInst) {
     // assert that the pointer isn't pointing in the middle of an object
     Type* gepSrcTy = gepInst->getResultElementType();
@@ -579,6 +580,7 @@ bool PAGBuilder::instrumentInvariant(GetElementPtrInst* gepInst) {
         return false;
     }
 }
+*/
 
 /*!
  * Visit getelementptr instructions
@@ -603,18 +605,7 @@ void PAGBuilder::visitGetElementPtrInst(GetElementPtrInst &inst)
 
     LocationSet ls;
     bool constGep = computeGepOffset(&inst, ls);
-    bool skipAddingGep = false;
-    if (!constGep) {
-        if (Options::Invariantvgep) {
-            //if (instrumentInvariant(&inst)) {
-                addCopyEdge(src, dst);
-                skipAddingGep = true;
-            //}
-        }
-    }
-    if (!skipAddingGep) {
-        addGepEdge(src, dst, ls, constGep);
-    }
+    addGepEdge(src, dst, ls, constGep);
 }
 
 /*

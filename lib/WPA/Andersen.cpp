@@ -547,12 +547,23 @@ bool Andersen::addInvariant(ConstraintEdge* edge) {
  */
 void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
 {
+    for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
+    {
+        NodeID subNodeId = *nodeIt;
+        if (subNodeId != repNodeId)
+        {
+            mergeNodeToRep(subNodeId, repNodeId);
+        }
+    }
+}
+    /*
     bool skipCycle = false;
 
     // For Kaleidoscope: Find the edges in the cycle
     std::set<ConstraintEdge*> cycleEdges;
 
     bool isPWC = false;
+
     if (Options::Kaleidoscope) {
         if (subNodes.count() > 1) {
             // Dump the constraint graph
@@ -561,17 +572,6 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                 NodeID subNodeId = *nodeIt;
                 ConstraintNode* node = consCG->getConstraintNode(subNodeId);
                 for (ConstraintEdge* outEdge: node->getDirectOutEdges()) {
-                    /*
-                    llvm::errs() << "Cycle processing: edge of srcID = "<< outEdge->getSrcID() << " : " << outEdge->getDstID() << "\n";
-                    if (SVFUtil::isa<CopyCGEdge>(outEdge)) {
-                        llvm::errs() << "copy edge\n";
-                    } else if (SVFUtil::isa<NormalGepCGEdge>(outEdge)) {
-                        llvm::errs() << "ngep edge\n";
-                    } else if (SVFUtil::isa<VariantGepCGEdge>(outEdge)) {
-                        llvm::errs() << "vgep edge\n";
-                    }
-                    */
-
                     if (subNodes.test(outEdge->getDstID())) {
                         if (NormalGepCGEdge* ngep = SVFUtil::dyn_cast<NormalGepCGEdge>(outEdge)) {
                             isPWC = true;
@@ -583,7 +583,7 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
         }
 
         // Find the first indirect cycle edges
-        if (cycleEdges.size() > 0 /*&& isPWC*/) {
+        if (cycleEdges.size() > 0 ) { //&& isPWC
             //llvm::errs() << "Cycle edges start:\n";
             std::tuple<ConstraintEdge*, Instruction*, Value*> tup = pickCycleEdgeToBreak(cycleEdges);
             ConstraintEdge* candidateEdge = std::get<0>(tup);
@@ -597,79 +597,21 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
 
                 //cycleEdges.erase(candidateEdge);
 
-                /*
-                bool skipEdgeCheck = false;
-
-                if (!consCG->hasConstraintNode(candidateEdge->getSrcID())) {
-                    llvm::errs() << "Constraint node: " << candidateEdge->getSrcID() << " not present\n";
-                    skipEdgeCheck = true;
-
-                } else if (!consCG->hasConstraintNode(candidateEdge->getDstID())) {
-                    llvm::errs() << "Constraint node: " << candidateEdge->getDstID() << " not present\n";
-                    skipEdgeCheck = true;
-
-                }
-                if (!skipEdgeCheck) {
-                    if (consCG->hasEdge(consCG->getConstraintNode(candidateEdge->getSrcID()), consCG->getConstraintNode(candidateEdge->getDstID()), ConstraintEdge::Copy)) {
-                        llvm::errs() << "Has copy edge between: " << candidateEdge->getSrcID() << " : " << candidateEdge->getDstID() << "\n";
-                    } else {
-                        llvm::errs() << "Does NOT have copy edge between: " << candidateEdge->getSrcID() << " : " << candidateEdge->getDstID() << "\n";
-                    }
-
-                    if (consCG->hasEdge(consCG->getConstraintNode(candidateEdge->getSrcID()), consCG->getConstraintNode(candidateEdge->getDstID()), ConstraintEdge::NormalGep)) {
-                        llvm::errs() << "Has ngep edge between: " << candidateEdge->getSrcID() << " : " << candidateEdge->getDstID() << "\n";
-                    } else {
-                        llvm::errs() << "Does NOT have ngep edge between: " << candidateEdge->getSrcID() << " : " << candidateEdge->getDstID() << "\n";
-                    }
-
-                    if (consCG->hasEdge(consCG->getConstraintNode(candidateEdge->getSrcID()), consCG->getConstraintNode(candidateEdge->getDstID()), ConstraintEdge::VariantGep)) {
-                        llvm::errs() << "Has vgep edge between: " << candidateEdge->getSrcID() << " : " << candidateEdge->getDstID() << "\n";
-                    } else {
-                        llvm::errs() << "Does NOT have vgep edge between: " << candidateEdge->getSrcID() << " : " << candidateEdge->getDstID() << "\n";
-                    }
-
-                }
-                */
                 dbgCycleProcessId++;
-                /*
-                llvm::errs() << "Successful cycle collapse: " << dbgCycleProcessId << " -- " ;
-                for (ConstraintEdge* cycleEdge: cycleEdges) {
-                    llvm::errs() << cycleEdge->getSrcID() << " " << cycleEdge->getDstID() << " ";
-                }
-                llvm::errs() << "\n";
-
-                llvm::errs() << "BlackListing edge: " << candidateEdge->getSrcID() << " : " << candidateEdge->getDstID() << " : " << dbgCycleProcessId << "\n";
-                */
-
-
-
+                
                 consCG->blackListEdge(candidateEdge);
                 consCG->removeDirectEdge(candidateEdge);
-                // Shouldn't blacklist because this edge can be derived
-                // along another path
                 skipCycle = true;
-                // Dump the constraint graph
-                //consCG->dump("consCG_after_cyc");
             }
         }
     }
 
     if (!skipCycle) {
         if (Options::Kaleidoscope) {
-            if (subNodes.count() > 1 /*&& isPWC*/) {
-                llvm::errs() << "Cycle collapse failure: "; /* << subNodes.count() << "\n"*/;
+            if (subNodes.count() > 1) { //&& isPWC
                 for (ConstraintEdge* cycleEdge: cycleEdges) {
                     llvm::errs() << cycleEdge->getSrcID() << " " << cycleEdge->getDstID() << " ";
                 }
-                /*
-                for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
-                {
-                    NodeID subNodeId = *nodeIt;
-                    llvm::errs() << subNodeId << " ";
-                }
-                llvm::errs() << "\n";
-
-                */
             }
         }
         for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
@@ -682,21 +624,10 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
         }
     } else {
         if (Options::Kaleidoscope) {
-            /*
-            llvm::errs() << "Successfully prevented cycle collapse... solve the cycle\n";
-            for (ConstraintEdge* candidateEdge: cycleEdges) {
-                if (CopyCGEdge* copyCGEdge = SVFUtil::dyn_cast<CopyCGEdge>(candidateEdge)) {
-                    processCopy(copyCGEdge->getSrcID(), copyCGEdge);
-                } else if (GepCGEdge* gepCGEdge = SVFUtil::dyn_cast<GepCGEdge>(candidateEdge)) {
-                    processGep(gepCGEdge->getSrcID(), gepCGEdge);
-                }
-            }
-            */
-            
             reanalyze = true;
         }
     }
-}
+    */
 
 /**
  * Collapse node's points-to set. Change all points-to elements into field-insensitive.

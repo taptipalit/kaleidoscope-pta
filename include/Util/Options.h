@@ -19,7 +19,7 @@ public:
     Options(void) = delete;
 
     static const llvm::cl::opt<bool> HandleVGEP;
-    static llvm::cl::opt<bool> Invariantvgep;
+    static llvm::cl::opt<bool> InvariantVGEP;
 
     static const llvm::cl::opt<bool> Kaleidoscope;
 

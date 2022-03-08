@@ -142,7 +142,7 @@ public:
     //@}
 
 
-    bool instrumentInvariant(llvm::GetElementPtrInst*);
+    //bool instrumentInvariant(llvm::GetElementPtrInst*);
     /// Our visit overrides.
     //@{
     // Instructions that cannot be folded away.

@@ -285,7 +285,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 	/// Build PAG
 	PAGBuilder builder;
 
-    Options::Invariantvgep = true;
+    Options::InvariantVGEP = true;
 	PAG* pag = builder.build(svfModule);
 
     for (GetElementPtrInst* gepInst: builder.getVgeps()) {
@@ -325,7 +325,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
     ptaVector.push_back(_pta);
     _pta->analyze();
 
-    Options::Invariantvgep = false;
+    Options::InvariantVGEP = false;
     PAG::releasePAG();
     PAGBuilder builder2;
     PAG* pag2 = builder2.build(svfModule);
