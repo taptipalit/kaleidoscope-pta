@@ -383,7 +383,7 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
     numOfProcessedGep++;
 
     PointsTo tmpDstPts;
-    if (SVFUtil::isa<VariantGepCGEdge>(edge))
+    if (const VariantGepCGEdge* vgepCGEdge = SVFUtil::dyn_cast<VariantGepCGEdge>(edge))
     {
         // If a pointer is connected by a variant gep edge,
         // then set this memory object to be field insensitive,
@@ -394,6 +394,16 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
             {
                 tmpDstPts.set(o);
                 continue;
+            } 
+            
+            if (consCG->isArrayTy(o)) {
+                // We will add the invariant later
+                pag->addPtdForVarGep(vgepCGEdge->getLLVMValue(), o);
+            } else {
+                if (Options::InvariantVGEP) {
+                    // We assume these don't happen
+                    continue;
+                }
             }
 
             if (!isFieldInsensitive(o))
@@ -636,7 +646,6 @@ bool Andersen::collapseNodePts(NodeID nodeId)
 {
     bool changed = false;
     const PointsTo& nodePts = getPts(nodeId);
-    llvm::errs() << "Collapsing node: " << nodeId << "\n";
     /// Points to set may be changed during collapse, so use a clone instead.
     PointsTo ptsClone = nodePts;
     for (PointsTo::iterator ptsIt = ptsClone.begin(), ptsEit = ptsClone.end(); ptsIt != ptsEit; ptsIt++)
@@ -655,7 +664,6 @@ bool Andersen::collapseNodePts(NodeID nodeId)
  */
 bool Andersen::collapseField(NodeID nodeId)
 {
-    llvm::errs() << "collapsing field\n";
     /// Black hole doesn't have structures, no collapse is needed.
     /// In later versions, instead of using base node to represent the struct,
     /// we'll create new field-insensitive node. To avoid creating a new "black hole"
@@ -863,6 +871,7 @@ std::tuple<ConstraintEdge*, Instruction*, Value*> Andersen::pickCycleEdgeToBreak
 
 void Andersen::instrumentInvariant(Instruction* memoryInst, Value* target) {
     // Some types
+    /*
     LLVMContext& C = target->getContext();
     Type* voidPtrTy = PointerType::get(Type::getInt8Ty(C), 0);
     IntegerType* i64Ty = IntegerType::get(C, 64);
@@ -927,7 +936,6 @@ void Andersen::instrumentInvariant(Instruction* memoryInst, Value* target) {
             Instruction* inst = mainFunction->getEntryBlock().getFirstNonPHIOrDbg();
             IRBuilder builder(inst);
 
-
             Value* gepIndexMapEntry = builder.CreateGEP(kaliMapGVar, idxs);
             //Value* gepIndexAddress = builder.CreateGEP(gepIndexMapEntry, idConstant);
 
@@ -984,6 +992,7 @@ void Andersen::instrumentInvariant(Instruction* memoryInst, Value* target) {
     Function* switchViewFn = mod->getFunction("switch_view");
     IRBuilder switcherBuilder(termInst);
     switcherBuilder.CreateCall(switchViewFn->getFunctionType(), switchViewFn);
+    */
     
 }
 

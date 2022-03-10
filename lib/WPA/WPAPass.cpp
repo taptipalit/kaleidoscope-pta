@@ -45,8 +45,8 @@
 #include "WPA/TypeAnalysis.h"
 #include "WPA/Steensgaard.h"
 #include "SVF-FE/PAGBuilder.h"
-#include "llvm/Transforms/Utils/BasicBlockUtils.h"
-
+#include "WPA/InvariantHandler.h"
+#include "llvm/IR/InstIterator.h"
 
 using namespace SVF;
 
@@ -70,6 +70,8 @@ WPAPass::~WPAPass()
     }
     ptaVector.clear();
 }
+
+
 
 void WPAPass::doCFI(Module& M) {
 
@@ -282,12 +284,15 @@ void WPAPass::invariantInstrumentationDriver(Module& module) {
  */
 void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 {
+    llvm::Module *module = SVF::LLVMModuleSet::getLLVMModuleSet()->getMainLLVMModule(); 
+
 	/// Build PAG
 	PAGBuilder builder;
 
     Options::InvariantVGEP = true;
 	PAG* pag = builder.build(svfModule);
-
+    
+    /*
     for (GetElementPtrInst* gepInst: builder.getVgeps()) {
         llvm::Module* mod = gepInst->getParent()->getParent()->getParent();
         Type* gepSrcTy = gepInst->getResultElementType();
@@ -320,11 +325,17 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
         IRBuilder switcherBuilder(termInst);
         switcherBuilder.CreateCall(switchViewFn->getFunctionType(), switchViewFn);
     }
+    */
 
     _pta = new AndersenWaveDiff(pag);
     ptaVector.push_back(_pta);
     _pta->analyze();
 
+
+    InvariantHandler IHandler(svfModule, module, pag);
+    IHandler.handleVGEPInvariants();
+
+    /*
     Options::InvariantVGEP = false;
     PAG::releasePAG();
     PAGBuilder builder2;
@@ -333,9 +344,9 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
     _pta = new AndersenWaveDiff(pag2);
     ptaVector.push_back(_pta);
     _pta->analyze();
+    */
 
     /*
-
     /// Initialize pointer analysis.
     switch (kind)
     {

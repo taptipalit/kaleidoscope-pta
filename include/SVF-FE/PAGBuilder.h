@@ -50,7 +50,6 @@ private:
     const BasicBlock* curBB;	///< Current basic block during PAG construction when visiting the module
     const Value* curVal;	///< Current Value during PAG construction when visiting the module
 
-    std::vector<GetElementPtrInst*> vgeps;
 public:
     /// Constructor
     PAGBuilder(): pag(PAG::getPAG()), svfMod(nullptr), curBB(nullptr),curVal(nullptr)
@@ -61,9 +60,7 @@ public:
     {
     }
 
-    std::vector<GetElementPtrInst*>& getVgeps() {
-        return vgeps;
-    }
+    
     /// Start building PAG here
     virtual PAG* build(SVFModule* svfModule);
 

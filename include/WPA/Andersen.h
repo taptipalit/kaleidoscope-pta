@@ -156,9 +156,11 @@ protected:
 class Andersen:  public AndersenBase
 {
     int numChildren;
+    /*
     std::map<Value*, int> valueToKaliIdMap;
     std::map<int, Value*> kaliIdToValueMap;
     int kaliInvariantId;
+    */
 
     int dbgCycleProcessId;
 
@@ -171,7 +173,7 @@ public:
         :  AndersenBase(_pag, type, alias_check), pwcOpt(false), diffOpt(true)
     {
         numChildren = 0;
-        kaliInvariantId = 0;
+//        kaliInvariantId = 0;
         dbgCycleProcessId = 0;
     }
 

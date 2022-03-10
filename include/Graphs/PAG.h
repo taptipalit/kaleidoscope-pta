@@ -77,6 +77,10 @@ public:
     typedef Map<NodeLocationSet,NodeID> NodeLocationSetMap;
     typedef Map<const Value*, NodeLocationSetMap> GepValPNMap;
     typedef Map<NodePair,NodeID> NodePairSetMap;
+    typedef std::vector<const GetElementPtrInst*> VarGepList;
+    typedef std::vector<NodeID> PtdList;
+    typedef Map<const Value*, PtdList> VarGepPtdMap;
+
 
 private:
     SymbolTableInfo* symInfo;
@@ -109,6 +113,10 @@ private:
     NodeID nodeNumAfterPAGBuild; // initial node number after building PAG, excluding later added nodes, e.g., gepobj nodes
     ICFG* icfg; // ICFG
     CallSiteSet callSiteSet; /// all the callsites of a program
+
+
+    VarGepList varGeps; // All vargeps
+    VarGepPtdMap varGepPtdMap; // the ptds the vargep can point to, without violating an invariant
 
     /// Constructor
     PAG(bool buildFromFile);
@@ -882,6 +890,22 @@ public:
 
     /// Set a pointer points-to black hole (e.g. int2ptr)
     PAGEdge* addBlackHoleAddrPE(NodeID node);
+
+    void addVarGep(GetElementPtrInst* gep) {
+        varGeps.push_back(gep);
+    }
+
+    VarGepList& getVarGeps() {
+        return varGeps;
+    }
+
+    void addPtdForVarGep(const Value* gepValue, NodeID nodeID) {
+        varGepPtdMap[gepValue].push_back(nodeID);
+    }
+
+    VarGepPtdMap& getVarGepPtdMap() {
+        return varGepPtdMap;
+    }
 
     /// Whether a node is a valid pointer
     //@{

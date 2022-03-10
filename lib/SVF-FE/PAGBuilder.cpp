@@ -587,7 +587,6 @@ bool PAGBuilder::instrumentInvariant(GetElementPtrInst* gepInst) {
  */
 void PAGBuilder::visitGetElementPtrInst(GetElementPtrInst &inst)
 {
-
     NodeID dst = getValueNode(&inst);
     // GetElementPtrInst should always be a pointer or a vector contains pointers
     // for now we don't handle vector type here
@@ -605,7 +604,13 @@ void PAGBuilder::visitGetElementPtrInst(GetElementPtrInst &inst)
 
     LocationSet ls;
     bool constGep = computeGepOffset(&inst, ls);
-    addGepEdge(src, dst, ls, constGep);
+    GepPE* gepEdge = addGepEdge(src, dst, ls, constGep);
+    if (SVFUtil::isa<VariantGepPE>(gepEdge)) {
+        const Value* edgeValue = gepEdge->getValue();
+        const GetElementPtrInst* gepInst = SVFUtil::dyn_cast<GetElementPtrInst>(edgeValue);
+        assert(gepInst && "Not gep inst and is variantGep edge?");
+        pag->getVarGeps().push_back(gepInst);
+    }
 }
 
 /*

@@ -329,6 +329,12 @@ public:
     {
         return pag->getBaseObjNode(id);
     }
+
+    inline bool isArrayTy(NodeID id) {
+        const MemObj* mem = pag->getBaseObj(id);
+        return mem->isArray();
+    }
+
     inline bool isSingleFieldObj(NodeID id) const
     {
         const MemObj* mem = pag->getBaseObj(id);

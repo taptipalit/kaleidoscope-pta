@@ -437,6 +437,7 @@ static const ei_pair ei_pairs[]=
     {"wrefresh", ExtAPI::EFT_NOOP},
     {"write", ExtAPI::EFT_NOOP},
     {"wtouchln", ExtAPI::EFT_NOOP},
+    {"ptdTargetCheck", ExtAPI::EFT_NOOP},
 
     {"\01_fopen", ExtAPI::EFT_ALLOC},
     {"\01fopen64", ExtAPI::EFT_ALLOC},

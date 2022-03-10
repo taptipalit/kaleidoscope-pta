@@ -104,7 +104,7 @@ public:
         llvmValue = const_cast<Value*>(val);
     }
 
-    Value* getLLVMValue() {
+    Value* getLLVMValue() const {
         return llvmValue;
     }
 
