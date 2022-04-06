@@ -334,6 +334,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 
     InvariantHandler IHandler(svfModule, module, pag);
     IHandler.handleVGEPInvariants();
+    IHandler.handlePWCInvariants();
 
     /*
     Options::InvariantVGEP = false;

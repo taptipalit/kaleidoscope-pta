@@ -370,6 +370,10 @@ public:
     {
         getConstraintNode(nodeId)->setPWCNode();
     }
+    inline void resetPWCNode(NodeID nodeId) 
+    {
+        getConstraintNode(nodeId)->resetPWCNode();
+    }
     //@}
 
     /// Add/get nodes to be collapsed

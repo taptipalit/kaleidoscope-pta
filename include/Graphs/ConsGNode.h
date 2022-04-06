@@ -99,6 +99,11 @@ public:
     {
         _isPWCNode = true;
     }
+
+    inline void resetPWCNode() 
+    {
+        _isPWCNode = false;
+    }
     //@}
 
     /// Direct and Indirect PAG edges

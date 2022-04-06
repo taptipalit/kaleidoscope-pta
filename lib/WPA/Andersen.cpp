@@ -56,7 +56,6 @@ double AndersenBase::timeOfProcessCopyGep = 0;
 double AndersenBase::timeOfProcessLoadStore = 0;
 double AndersenBase::timeOfUpdateCallGraph = 0;
 
-
 /*!
  * Initilize analysis
  */
@@ -408,6 +407,7 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
 
             if (!isFieldInsensitive(o))
             {
+                errs() << "Setting object " << o << " field-insensitive for vargep\n";
                 setObjFieldInsensitive(o);
                 consCG->addNodeToBeCollapsed(consCG->getBaseObjNode(o));
             }
@@ -551,18 +551,32 @@ bool Andersen::addInvariant(ConstraintEdge* edge) {
 }
 */
 
+void Andersen::addCycleInvariants(CycleID pwcID, PAG::PWCList* sccNodeIDs) {
+    pag->addPWCInvariants(pwcID, sccNodeIDs);
+}
+
 /**
  * Union points-to of subscc nodes into its rep nodes
  * Move incoming/outgoing direct edges of sub node to rep node
  */
 void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
 {
+    PAG::PWCList* sccNodeIDs = new PAG::PWCList();
     for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
     {
         NodeID subNodeId = *nodeIt;
+        sccNodeIDs->push_back(subNodeId);
+
         if (subNodeId != repNodeId)
         {
             mergeNodeToRep(subNodeId, repNodeId);
+        }
+    }
+    if (Options::InvariantPWC) {
+        if (consCG->isPWCNode(repNodeId) && subNodes.count() > 1) {
+            pwcCycleId++;
+            addCycleInvariants(pwcCycleId, sccNodeIDs);
+            consCG->resetPWCNode(repNodeId);
         }
     }
 }
@@ -676,6 +690,7 @@ bool Andersen::collapseField(NodeID nodeId)
     double start = stat->getClk();
 
     // set base node field-insensitive.
+    errs() << "Setting object " << nodeId << " field-insensitive from collapseField\n";
     setObjFieldInsensitive(nodeId);
 
     // replace all occurrences of each field with the field-insensitive node
@@ -790,12 +805,14 @@ std::tuple<ConstraintEdge*, Instruction*, Value*> Andersen::pickCycleEdgeToBreak
         if (srcTy == dstTy)
             continue;
 
+        /*
         if (!Options::KaliBreakNullTypeEdges) {
             if (!srcTy || !dstTy) {
                 //llvm::errs() << "srcTy = null? " << srcTy << " dstTy = null? " << dstTy << "\n";
                 continue;
             }
         }
+        */
 
         if (!candidateEdge->getSourceEdge()) {
             continue;

@@ -81,6 +81,10 @@ public:
     typedef std::vector<NodeID> PtdList;
     typedef Map<const Value*, PtdList> VarGepPtdMap;
 
+    typedef std::vector<NodeID> PWCList;
+    typedef Map<CycleID, PWCList> PWCInvariantMap;
+    typedef PWCInvariantMap::iterator PWCInvariantIterator;
+
 
 private:
     SymbolTableInfo* symInfo;
@@ -117,6 +121,8 @@ private:
 
     VarGepList varGeps; // All vargeps
     VarGepPtdMap varGepPtdMap; // the ptds the vargep can point to, without violating an invariant
+
+    PWCInvariantMap pwcInvariantMap;
 
     /// Constructor
     PAG(bool buildFromFile);
@@ -890,6 +896,14 @@ public:
 
     /// Set a pointer points-to black hole (e.g. int2ptr)
     PAGEdge* addBlackHoleAddrPE(NodeID node);
+
+    void addPWCInvariants(CycleID pwcID, PWCList* pwcList) {
+        pwcInvariantMap[pwcID] = *pwcList;
+    }
+
+    PWCInvariantMap& getPWCInvariants() {
+        return pwcInvariantMap;
+    }
 
     void addVarGep(GetElementPtrInst* gep) {
         varGeps.push_back(gep);

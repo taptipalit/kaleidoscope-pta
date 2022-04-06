@@ -162,7 +162,7 @@ class Andersen:  public AndersenBase
     int kaliInvariantId;
     */
 
-    int dbgCycleProcessId;
+    CycleID pwcCycleId; /* the unique id for each PWC */
 
 public:
     typedef SCCDetection<ConstraintGraph*> CGSCC;
@@ -174,7 +174,7 @@ public:
     {
         numChildren = 0;
 //        kaliInvariantId = 0;
-        dbgCycleProcessId = 0;
+        pwcCycleId = 0;
     }
 
     /// Destructor
@@ -202,6 +202,8 @@ public:
     std::tuple<ConstraintEdge*, llvm::Instruction*, llvm::Value*> pickCycleEdgeToBreak(std::set<ConstraintEdge*>&);
 
     void instrumentInvariant(llvm::Instruction*, llvm::Value*);
+
+    void addCycleInvariants(CycleID, PAG::PWCList*);
 
     /// Reset data
     inline void resetData()

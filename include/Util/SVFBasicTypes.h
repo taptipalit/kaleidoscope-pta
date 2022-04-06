@@ -79,6 +79,7 @@ typedef signed long Size_t;
 
 typedef u32_t NodeID;
 typedef u32_t EdgeID;
+typedef u32_t CycleID;
 typedef unsigned SymID;
 typedef unsigned CallSiteID;
 typedef unsigned ThreadID;

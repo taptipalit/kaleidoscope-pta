@@ -18,14 +18,18 @@ class Options
 public:
     Options(void) = delete;
 
-    static const llvm::cl::opt<bool> HandleVGEP;
     static llvm::cl::opt<bool> InvariantVGEP;
+    static llvm::cl::opt<bool> InvariantPWC;
 
+    static const llvm::cl::opt<bool> KaliRunTestDriver;
+
+    /*
+
+    static const llvm::cl::opt<bool> HandleVGEP;
     static const llvm::cl::opt<bool> Kaleidoscope;
 
     static const llvm::cl::opt<bool> KaliBreakNullTypeEdges;
-
-    static const llvm::cl::opt<bool> KaliRunTestDriver;
+    */
 
 
     /// If set, only return the clock when getClk is called as getClk(true).

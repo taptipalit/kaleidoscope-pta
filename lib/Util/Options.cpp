@@ -5,15 +5,17 @@
 
 namespace SVF
 {
+    llvm::cl::opt<bool> Options::InvariantVGEP(
+        "invariant-vgep",
+        llvm::cl::init(false),
+        llvm::cl::desc("Handle invariants for the vgep"));
+
+
+    /*
     const llvm::cl::opt<bool> Options::Kaleidoscope(
         "kaleidoscope",
         llvm::cl::init(false),
         llvm::cl::desc("Analyze with the kaleidoscope system"));
-
-    llvm::cl::opt<bool> Options::InvariantVGEP(
-        "invariant-vgep",
-        llvm::cl::init(false),
-        llvm::cl::desc("Add invariant for the vgep"));
 
 
     const llvm::cl::opt<bool> Options::KaliBreakNullTypeEdges(
@@ -22,17 +24,21 @@ namespace SVF
         llvm::cl::desc("Kaleidoscope: compare null types"));
 
 
-    const llvm::cl::opt<bool> Options::KaliRunTestDriver(
-        "kali-run-test-driver",
-        llvm::cl::init(false),
-        llvm::cl::desc("Kaleidoscope: Kali run test driver"));
-
-    /*
     const llvm::cl::opt<bool> Options::HandleVGEP(
             "handle-vgep",
             llvm::cl::init(true),
             llvm::cl::desc("Handle VGEP"));
-            */
+    */
+
+    llvm::cl::opt<bool> Options::InvariantPWC(
+            "invariant-pwc",
+            llvm::cl::init(false),
+            llvm::cl::desc("Handle invariants for PWC"));
+
+    const llvm::cl::opt<bool> Options::KaliRunTestDriver(
+        "kali-run-test-driver",
+        llvm::cl::init(false),
+        llvm::cl::desc("Kaleidoscope: Kali run test driver"));
 
     const llvm::cl::opt<bool> Options::MarkedClocksOnly(
         "marked-clocks-only",
