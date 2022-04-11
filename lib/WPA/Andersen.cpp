@@ -395,11 +395,24 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                 continue;
             } 
             
-            if (consCG->isArrayTy(o)) {
-                // We will add the invariant later
-                pag->addPtdForVarGep(vgepCGEdge->getLLVMValue(), o);
-            } else {
-                if (Options::InvariantVGEP) {
+            if (Options::InvariantVGEP) {
+                // First of all, we believe that variable indices
+                // when the type is a complex type, are most definitely accessing 
+                // an element in the array.
+                // GetElementPtrInst* vgep = vgepCGEdge->getLLVMValue();
+                /*
+                Type* gepPtrTy = vgep->getPointerOperand()->getType()->getPointerElementType();
+
+                if (gepPtrTy->isStructTy()) {
+                    continue;
+                }
+                */
+
+                // For the rest, we add the invariant
+                if (consCG->isArrayTy(o)) {
+                    // We will add the invariant later
+                    pag->addPtdForVarGep(vgepCGEdge->getLLVMValue(), o);
+                } else {
                     // We assume these don't happen
                     continue;
                 }

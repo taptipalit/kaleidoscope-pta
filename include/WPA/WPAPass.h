@@ -128,6 +128,8 @@ public:
         return "WPAPass";
     }
 
+    void deriveHeapAllocationTypes(llvm::Module&);
+
     virtual void invariantInstrumentationDriver(llvm::Module&);
 
     virtual void doCFI(llvm::Module&);

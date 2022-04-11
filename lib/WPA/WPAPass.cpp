@@ -193,12 +193,100 @@ void WPAPass::doCFI(Module& M) {
 
 }
 
+/**
+ * We can go forward, from a sizeof operator
+ * Or backward from a heap allocation call (malloc, etc) to a cast
+ * Going backward might have unintended consequences. 
+ * How do you know when you stop? void* p = malloc(..); return p;
+ *
+ * You can track all type-cast operations and track if they type-cast
+ * any of the return values
+ *
+ */
+void WPAPass::deriveHeapAllocationTypes(llvm::Module& module) {
+    std::vector<CallInst*> callInsts; // functions that return pointers
+    std::vector<Instruction*> typeCasts;
+    std::map<CallInst*, StructType*> callInstCastToStructs;
+    std::map<CallInst*, ArrayType*> callInstCastToArrays;
+
+    std::vector<std::string> mallocCallers;
+
+    mallocCallers.push_back("malloc");
+    mallocCallers.push_back("calloc");
+
+    for (Module::iterator MIterator = module.begin(); MIterator != module.end(); MIterator++) {
+        if (Function *F = SVFUtil::dyn_cast<Function>(&*MIterator)) {
+            std::vector<AllocaInst*> stackVars;
+            std::vector<LoadInst*> loadInsts;
+            std::vector<StoreInst*> storeInsts;
+            if (!F->isDeclaration()) {
+                for (llvm::inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F); I != E; ++I) {
+                    if (CallInst* cInst = SVFUtil::dyn_cast<CallInst>(&*I)) {
+                        // Does it return a pointer
+                        Function* calledFunc = cInst->getCalledFunction();
+                        Type* retTy = cInst->getType();
+                        if (retTy->isPointerTy()) {
+                            callInsts.push_back(cInst);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Type-casts
+    std::vector<Instruction*> workList;
+    for (CallInst* cInst: callInsts) {
+        workList.push_back(cInst);
+        while (!workList.empty()) {
+            Instruction* inst = workList.back();
+            workList.pop_back();
+            bool term = false;
+            for (User* u: inst->users()) {
+                Instruction* uInst = SVFUtil::dyn_cast<Instruction>(u);
+                if (BitCastInst* bcInst = SVFUtil::dyn_cast<BitCastInst>(u)) {
+                    Type* destTy = bcInst->getDestTy();
+                    if (destTy->isPointerTy()) {
+                        Type* ptrTy = destTy->getPointerElementType();
+                        if (StructType* stTy = SVFUtil::dyn_cast<StructType>(ptrTy)) {
+                            term = true;
+                            callInstCastToStructs[cInst] = stTy;
+                        } else if (ArrayType* arrTy = SVFUtil::dyn_cast<ArrayType>(ptrTy)) {
+                            term = true;
+                            callInstCastToArrays[cInst] = arrTy;
+                        }
+                    }
+                }
+                if (!term) {
+                    workList.push_back(uInst);
+                }
+            }
+        }
+    }
+
+    for (auto pair: callInstCastToStructs) {
+        CallInst* cInst = pair.first;
+        StructType* stTy = pair.second;
+        llvm::errs() << "CallInst in function: " << cInst->getFunction()->getName() << " is cast to struct: " << *stTy << "\n";
+        
+    }
+
+    for (auto pair: callInstCastToArrays) {
+        CallInst* cInst = pair.first;
+        ArrayType* arrTy = pair.second;
+        llvm::errs() << "CallInst in function: " << cInst->getFunction()->getName() << " is cast to array: " << *arrTy << "\n";
+        
+    }
+
+}
+
 /*!
  * We start from here
  */
 void WPAPass::runOnModule(SVFModule* svfModule)
 {
     llvm::Module *module = SVF::LLVMModuleSet::getLLVMModuleSet()->getMainLLVMModule(); 
+    deriveHeapAllocationTypes(*module);
 
     if (Options::KaliRunTestDriver) {
         invariantInstrumentationDriver(*module);
