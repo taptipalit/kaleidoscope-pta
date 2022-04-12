@@ -2,13 +2,20 @@
 
 struct Student {
     int id;
-    int* ptr;
-    int* qtr;
+    void (*ptr)();
+    void (*qtr)();
 };
+
+void func() {}
+void gunc() {}
+
+void dothis(void (*variantFptr)()) {
+    (*variantFptr)();
+}
 
 int main(void) {
 
-    int a = 200, b = 400;
+    //int a = 200, b = 400;
     struct Student* sptr = malloc(sizeof(struct Student));
 
     int k = 199;
@@ -17,20 +24,21 @@ int main(void) {
 
 
     sptr->id = 500;
-    sptr->ptr = &a;
-    sptr->qtr = &b;
+    sptr->ptr = func;
+    sptr->qtr = gunc;
 
-        
     p = q;
     r = &(((struct Student*)p)->ptr);
-
 
     // Strong update
     r = &k;
     q = r;
     
     printf("%d\n", *(int*)r);
-    
+
+    void (*myFuncPtr)() = sptr->ptr;
+
+    dothis(myFuncPtr);
     return 0;
 }
 

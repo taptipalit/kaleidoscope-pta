@@ -132,7 +132,13 @@ public:
 
     virtual void invariantInstrumentationDriver(llvm::Module&);
 
-    virtual void doCFI(llvm::Module&);
+    //virtual llvm::CallInst* findCorrespondingCallInClone(llvm::CallInst*, llvm::Module*);
+    virtual void collectCFI(llvm::Module&, bool);
+    virtual void instrumentCFICheck(llvm::CallInst*, std::vector<llvm::Function*>&);
+    virtual void addCFIFunctions(llvm::Module* module);
+
+
+
 
 private:
     /// Create pointer analysis according to specified kind and analyze the module.
@@ -141,6 +147,15 @@ private:
     PTAVector ptaVector;	///< all pointer analysis to be executed.
     PointerAnalysis* _pta;	///<  pointer analysis to be executed.
     SVFG* _svfg;  ///< svfg generated through -ander pointer analysis
+
+    std::map<llvm::CallInst*, std::vector<Function*>> wInvIndCallMap;
+    std::vector<llvm::CallInst*> wInvIndCallProhibited;
+
+    std::map<llvm::CallInst*, std::vector<Function*>> woInvIndCallMap;
+    std::vector<llvm::CallInst*> woInvIndCallProhibited;
+
+
+    llvm::Function* checkCFI;
 };
 
 } // End namespace SVF

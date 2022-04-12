@@ -1,0 +1,3 @@
+[submodule "cs497-project"]
+	path = lib/MemoryViewSwitcher
+	url = git@github.com:aarcc530/cs497-project

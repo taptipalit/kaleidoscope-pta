@@ -46,7 +46,14 @@
 #include "WPA/Steensgaard.h"
 #include "SVF-FE/PAGBuilder.h"
 #include "WPA/InvariantHandler.h"
+#include "InsertFunctionSwitch.h"
+#include "InsertExecutionSwitch.h"
+
 #include "llvm/IR/InstIterator.h"
+#include "llvm/Transforms/Utils/Cloning.h"
+
+#include "llvm/Transforms/Utils/FunctionComparator.h"
+
 
 using namespace SVF;
 
@@ -71,12 +78,52 @@ WPAPass::~WPAPass()
     ptaVector.clear();
 }
 
+/*
+CallInst* WPAPass::findCorrespondingCallInClone(CallInst* indCall, llvm::Module* clonedModule) {
+    int indCallIndex = -1;
+    Function* origFunc = indCall->getFunction();
+    llvm::StringRef indCallFuncName = origFunc->getName();
+    for (inst_iterator I = llvm::inst_begin(origFunc), E = llvm::inst_end(origFunc); I != E; ++I) {
+        if (CallInst* callInst = SVFUtil::dyn_cast<CallInst>(&*I)) {
+            if (callInst->isIndirectCall()) {
+                indCallIndex++;
+                if (indCall == callInst) {
+                    break;
+                }
+            }
+        }
+    }
 
+    int indexIt = -1;
+    // Now find that same function and call-index in the cloned
+    Function* clonedFunc = clonedModule->getFunction(indCallFuncName);
+    for (inst_iterator I = llvm::inst_begin(clonedFunc), E = llvm::inst_end(clonedFunc); I != E; ++I) {
+        if (CallInst* callInst = SVFUtil::dyn_cast<CallInst>(&*I)) {
+            if (callInst->isIndirectCall()) {
+                indexIt++;
+                if (indexIt == indCallIndex) {
+                    return callInst;
+                }
+            }
+        }
+    }
+    return nullptr;
+}
+*/
 
-void WPAPass::doCFI(Module& M) {
+void WPAPass::collectCFI(Module& M, bool woInv) {
+    
+    std::map<llvm::CallInst*, std::vector<Function*>>* indCallMap;
+    std::vector<llvm::CallInst*>* indCallProhibited;
 
-    std::map<Value*, std::vector<Function*>> indCallMap;
-    std::vector<llvm::CallInst*> indCallProhibited;
+    if (!woInv) {
+        indCallMap = &wInvIndCallMap;
+        indCallProhibited = &wInvIndCallProhibited;
+    } else {
+        indCallMap = &woInvIndCallMap;
+        indCallProhibited = &woInvIndCallProhibited;
+    }
+
 
     PAG* pag = _pta->getPAG();
     for (Module::iterator MIterator = M.begin(); MIterator != M.end(); MIterator++) {
@@ -93,12 +140,12 @@ void WPAPass::doCFI(Module& M) {
                             if (tgtNode->hasValue()) {
                                 if (const Function* tgtFunction = SVFUtil::dyn_cast<Function>(tgtNode->getValue())) {
                                     hasTarget = true;
-                                    indCallMap[callInst].push_back(const_cast<Function*>(tgtFunction));
+                                    (*indCallMap)[callInst].push_back(const_cast<Function*>(tgtFunction));
                                 }
                             }
                         }
                         if (!hasTarget) {
-                            indCallProhibited.push_back(callInst);
+                            (*indCallProhibited).push_back(callInst);
                         }
                     }
                 }
@@ -106,90 +153,47 @@ void WPAPass::doCFI(Module& M) {
         }
 
     }
+}
 
-
-    /*
-    for (auto const& x : indCallMap)
-    {
-        llvm::errs() << "tgt: " << x.second.size() << "\n";
-    }
-    */
-
-    // The block function
-    std::vector<Type*> blockTypes;
-    llvm::ArrayRef<Type*> blockArr(blockTypes);
-
-    FunctionType* blockCFIFnTy = FunctionType::get(Type::getVoidTy(M.getContext()), blockArr, false);
-    Function* blockCFI = Function::Create(blockCFIFnTy, Function::ExternalLinkage, "blockCFI", &M);
-
-    // The checkCFI function
-    std::vector<Type*> typeCheckCFI;
-
-    Type* longType = IntegerType::get(M.getContext(), 64);
-    Type* intType = IntegerType::get(M.getContext(), 32);
+void WPAPass::instrumentCFICheck(llvm::CallInst* indCall, std::vector<llvm::Function*>& validTgts) {
+    llvm::Module* M = indCall->getParent()->getParent()->getParent();
+    Type* longType = IntegerType::get(M->getContext(), 64);
+    Type* intType = IntegerType::get(M->getContext(), 32);
     Type* ptrToLongType = PointerType::get(longType, 0);
-    typeCheckCFI.push_back(ptrToLongType);
-    typeCheckCFI.push_back(intType);
-    typeCheckCFI.push_back(ptrToLongType); // checkCFI(unsigned long* valid_tgts, int len, unsigned long* tgt);
 
-    llvm::ArrayRef<Type*> typeCheckCFIArr(typeCheckCFI);
+    // Need an alloca inst, of type arraytype, with len =
+    // indCallMap[key].size()
+    int len = validTgts.size();
+    ArrayType* checkArrTy = ArrayType::get(ptrToLongType, len);
+    // Create an AllocaInst
+    IRBuilder Builder(indCall);
 
-    FunctionType* checkCFIFnTy = FunctionType::get(Type::getVoidTy(M.getContext()), typeCheckCFIArr, false);
-    Function* checkCFI = Function::Create(checkCFIFnTy, Function::ExternalLinkage, "checkCFI", &M);
+    // Create the arguments
+    // 1. a. Create an array (allocainst) with list of function pointers, each casted
+    // to ulong*
+    // b. Cast it to a ulong*, this is your first argument
+    // 2. Create a i32 from the length, this is your second argument
+    // 3. Cast the actual target in callInst->getCalledValue(), this is
+    // your last argument
 
-    for (auto pair: indCallMap) {
-        Value* key = pair.first;
-        // Need an alloca inst, of type arraytype, with len =
-        // indCallMap[key].size()
-        int len = pair.second.size();
-        ArrayType* checkArrTy = ArrayType::get(ptrToLongType, len);
-        // Create an AllocaInst
-        CallInst* indCall = SVFUtil::dyn_cast<CallInst>(key);
-        assert(indCall && "Should be a call instruction");
-        IRBuilder Builder(indCall);
+    Constant* clen = ConstantInt::get(intType, len);
+    std::vector<Constant*> tgtVec;
+    for (Function* validTgt: validTgts) {
+        tgtVec.push_back(ConstantExpr::getBitCast(validTgt, ptrToLongType));
 
-        // Create the arguments
-        // 1. a. Create an array (allocainst) with list of function pointers, each casted
-        // to ulong*
-        // b. Cast it to a ulong*, this is your first argument
-        // 2. Create a i32 from the length, this is your second argument
-        // 3. Cast the actual target in callInst->getCalledValue(), this is
-        // your last argument
-
-        Constant* clen = ConstantInt::get(intType, len);
-        std::vector<Constant*> tgtVec;
-        for (Function* validTgt: pair.second) {
-            tgtVec.push_back(ConstantExpr::getBitCast(validTgt, ptrToLongType));
-
-        }
-        llvm::ArrayRef<Constant*> tgtArrRef(tgtVec);
-        Constant* validTgtsConstArr = ConstantArray::get(checkArrTy, tgtArrRef);
-
-        GlobalVariable* validTgtsGVar = new GlobalVariable(M, checkArrTy, true, GlobalValue::ExternalLinkage,
-                validTgtsConstArr);
-
-        // Cast to ulong*
-        Value* arg1 = Builder.CreateBitOrPointerCast(validTgtsGVar, ptrToLongType);
-        Value* arg2 = clen;
-        Value* arg3 = Builder.CreateBitOrPointerCast(indCall->getCalledOperand(), ptrToLongType);
-
-        Builder.CreateCall(checkCFI, {arg1, arg2, arg3});
     }
+    llvm::ArrayRef<Constant*> tgtArrRef(tgtVec);
+    Constant* validTgtsConstArr = ConstantArray::get(checkArrTy, tgtArrRef);
 
-    for (CallInst* prohibCall: indCallProhibited) {
-        IRBuilder Builder(prohibCall);
-        Builder.CreateCall(blockCFI, {});
-    }
-    /*
+    GlobalVariable* validTgtsGVar = new GlobalVariable(*M, checkArrTy, true, GlobalValue::ExternalLinkage,
+            validTgtsConstArr);
 
-    // Finally, set the startCFI
-    GlobalVariable* startCFI = new GlobalVariable(M, intType, true, GlobalValue::ExternalLinkage,
-            0, "startCFI");
+    // Cast to ulong*
+    Value* arg1 = Builder.CreateBitOrPointerCast(validTgtsGVar, ptrToLongType);
+    Value* arg2 = clen;
+    Value* arg3 = Builder.CreateBitOrPointerCast(indCall->getCalledOperand(), ptrToLongType);
 
-    IRBuilder<> CFIBuilder(wpaPass->getCurrInst());
-    Constant* one = ConstantInt::get(intType, 1);
-    CFIBuilder.CreateStore(one, startCFI);
-    */
+    Builder.CreateCall(checkCFI, {arg1, arg2, arg3});
 
 }
 
@@ -298,7 +302,6 @@ void WPAPass::runOnModule(SVFModule* svfModule)
         }
         assert(!ptaVector.empty() && "No pointer analysis is specified.\n");
 
-        doCFI(*module);
     }
 
 
@@ -367,6 +370,31 @@ void WPAPass::invariantInstrumentationDriver(Module& module) {
     }
 }
 
+void WPAPass::addCFIFunctions(llvm::Module* module) {
+   // The block function
+    std::vector<Type*> blockTypes;
+    llvm::ArrayRef<Type*> blockArr(blockTypes);
+
+    FunctionType* blockCFIFnTy = FunctionType::get(Type::getVoidTy(module->getContext()), blockArr, false);
+    Function* blockCFI = Function::Create(blockCFIFnTy, Function::ExternalLinkage, "blockCFI", module);
+
+    // The checkCFI function
+    std::vector<Type*> typeCheckCFI;
+
+    Type* longType = IntegerType::get(module->getContext(), 64);
+    Type* intType = IntegerType::get(module->getContext(), 32);
+    Type* ptrToLongType = PointerType::get(longType, 0);
+    typeCheckCFI.push_back(ptrToLongType);
+    typeCheckCFI.push_back(intType);
+    typeCheckCFI.push_back(ptrToLongType); // checkCFI(unsigned long* valid_tgts, int len, unsigned long* tgt);
+
+    llvm::ArrayRef<Type*> typeCheckCFIArr(typeCheckCFI);
+
+    FunctionType* checkCFIFnTy = FunctionType::get(Type::getVoidTy(module->getContext()), typeCheckCFIArr, false);
+    checkCFI = Function::Create(checkCFIFnTy, Function::ExternalLinkage, "checkCFI", module);
+}
+
+
 /*!
  * Create pointer analysis according to a specified kind and then analyze the module.
  */
@@ -377,52 +405,75 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 	/// Build PAG
 	PAGBuilder builder;
 
+    llvm::errs() << "Running with invariants turned on\n";
     Options::InvariantVGEP = true;
+    Options::InvariantPWC = true;
 	PAG* pag = builder.build(svfModule);
-    
-    /*
-    for (GetElementPtrInst* gepInst: builder.getVgeps()) {
-        llvm::Module* mod = gepInst->getParent()->getParent()->getParent();
-        Type* gepSrcTy = gepInst->getResultElementType();
-        Value* index = gepInst->getOperand(gepInst->getNumOperands() - 1);
-        StructType* stTy = SVFUtil::dyn_cast<StructType>(gepSrcTy);
-
-        // Create a Constant with the size of the struct
-        const StructLayout* stL = mod->getDataLayout().getStructLayout(stTy);
-        uint64_t size = stL->getSizeInBytes();
-        Constant* sizeConstant = ConstantInt::get(IntegerType::get(gepInst->getContext(), 64), size);
-        IRBuilder builder(gepInst);
-        Value* cmp = builder.CreateICmpUGT(sizeConstant, index);
-        Instruction* cmpInst = SVFUtil::dyn_cast<Instruction>(cmp);
-        assert(cmpInst && "not cmp inst?");
-
-        // Ah, now split the current basic block
-        BasicBlock* headBB = gepInst->getParent();
-        Instruction* termInst = llvm::SplitBlockAndInsertIfThen(cmpInst, cmpInst->getNextNode(), false);
-
-        // Insert call to the switch view function
-        Function* switchViewFn = mod->getFunction("switch_view");
-        if (!switchViewFn) {
-            // TODO: for some reason the module gets switched from under me
-            // The switch-view function
-            llvm::ArrayRef<Type*> switchViewFnTypeArr = {};
-
-            FunctionType* switchViewFnTy = FunctionType::get(Type::getVoidTy(mod->getContext()), switchViewFnTypeArr, false);
-            switchViewFn = Function::Create(switchViewFnTy, Function::ExternalLinkage, "switch_view", mod);
-        }
-        IRBuilder switcherBuilder(termInst);
-        switcherBuilder.CreateCall(switchViewFn->getFunctionType(), switchViewFn);
-    }
-    */
-
     _pta = new AndersenWaveDiff(pag);
     ptaVector.push_back(_pta);
     _pta->analyze();
 
+    collectCFI(*module, false);
 
+    Options::InvariantVGEP = false;
+    Options::InvariantPWC = false;
+    _pta = new AndersenWaveDiff(pag);
+    ptaVector.clear();
+    ptaVector.push_back(_pta);
+    _pta->analyze();
+
+    collectCFI(*module, true);
+    
+    // At the end of collectCFI
+    // we have two maps inside WPAPass populated
+    // the wInvIndCallMap and the woInvIndCallMap
+    //
+    // Using these, we must build the CFI policies for both the with invariant
+    // and without invariant versions.
+    // And then have the memory view switcher switch between these
+    //
+    // We do this as follows:
+    // We use the wInvMaps to instrument the module
+    // In case of indirect calls where the profile produced by wInvMap and
+    // woInvMap differs, we create a clone of the Function and add the pair
+    // (the original Function and the cloned Function) to
+    // a vector of memory-view-pairs.
+    //
+    // We instrument the original function according to the wInvMap's profile
+    // and the cloned function according to the woInvMap's profile
+    //
+    // We pass the memory-view-pairs vector the the Memory View Switcher pass
+    //
+
+    std::vector<std::pair<Function*, Function*>> memViewPairs;
+
+    addCFIFunctions(module);
+    for (auto pair: wInvIndCallMap) {
+        llvm::CallInst* callInst = pair.first;
+        std::vector<Function*>& wInvTgts = pair.second;
+        std::vector<Function*>& woInvTgts = woInvIndCallMap[callInst]; // TODO: does it need to have it?
+        if (wInvTgts.size() != woInvTgts.size()) {
+            Function* origFunc = callInst->getFunction();
+            llvm::ValueToValueMapTy VMap;
+            Function* clonedFunc = llvm::CloneFunction(origFunc, VMap);
+            llvm::Value* clonedVal = VMap[callInst];
+            llvm::CallInst* clonedCallInst = SVFUtil::dyn_cast<llvm::CallInst>(clonedVal);
+            instrumentCFICheck(clonedCallInst, woInvTgts);
+            memViewPairs.push_back(std::make_pair(origFunc, clonedFunc));
+        }
+
+        instrumentCFICheck(callInst, wInvTgts);
+    }
+
+    // Now go over all functions 
+    // and see if the versions are different
+
+    // Handle the invariants
     InvariantHandler IHandler(svfModule, module, pag);
     IHandler.handleVGEPInvariants();
     IHandler.handlePWCInvariants();
+
+
 
     /*
     Options::InvariantVGEP = false;

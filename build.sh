@@ -172,7 +172,7 @@ else
     cd ./'Release-build'
     cmake ../
     fi
-make -j 4
+make -j 8
 
 ########
 # Set up environment variables of SVF

@@ -67,6 +67,7 @@ message(STATUS "Found Z3: ${Z3_LIBRARIES}")
 message(STATUS "Z3 include dir: ${Z3_INCLUDES}")
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/MemoryViewSwitcher/InsertSwitch/src/include
                     ${Z3_INCLUDES})
 
 # checks if the test-suite is present, if it is then build bc files and add testing to cmake build
@@ -79,6 +80,8 @@ endif()
 
 add_subdirectory(lib)
 add_subdirectory(tools)
+
+add_compile_definitions(MEMVIEW_WITH_SVF=1)
 
 INSTALL(
     DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
