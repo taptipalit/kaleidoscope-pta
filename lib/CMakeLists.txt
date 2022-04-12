@@ -10,6 +10,8 @@ else()
     llvm_map_components_to_libnames(llvm_libs bitwriter core ipo irreader instcombine instrumentation target linker analysis scalaropts support transformutils)
 endif()
 
+add_compile_definitions(MEMVIEW_WITH_SVF)
+
 file (GLOB SOURCES
         SVF-FE/*.cpp
         Graphs/*.cpp
@@ -20,7 +22,7 @@ file (GLOB SOURCES
         MTA/*.cpp
         SABER/*.cpp
         DDA/*.cpp
-        MemoryViewSwitcher/InsertSwitch/src/*.cpp)
+        MemoryViewSwitcher/InsertSwitch/src/lib/*.cpp)
 add_llvm_library(Svf STATIC ${SOURCES} LINK_LIBS Cudd ${Z3_LIBRARIES})
 
 link_directories(${CMAKE_BINARY_DIR}/lib/Cudd)

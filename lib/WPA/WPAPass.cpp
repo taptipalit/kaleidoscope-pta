@@ -473,7 +473,8 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
     IHandler.handleVGEPInvariants();
     IHandler.handlePWCInvariants();
 
-
+    std::unique_ptr<llvm::InsertFunctionSwitchPass> p1 = std::make_unique<llvm::InsertFunctionSwitchPass>();
+    p1->runOnModule(*module);
 
     /*
     Options::InvariantVGEP = false;
