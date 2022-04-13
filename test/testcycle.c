@@ -31,7 +31,7 @@ int main(void) {
     r = &(((struct Student*)p)->ptr);
 
     // Strong update
-    r = &k;
+    r = &k; // Remove this to trigger invariant flip
     q = r;
     
     printf("%d\n", *(int*)r);
