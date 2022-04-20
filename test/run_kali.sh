@@ -12,7 +12,7 @@ file_exe="$file".exe
 
 clang -c -O0 $file_c -emit-llvm -o $file_bc
 
-../Debug-build/bin/wpa -ander $file_bc
+../Debug-build/bin/wpa -invariant-vgep=false -ander $file_bc
 
 if [ $? -ne 0 ]; then
     echo "Failed to run partitioned pointer analysis"

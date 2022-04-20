@@ -128,7 +128,12 @@ public:
         return "WPAPass";
     }
 
+    CallInst* findCInstFA(llvm::Value*);
     void deriveHeapAllocationTypes(llvm::Module&);
+    void deriveHeapAllocationTypesWithCloning(llvm::Module&);
+
+    bool deepClone(llvm::Function*, llvm::Function*&, std::vector<std::string>&, 
+            llvm::Type*, llvm::Type*);
 
     virtual void invariantInstrumentationDriver(llvm::Module&);
 

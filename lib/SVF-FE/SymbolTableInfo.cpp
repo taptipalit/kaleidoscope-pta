@@ -241,21 +241,44 @@ bool SymbolTableInfo::computeGepOffset(const User *V, LocationSet& ls)
     const llvm::GEPOperator *gepOp = SVFUtil::dyn_cast<const llvm::GEPOperator>(V);
     DataLayout * dataLayout = getDataLayout(LLVMModuleSet::getLLVMModuleSet()->getMainLLVMModule());
     llvm::APInt byteOffset(dataLayout->getIndexSizeInBits(gepOp->getPointerAddressSpace()),0,true);
-    if(gepOp && dataLayout && gepOp->accumulateConstantOffset(*dataLayout,byteOffset))
+    if(gepOp && dataLayout && gepOp->accumulateConstantOffset(*dataLayout,byteOffset)) // Accumulates the constant offsets if possible.
     {
         Size_t bo = byteOffset.getSExtValue();
-        ls.setByteOffset(bo + ls.getByteOffset());
+        ls.setByteOffset(bo + ls.getByteOffset()); // ls.getByteOffset() would likely be zero
     }
 
+    /**
+     * bridge_gep_iterator, or generic_bridge_gep_type_iterator
+     * is actually a fully specialized templated class, that extends the
+     * std::iterator template.
+     *
+     * It iterates over the operands of the GEPOperator.
+     * The bridge_gep_begin, bridge_gep_end interfaces just invoke the begin()
+     * and end() interfaces of this templated class.
+     *
+     * The ++ operator simply increments the operand iterator and sets the
+     * CurTy pointer to the current type.
+     *
+     * Then when you do a * it returns CurTy.
+     */
     for (bridge_gep_iterator gi = bridge_gep_begin(*V), ge = bridge_gep_end(*V);
             gi != ge; ++gi)
     {
 
+        Type* giType = *gi;
         // Handling array types, skipe array handling here
         // We treat whole array as one, then we can distinguish different field of an array of struct
         // e.g. s[1].f1 is differet from s[0].f2
-        if(SVFUtil::isa<ArrayType>(*gi))
+        if(SVFUtil::isa<ArrayType>(giType))
             continue;
+
+        // If it's a pointer to a struct then it's like an array
+        PointerType* ptrGIType = SVFUtil::dyn_cast<PointerType>(giType);
+        if (ptrGIType) {
+            if (SVFUtil::isa<StructType>(ptrGIType->getPointerElementType())) {
+                continue;
+            }
+        }
 
         //The int-value object of the current index operand
         //  (may not be constant for arrays).

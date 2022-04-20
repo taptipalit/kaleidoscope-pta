@@ -22,7 +22,6 @@ int main(void) {
     void* q = sptr;
     void* p, *r;
 
-
     sptr->id = 500;
     sptr->ptr = func;
     sptr->qtr = gunc;
