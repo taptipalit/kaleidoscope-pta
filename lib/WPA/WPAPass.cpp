@@ -279,7 +279,7 @@ bool WPAPass::deepClone(llvm::Function* func, llvm::Function*& clonedFunc, std::
     // We will handle the callers of the clone later
     for (Function* toCloneFunc: cloneFuncs) {
         llvm::ValueToValueMapTy VMap;
-        Function* clone = llvm::CloneFunction(toCloneFunc, VMap);
+        clonedFunc = llvm::CloneFunction(toCloneFunc, VMap);
         // If the VMap contains the call to malloc, then we can set it right
         // away
         llvm::ValueToValueMapTy::iterator it = VMap.find(mallocCalls[0]);
@@ -291,7 +291,7 @@ bool WPAPass::deepClone(llvm::Function* func, llvm::Function*& clonedFunc, std::
             // CallInst* clonedMalloc = SVFUtil::dyn_cast<CallInst>(&(VMap[mallocCalls[0]]));
             // SVFUtil::dyn_cast<CallInst*>(it->second());
         }
-        cloneMap[toCloneFunc] = clone;
+        cloneMap[toCloneFunc] = clonedFunc;
     }
 
     mallocCalls[0]->addAnnotationMetadata("StructType");
@@ -334,6 +334,11 @@ void WPAPass::deriveHeapAllocationTypesWithCloning(llvm::Module& module) {
     FunctionSizeOfTypeMapTy functionSizeOfTypeMap;
     typedef std::map<CallInst*, Type*> MallocSizeOfTypeMapTy;
     MallocSizeOfTypeMapTy mallocSizeOfMap;
+
+    typedef std::map<Function*, std::set<CallInst*>> WrapperTypeCallerTy;
+    WrapperTypeCallerTy arrayTyCallers;
+    WrapperTypeCallerTy structTyCallers;
+
 
     for (Module::iterator MIterator = module.begin(); MIterator != module.end(); MIterator++) {
         if (Function *F = SVFUtil::dyn_cast<Function>(&*MIterator)) {
@@ -388,6 +393,11 @@ void WPAPass::deriveHeapAllocationTypesWithCloning(llvm::Module& module) {
                         
                         if (std::find(mallocFunctions.begin(), mallocFunctions.end(), calledFunction->getName()) == mallocFunctions.end()) {
                             functionSizeOfTypeMap[calledFunction].insert(sizeOfTy);
+                            if (SVFUtil::isa<ArrayType>(sizeOfTy)) {
+                                arrayTyCallers[calledFunction].insert(cInst); 
+                            } else if (SVFUtil::isa<StructType>(sizeOfTy)) {
+                                structTyCallers[calledFunction].insert(cInst); 
+                            }
                         } else {
                             mallocSizeOfMap[cInst] = sizeOfTy;
                         }
@@ -421,8 +431,17 @@ void WPAPass::deriveHeapAllocationTypesWithCloning(llvm::Module& module) {
             // Try to deep clone it, and specialize it for the 
             Function* clonedFunc = nullptr;
             bool couldSpecialize = deepClone(potentialMallocWrapper, clonedFunc, mallocFunctions, arrTy, structTy);
+            // Update the callsites
+            // It _might_ be possible we're re-updating something that was
+            // already updated inside deepClone, but it _should_ be okay
+            // The cloned function is for the array, and the original is for
+            // the struct type.
+
+            for (CallInst* caller: arrayTyCallers[potentialMallocWrapper]) {
+                caller->setCalledFunction(clonedFunc);
+            } 
+
         }
-        
     }
 
     for (auto it: mallocSizeOfMap) {
@@ -546,7 +565,6 @@ void WPAPass::runOnModule(SVFModule* svfModule)
         assert(!ptaVector.empty() && "No pointer analysis is specified.\n");
 
     }
-
 
     //module->dump();
     std::error_code EC;
