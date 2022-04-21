@@ -233,6 +233,7 @@ public:
 private:
     void loadModules(const std::vector<std::string> &moduleNameVec);
     void addSVFMain();
+    void preInitialize();
     void initialize();
     void buildFunToFunMap();
     void buildGlobalDefToRepMap();

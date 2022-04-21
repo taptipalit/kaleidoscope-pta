@@ -6,10 +6,20 @@ typedef struct Student {
     char name[100];
 } Student;
 
+void* _wrapper(int padFlag, int sz) {
+    if (padFlag) {
+        sz += 1024;
+    }
+    return malloc(sz);
+}
+
 void* wrapper(int sz) {
-    int* p = malloc(sz);
+    int* p = (int*)0;
+    p = _wrapper(0, sz);
+    if (p == (int*) 0) {
+        fprintf(stderr, "Failed to allocate memory\n");
+    };
     return p;
-    //return malloc(sz);
 }
 
 int main(void) {

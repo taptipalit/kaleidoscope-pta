@@ -33,6 +33,7 @@
 #include "Util/SVFUtil.h"
 #include "SVF-FE/LLVMUtil.h"
 #include "SVF-FE/BreakConstantExpr.h"
+#include "SVF-FE/HeapTypeAnalyzer.h"
 
 using namespace std;
 using namespace SVF;
@@ -142,11 +143,23 @@ void LLVMModuleSet::preProcessBCs(std::vector<std::string> &moduleNameVec)
 
 void LLVMModuleSet::build()
 {
+    preInitialize();
     initialize();
     buildFunToFunMap();
     buildGlobalDefToRepMap();
     if(preProcessed==false)
         prePassSchedule();
+}
+
+void LLVMModuleSet::preInitialize() {
+    // The HeapTypeAnalyzer Pass
+    std::unique_ptr<HeapTypeAnalyzer> p3 = 
+        std::make_unique<HeapTypeAnalyzer>();
+    for (u32_t i = 0; i < LLVMModuleSet::getLLVMModuleSet()->getModuleNum(); ++i) 
+    {
+        Module *module = LLVMModuleSet::getLLVMModuleSet()->getModule(i);
+        p3->runOnModule(*module);
+    }
 }
 
 /*!
@@ -176,6 +189,8 @@ void LLVMModuleSet::prePassSchedule()
             p2->runOnFunction(fun);
         }
     }
+
+
 }
 
 
