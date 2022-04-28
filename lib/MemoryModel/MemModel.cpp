@@ -93,10 +93,21 @@ void ObjTypeInfo::analyzeGlobalStackObjType(const Value* val)
 /*!
  * Analyse types of heap and static objects
  */
-void ObjTypeInfo::analyzeHeapStaticObjType(const Value*)
+void ObjTypeInfo::analyzeHeapStaticObjType(const Value* heapValue)
 {
     // TODO: Heap and static objects are considered as pointers right now.
     //       Refine this function to get more details about heap and static objects.
+    if (const CallInst* heapCall = SVFUtil::dyn_cast<CallInst>(heapValue)) {
+        if (heapCall->hasMetadata("annotation")) {
+            MDNode* mdNode = heapCall->getMetadata("annotation");
+            MDString* tyAnnotStr = (MDString*)mdNode->getOperand(0).get();
+            if (tyAnnotStr->getString() == "ArrayType") {
+                setFlag(CONST_ARRAY_OBJ);
+            } else if (tyAnnotStr->getString() == "StructType") {
+                setFlag(
+            }
+        }
+    }
     setFlag(HASPTR_OBJ);
 }
 
