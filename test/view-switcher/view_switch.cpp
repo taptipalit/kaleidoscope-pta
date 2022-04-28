@@ -10,6 +10,7 @@ typedef uint32_t InvariantID;
 typedef uint64_t InvariantVal;
 
 std::map<CycleID, std::map<InvariantID, InvariantVal>> pwcInvariants;
+std::map<CycleID, std::map<InvariantID, InvariantVal>> gepPWCInvariants;
 /**
  * Return true (1) if we must switch the view
  * Return false (0) if we don't need to switch the view
@@ -32,21 +33,66 @@ extern "C" uint32_t ptdTargetCheck(uint64_t* tgt, uint64_t len, uint64_t* tgts) 
  * Return 1 if the view needs to be changed
  * Return 0 if the view does not need to be changed
  */
-extern "C" uint32_t updateAndCheckPWC(uint32_t pwcId, uint32_t invLen, uint32_t invId, uint64_t val) {
-    pwcInvariants[pwcId][invId] = val;     
+extern "C" uint32_t updateAndCheckPWC(uint32_t pwcId, uint32_t invLen, uint32_t invId, uint64_t val, int isGep) {
+    int cycleHappened = 1;
     // Check if the cycle happened
-    if (pwcInvariants[pwcId].size() == invLen) {
-        InvariantVal prevVal = pwcInvariants[pwcId][0];
+    // In case it is a GEP instruction that is trying to update it's value
+    // Then, we first check if it is at a known offset from any of the
+    // previous pointers
+    //
+    // We also record the gep values separately and if we can't find a match
+    // in our base pointer set, we check there
+    int sz1 = pwcInvariants[pwcId].size();
+    int sz2 = gepPWCInvariants[pwcId].size();
+
+
+    // dump out what we've seen so far
+    /*
+    cout << "Value: " << hex << val << endl;
+    cout << "invariant values: \n";
+    for (auto invIdValPair: pwcInvariants[pwcId]) {
+        InvariantVal val = invIdValPair.second;
+        cout << hex << val << " ";
+    }
+    cout << endl;
+    for (auto gepInvIdValPair: gepPWCInvariants[pwcId]) {
+        InvariantVal val = gepInvIdValPair.second;
+        cout << hex << val << " ";
+    }
+    cout << endl;
+    */
+
+    if (sz1 + sz2 == (invLen - 1)) { // We've seen all other invariant values
         for (auto invIdValPair: pwcInvariants[pwcId]) {
-            InvariantVal val = invIdValPair.second;
+            InvariantVal prevVal = invIdValPair.second;
             if (val != prevVal) {
-                return 0;
+                int isSeenGepVal = 0;
+                // But then, it might even be a gep
+                for (auto gepInvIdValPair: gepPWCInvariants[pwcId]) {
+                    InvariantVal gepVal = gepInvIdValPair.second;
+                    if (val == gepVal) {
+                        isSeenGepVal = 1;
+                    }
+                }
+                if (!isSeenGepVal) {
+                    cycleHappened = 0;
+                    break;
+                }
             }
         }
-        return 1;
     } else {
-        return 0;
+        cycleHappened = 0;
     }
+
+    if (!isGep) {
+        pwcInvariants[pwcId][invId] = val; 
+    } else {
+        gepPWCInvariants[pwcId][invId] = val;
+    }
+    if (cycleHappened) {
+        cout << "Invariant flipped\n";
+    }
+    return cycleHappened;
 }
 
 void switch_view(void) {

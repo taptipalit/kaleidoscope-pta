@@ -168,6 +168,11 @@ public:
     typedef SCCDetection<ConstraintGraph*> CGSCC;
     typedef OrderedMap<CallSite, NodeID> CallSite2DummyValPN;
 
+    typedef std::pair<NodeID, NodeID> EdgePair;
+    typedef std::vector<EdgePair> EdgeList;
+    typedef std::map<NodeID, EdgeList> RepEdgeMap;
+
+
     /// Constructor
     Andersen(PAG* _pag, PTATY type = Andersen_WPA, bool alias_check = true)
         :  AndersenBase(_pag, type, alias_check), pwcOpt(false), diffOpt(true)

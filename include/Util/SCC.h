@@ -44,6 +44,7 @@
 #include <limits.h>
 #include <stack>
 #include <map>
+#include <utility>
 
 namespace SVF
 {
@@ -61,6 +62,11 @@ private:
     typedef typename GTraits::nodes_iterator node_iterator;
     typedef typename GTraits::ChildIteratorType child_iterator;
     typedef unsigned NodeID ;
+    typedef std::pair<NodeID, NodeID> EdgePair;
+    typedef std::vector<EdgePair> EdgeList;
+    typedef std::map<NodeID, EdgeList> RepEdgeMap;
+
+    RepEdgeMap repCycleMap;
 
 public:
     typedef std::stack<NodeID> GNodeStack;
@@ -144,6 +150,10 @@ public:
         return rep!= UINT_MAX ? rep : n ;
     }
 
+
+    EdgeList& getSCCEdgeList(NodeID sccID) {
+        return repCycleMap[sccID];
+    } 
 
     /// whether the node is in a cycle
     inline bool isInCycle(NodeID n) const
@@ -268,6 +278,9 @@ private:
                 NodeID rep;
                 rep = _D[this->rep(v)] < _D[this->rep(w)] ?
                       this->rep(v) : this->rep(w);
+                // This is a cycle, record this edge
+                repCycleMap[rep].push_back(std::make_pair(v,w));
+                
                 this->rep(v,rep);
             }
         }

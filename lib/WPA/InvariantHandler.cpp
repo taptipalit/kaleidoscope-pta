@@ -118,33 +118,44 @@ void InvariantHandler::handlePWCInvariants() {
     Type* longType = IntegerType::get(mod->getContext(), 64);
     Type* intType = IntegerType::get(mod->getContext(), 32);
 
+    int ptrID = 0;
     for (it = beg; it != end; it++) {
         CycleID pwcID = it->first;
         // Not all pointer nodes have backing values
         // Let's get the count of the ones that do
-        int ptrValCount = 0;
-        for (NodeID ptrID: it->second) {
-            PAGNode* ptrNode = pag->getPAGNode(ptrID);
-            if (ptrNode->hasValue()) {
-                ptrValCount++;
-            }
-        }
-        for (NodeID ptrID: it->second) {
-            PAGNode* ptrNode = pag->getPAGNode(ptrID);
-            if (ptrNode->hasValue()) {
-                Value* valPtr = const_cast<Value*>(ptrNode->getValue());
-                // Insert a call to record this
-                if (Instruction* inst = SVFUtil::dyn_cast<Instruction>(valPtr)) {
-                    IRBuilder builder(inst->getNextNode());
-                    std::vector<Value*> argsList;
-                    argsList.push_back(ConstantInt::get(intType, pwcID));
-                    argsList.push_back(ConstantInt::get(intType, ptrValCount));
-                    argsList.push_back(ConstantInt::get(intType, ptrID));
-                    argsList.push_back(builder.CreateBitOrPointerCast(valPtr, longType));
-                    llvm::ArrayRef<Value*> args(argsList);
-                    FunctionType* fTy = updateCheckPWCFn->getFunctionType();
-                    builder.CreateCall(fTy, updateCheckPWCFn, argsList);
+        int ptrValCount = it->second.size();
+        for (const Value* vPtr: it->second) {
+            Value* valPtr = const_cast<Value*>(vPtr);
+            // Insert a call to record this
+            if (Instruction* inst = SVFUtil::dyn_cast<Instruction>(valPtr)) {
+                IRBuilder builder(inst->getNextNode());
+                std::vector<Value*> argsList;
+                argsList.push_back(ConstantInt::get(intType, pwcID));
+                argsList.push_back(ConstantInt::get(intType, ptrValCount));
+                argsList.push_back(ConstantInt::get(intType, ptrID++));
+                argsList.push_back(builder.CreateBitOrPointerCast(valPtr, longType));
+                bool isGep = false;
+                CastInst* castInst = SVFUtil::dyn_cast<CastInst>(inst);
+                Instruction* baseInst = inst;
+                while (castInst) {
+                    baseInst = castInst;
+                    castInst = SVFUtil::dyn_cast<CastInst>(castInst->getOperand(0));
                 }
+                if (BitCastInst* bcInst = SVFUtil::dyn_cast<BitCastInst>(inst)) {
+                    if (SVFUtil::isa<GetElementPtrInst>(bcInst->getOperand(0))) {
+                        isGep = true;
+                    }
+                } else if (SVFUtil::isa<GetElementPtrInst>(inst)) {
+                    isGep = true;
+                }
+                if (isGep) {
+                    argsList.push_back(ConstantInt::get(intType, 1));
+                } else {
+                    argsList.push_back(ConstantInt::get(intType, 0));
+                }
+                llvm::ArrayRef<Value*> args(argsList);
+                FunctionType* fTy = updateCheckPWCFn->getFunctionType();
+                builder.CreateCall(fTy, updateCheckPWCFn, argsList);
             }
         }
     }
@@ -181,7 +192,7 @@ void InvariantHandler::initVGEPInvariants() {
  * Install the updateAndCheckPWC function
  * Each cycle consists of a list of pointers that need to be equal to each
  * other for the cycle to hold.
- * int updateAndCheckPWC(int cycleID, int totalInvariants, int invariantId, unsigned long val);
+ * int updateAndCheckPWC(int cycleID, int totalInvariants, int invariantId, unsigned long val, int isGep);
  * where, cycleID is the PWC CycleID
  *        invariantID is the NodeID of the pointer involved in the PWC
  *        val is the value of the pointer updated
@@ -200,6 +211,7 @@ void InvariantHandler::initPWCInvariants() {
     updateAndCheckType.push_back(intType);
     updateAndCheckType.push_back(intType);
     updateAndCheckType.push_back(longType); 
+    updateAndCheckType.push_back(intType);
 
     llvm::ArrayRef<Type*> updateAndCheckTypeArr(updateAndCheckType);
 

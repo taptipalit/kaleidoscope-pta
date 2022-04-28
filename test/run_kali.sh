@@ -10,9 +10,9 @@ file_inst_ll="$file"_inst.ll
 file_discard="$file"_discard.bc
 file_exe="$file".exe
 
-clang -c -O0 $file_c -emit-llvm -o $file_bc
+clang -c -O0 -ggdb $file_c -emit-llvm -o $file_bc
 
-../Debug-build/bin/wpa -invariant-vgep=false -ander $file_bc
+../Debug-build/bin/wpa -invariant-pwc=true -invariant-vgep=false -ander $file_bc
 
 if [ $? -ne 0 ]; then
     echo "Failed to run partitioned pointer analysis"
@@ -29,7 +29,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-clang++ -v $file_inst -lkali -o $file_exe # -L/data/tpalit/SVF/test/view_switcher 
+clang++ -v -ggdb $file_inst -lkali -o $file_exe # -L/data/tpalit/SVF/test/view_switcher 
 
 if [ $? -ne 0 ]; then
     echo "Failed to link into binary"

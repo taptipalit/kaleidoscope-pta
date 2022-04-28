@@ -81,7 +81,7 @@ public:
     typedef std::vector<NodeID> PtdList;
     typedef Map<const Value*, PtdList> VarGepPtdMap;
 
-    typedef std::vector<NodeID> PWCList;
+    typedef std::set<const llvm::Value*> PWCList;
     typedef Map<CycleID, PWCList> PWCInvariantMap;
     typedef PWCInvariantMap::iterator PWCInvariantIterator;
 

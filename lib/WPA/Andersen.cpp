@@ -578,8 +578,62 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
     for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
     {
         NodeID subNodeId = *nodeIt;
-        sccNodeIDs->push_back(subNodeId);
 
+        // Before merging this, simply collect
+        if (Options::InvariantPWC) {
+            // Get the edges in this SCC
+            EdgeList& edges = getSCCDetector()->getSCCEdgeList(repNodeId);
+
+            for (EdgePair& ep: edges) {
+                ConstraintNode* src = consCG->getConstraintNode(ep.first);
+                ConstraintNode* dst = consCG->getConstraintNode(ep.second);
+                // Find the instruction that should be trapped 
+                // that caused this edge
+
+                Value* instVal = nullptr;
+                if (consCG->hasEdge(src, dst, ConstraintEdge::Copy)) {
+                    ConstraintEdge* edge = consCG->getEdge(src, dst, ConstraintEdge::Copy);
+                    if (edge->getDerivedWeight() > 0) {
+                        ConstraintEdge* origEdge = edge->getSourceEdge();
+                        instVal = origEdge->getLLVMValue();
+                        // For load it's the loaded return value
+                        // For stores, it's the stored value operand
+                        if (StoreInst* stInst = SVFUtil::dyn_cast<StoreInst>(instVal)) {
+                            // pts(q) = {a, b}
+                            // p -- store --> q; [ *q = p ]
+                            // p -- copy --> a
+                            // p -- copy --> b --- copy --> c -- copy --> p
+                            // Thus, we care about p, the store _value_ of the
+                            // StoreInst
+                            instVal = stInst->getValueOperand();
+                        } else if (LoadInst* ldInst = SVFUtil::dyn_cast<LoadInst>(instVal)) {
+                            // pts(p) = {a, b}
+                            // p -- load --> q; [ q = *p ]
+                            // a -- copy --> q
+                            // b -- copy --> q
+                            // a -- copy --> q -- copy --> b -- copy --> a
+                            // Thus, we care about the loaded value of p
+                            // So this is no-op
+                        }
+                    }
+
+                } else if (consCG->hasEdge(src, dst, ConstraintEdge::NormalGep)) {
+                    ConstraintEdge* edge = consCG->getEdge(src, dst, ConstraintEdge::NormalGep);                    
+                    instVal = edge->getLLVMValue();
+                    GetElementPtrInst* gepInst = SVFUtil::dyn_cast<GetElementPtrInst>(instVal);
+                    assert(gepInst && "GEP Edge must have gep inst");
+                    instVal = gepInst->getPointerOperand();
+                } /*else if (consCG->hasEdge(src, dst, ConstraintEdge::VariantGep)) {
+                    ConstraintEdge* edge = consCG->getEdge(src, dst, ConstraintEdge::VariantGep);
+                    instVal = edge->getLLVMValue();
+                }
+                */ // Can't have variant gep in PWC
+                if (instVal) {
+                    sccNodeIDs->insert(instVal);
+                }
+            }
+        }
+        
         if (subNodeId != repNodeId)
         {
             mergeNodeToRep(subNodeId, repNodeId);
