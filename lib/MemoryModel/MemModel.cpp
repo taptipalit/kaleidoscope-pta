@@ -104,11 +104,14 @@ void ObjTypeInfo::analyzeHeapStaticObjType(const Value* heapValue)
             if (tyAnnotStr->getString() == "ArrayType") {
                 setFlag(CONST_ARRAY_OBJ);
             } else if (tyAnnotStr->getString() == "StructType") {
-                setFlag(
+                setFlag(CONST_STRUCT_OBJ);
             }
+        } else {
+            setFlag(HASPTR_OBJ);
         }
+    } else {
+        setFlag(HASPTR_OBJ);
     }
-    setFlag(HASPTR_OBJ);
 }
 
 /*!
