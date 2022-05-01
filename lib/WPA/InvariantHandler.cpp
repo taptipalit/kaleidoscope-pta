@@ -23,6 +23,8 @@ void InvariantHandler::recordTarget(int id, Value* target) {
         Function* mainFunction = mod->getFunction("main");
         Instruction* inst = mainFunction->getEntryBlock().getFirstNonPHIOrDbg();
         builder = new IRBuilder(inst);
+    } else if (CallInst* heapCall = SVFUtil::dyn_cast<CallInst>(target)) {
+        builder = new IRBuilder(heapCall->getNextNode());
     } else {
         assert(false && "Not handling stuff here");
     }
@@ -79,7 +81,7 @@ void InvariantHandler::instrumentVGEPInvariant(GetElementPtrInst* gep, std::vect
     GlobalVariable* kaliArrGvar = new GlobalVariable(*mod, 
             /*Type=*/arrTy,
             /*isConstant=*/true,
-            /*Linkage=*/GlobalValue::CommonLinkage,
+            /*Linkage=*/GlobalValue::ExternalLinkage,
             /*Initializer=*/0, // has initializer, specified below
             /*Name=*/"cons id");
     kaliArrGvar->setInitializer(kaliIdArr);

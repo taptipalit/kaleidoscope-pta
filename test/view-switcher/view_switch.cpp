@@ -26,6 +26,9 @@ extern "C" uint32_t ptdTargetCheck(uint64_t* tgt, uint64_t len, uint64_t* tgts) 
             return 0;
         }
     }
+
+    cout << "VGEP invariant failed\n";
+    
     return 1;
 }
 

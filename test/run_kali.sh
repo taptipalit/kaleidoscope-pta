@@ -12,10 +12,10 @@ file_exe="$file".exe
 
 clang -c -O0 -ggdb $file_c -emit-llvm -o $file_bc
 
-../Debug-build/bin/wpa -invariant-pwc=true -invariant-vgep=false -ander $file_bc
+../Debug-build/bin/wpa -invariant-pwc=true -invariant-vgep=true -ander $file_bc
 
 if [ $? -ne 0 ]; then
-    echo "Failed to run partitioned pointer analysis"
+    echo "Failed to run invariant-based pointer analysis"
     exit 1
 fi
 
