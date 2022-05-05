@@ -7,7 +7,7 @@ namespace SVF
 {
     llvm::cl::opt<bool> Options::InvariantVGEP(
         "invariant-vgep",
-        llvm::cl::init(false),
+        llvm::cl::init(true),
         llvm::cl::desc("Handle invariants for the vgep"));
 
 
@@ -32,7 +32,7 @@ namespace SVF
 
     llvm::cl::opt<bool> Options::InvariantPWC(
             "invariant-pwc",
-            llvm::cl::init(false),
+            llvm::cl::init(true),
             llvm::cl::desc("Handle invariants for PWC"));
 
     const llvm::cl::opt<bool> Options::KaliRunTestDriver(

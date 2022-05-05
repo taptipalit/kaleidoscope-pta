@@ -40,6 +40,7 @@
 #include "MemoryModel/PersistentPointsToDS.h"
 #include "Graphs/PTACallGraph.h"
 #include "Util/SCC.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace SVF
 {
@@ -363,6 +364,7 @@ public:
     }
     inline void setObjFieldInsensitive(NodeID id)
     {
+        llvm::errs() << "Setting object " << id << " field-insensitive\n";
         MemObj* mem =  const_cast<MemObj*>(pag->getBaseObj(id));
         mem->setFieldInsensitive();
     }

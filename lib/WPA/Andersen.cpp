@@ -412,6 +412,11 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                 if (consCG->isArrayTy(o)) {
                     // We will add the invariant later
                     pag->addPtdForVarGep(vgepCGEdge->getLLVMValue(), o);
+                    LocationSet ls(0);
+                    NodeID fieldSrcPtdNode = consCG->getGepObjNode(o, ls);
+                    tmpDstPts.set(fieldSrcPtdNode);
+
+                    continue;
                 } else {
                     // We assume these don't happen
                     continue;
@@ -420,7 +425,9 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
 
             if (!isFieldInsensitive(o))
             {
+                PAGNode* ptdNode = pag->getPAGNode(o);
                 errs() << "Setting object " << o << " field-insensitive for vargep\n";
+                errs() << *ptdNode << "\n";
                 setObjFieldInsensitive(o);
                 consCG->addNodeToBeCollapsed(consCG->getBaseObjNode(o));
             }

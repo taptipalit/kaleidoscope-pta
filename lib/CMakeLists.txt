@@ -24,6 +24,8 @@ file (GLOB SOURCES
         DDA/*.cpp
         MemoryViewSwitcher/InsertSwitch/src/lib/*.cpp)
 add_llvm_library(Svf STATIC ${SOURCES} LINK_LIBS Cudd ${Z3_LIBRARIES})
+add_llvm_library(SvfShared SHARED ${SOURCES} LINK_LIBS Cudd ${Z3_LIBRARIES})
+
 
 link_directories(${CMAKE_BINARY_DIR}/lib/Cudd)
 

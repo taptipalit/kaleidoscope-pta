@@ -294,6 +294,7 @@ void WPAPass::runOnModule(SVFModule* svfModule)
     llvm::Module *module = SVF::LLVMModuleSet::getLLVMModuleSet()->getMainLLVMModule(); 
     //deriveHeapAllocationTypesWithCloning(*module);
 
+    /*
     if (Options::KaliRunTestDriver) {
         invariantInstrumentationDriver(*module);
     } else {
@@ -305,6 +306,8 @@ void WPAPass::runOnModule(SVFModule* svfModule)
         assert(!ptaVector.empty() && "No pointer analysis is specified.\n");
 
     }
+    */
+    runPointerAnalysis(svfModule, 0);
 
     //module->dump();
     std::error_code EC;
