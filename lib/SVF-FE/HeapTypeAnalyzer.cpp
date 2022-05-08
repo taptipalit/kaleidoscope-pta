@@ -48,6 +48,15 @@ char HeapTypeAnalyzer::ID = 0;
 static llvm::RegisterPass<HeapTypeAnalyzer> HT ("heap-type-analyzer",
         "Heap Type Analyzer");
 
+void HeapTypeAnalyzer::removePoolAllocatorBody(Module& M) {
+    for(string fun: poolAllocFns) {
+        Function* f = M.getFunction(fun);
+        if (f) {
+            f->deleteBody();
+        }
+    }
+}
+
 CallInst* HeapTypeAnalyzer::findCInstFA(Value* val) {
     std::vector<Value*> workList;
     workList.push_back(val);
@@ -183,6 +192,12 @@ bool HeapTypeAnalyzer::deepClone(llvm::Function* func, llvm::Function*& topClone
 }
 
 void HeapTypeAnalyzer::deriveHeapAllocationTypesWithCloning(llvm::Module& module) {
+    // First we do a backward slice on all calls to the poolAllocFns and
+    // malloc instructions
+}
+
+/*
+void HeapTypeAnalyzer::deriveHeapAllocationTypesWithCloning(llvm::Module& module) {
 
     //StructType* stTy = StructType::getTypeByName(module.getContext(), tyName);
     std::vector<std::string> mallocFunctions;
@@ -272,10 +287,7 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypesWithCloning(llvm::Module& module
         std::set<Type*>& types = it.second;
         Type* arrTy = nullptr;
         Type* structTy = nullptr;
-        /*
-        bool isArray = false;
-        bool isStruct = false;
-        */
+        
         llvm::errs() << "Potential malloc wrapper: " << potentialMallocWrapper->getName() << "\n";
         for (Type* type: types) {
             llvm::errs() << "\t" << *type << "\n";
@@ -319,14 +331,11 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypesWithCloning(llvm::Module& module
     }
 
 }
+*/
 
-
-void deriveInternalHACallGraph(Module& module) {
-}
 
 bool
 HeapTypeAnalyzer::runOnModule (Module & module) {
-    deriveInternalHACallGraph(module);
     deriveHeapAllocationTypesWithCloning(module);
     
     std::error_code EC;
