@@ -21,7 +21,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  * HeapTypeAnalyzer.cpp
  *
  *  Created on: Oct 8, 2013
- *      Author: Yulei Sui
  */
 
 
@@ -322,9 +321,20 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypesWithCloning(llvm::Module& module
 }
 
 
+void deriveInternalHACallGraph(Module& module) {
+}
+
 bool
 HeapTypeAnalyzer::runOnModule (Module & module) {
+    deriveInternalHACallGraph(module);
     deriveHeapAllocationTypesWithCloning(module);
+    
+    std::error_code EC;
+    llvm::raw_fd_ostream OS("heap-cloned-module.bc", EC,
+            llvm::sys::fs::F_None);
+    WriteBitcodeToFile(module, OS);
+    OS.flush();
+
     return false;
 }
 
