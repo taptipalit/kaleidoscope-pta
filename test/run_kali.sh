@@ -10,7 +10,10 @@ file_inst_ll="$file"_inst.ll
 file_discard="$file"_discard.bc
 file_exe="$file".exe
 
-clang -c -O0 -ggdb $file_c -emit-llvm -o $file_bc
+if [ ! -f $file_bc ]
+then
+    clang -c -O0 -ggdb $file_c -emit-llvm -o $file_bc
+fi
 
 ../Debug-build/bin/wpa -invariant-pwc=true -invariant-vgep=true -ander $file_bc
 

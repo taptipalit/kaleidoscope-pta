@@ -48,11 +48,65 @@ char HeapTypeAnalyzer::ID = 0;
 static llvm::RegisterPass<HeapTypeAnalyzer> HT ("heap-type-analyzer",
         "Heap Type Analyzer");
 
-void HeapTypeAnalyzer::removePoolAllocatorBody(Module& M) {
-    for(string fun: poolAllocFns) {
-        Function* f = M.getFunction(fun);
-        if (f) {
-            f->deleteBody();
+void HeapTypeAnalyzer::handleVersions(Module& module) {
+    for (Module::iterator MIterator = module.begin(); MIterator != module.end(); MIterator++) {
+        if (Function *F = SVFUtil::dyn_cast<Function>(&*MIterator)) {
+            for (llvm::inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F); I != E; ++I) {
+                Instruction* inst = &*I;
+                CallInst* cInst = SVFUtil::dyn_cast<CallInst>(inst);
+                if (cInst) {
+                    Function* calledFunc = cInst->getCalledFunction();
+                    if (calledFunc) {
+                        for (std::string memAllocFnName: memAllocFns) {
+                            if (calledFunc->getName().startswith(memAllocFnName+".")) {
+                                Function* memAllocFun = module.getFunction(memAllocFnName);
+                                cInst->setCalledFunction(memAllocFun); // remove versioning
+                            }
+                        }
+                        for (std::string la0FnName: L_A0_Fns) {
+                            if (calledFunc->getName().startswith(la0FnName+".")) {
+                                Function* la0Fun = module.getFunction(la0FnName);
+                                cInst->setCalledFunction(la0Fun); // remove versioning
+                            }
+                        }
+                    }
+                }
+            }
+                /*
+            bool isMemAlloc = false;
+            for (std::string memAllocFn: memAllocFns) {
+                if (F->getName().startswith(memAllocFn)) {
+                    isMemAlloc = true;
+                    break;
+                }
+            }
+            if (isMemAlloc) {
+                memAllocFns.push_back(F->getName().str());
+            }
+            bool isLA0 = false;
+            for (std::string L_A0_Fn: L_A0_Fns) {
+                if (F->getName().startswith(L_A0_Fn)) {
+                    isLA0 = true;
+                }
+            }
+            if (isLA0) {
+                L_A0_Fns.push_back(F->getName().str());
+            }
+            */
+        }
+    }
+ 
+}
+
+void HeapTypeAnalyzer::removePoolAllocatorBody(Module& module) {
+    for (Module::iterator MIterator = module.begin(); MIterator != module.end(); MIterator++) {
+        if (Function *F = SVFUtil::dyn_cast<Function>(&*MIterator)) {
+            if (std::find(memAllocFns.begin(), memAllocFns.end(), F->getName()) != memAllocFns.end()) {
+                F->deleteBody();
+            }
+            if (std::find(L_A0_Fns.begin(), L_A0_Fns.end(), F->getName()) != L_A0_Fns.end()) {
+                F->deleteBody();
+            }
         }
     }
 }
@@ -191,12 +245,91 @@ bool HeapTypeAnalyzer::deepClone(llvm::Function* func, llvm::Function*& topClone
     return true;
 }
 
-void HeapTypeAnalyzer::deriveHeapAllocationTypesWithCloning(llvm::Module& module) {
-    // First we do a backward slice on all calls to the poolAllocFns and
-    // malloc instructions
+HeapTypeAnalyzer::HeapTy HeapTypeAnalyzer::getSizeOfTy(Module& module, LLVMContext& Ctx, MDNode* sizeOfTyName, MDNode* sizeOfTyArgNum, MDNode* mulFactor) {
+    // Get the type
+    MDString* typeNameStr = (MDString*)sizeOfTyName->getOperand(0).get();
+    Type* sizeOfTy = nullptr;
+    if (typeNameStr->getString() == "scalar_type") {
+        return HeapTy::ScalarTy;
+    } else {
+        MDString* mulFactorStr = (MDString*)mulFactor->getOperand(0).get();
+        int mulFactorInt = std::stoi(mulFactorStr->getString().str());
+        assert(mulFactorInt > 0 && "The multiplicator must be greater than 1");
+
+        if (mulFactorInt == 1) {
+            return HeapTy::StructTy;
+        } else {
+            return HeapTy::ArrayTy;
+        }
+    }
+    assert(false && "Shouldn't reach here");
+    
 }
 
-/*
+void HeapTypeAnalyzer::deriveHeapAllocationTypes(llvm::Module& module) {
+    // Just check all the locations that call the malloc functions 
+    // or the pool allocators
+    for (Module::iterator MIterator = module.begin(); MIterator != module.end(); MIterator++) {
+        if (Function *F = SVFUtil::dyn_cast<Function>(&*MIterator)) {
+            for (llvm::inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F); I != E; ++I) {
+                Instruction* inst = &*I;
+                LLVMContext& Ctx = inst->getContext();
+
+                MDNode* sizeOfTyName = inst->getMetadata("sizeOfTypeName");
+                MDNode* sizeOfTyArgNum = inst->getMetadata("sizeOfTypeArgNum");
+                MDNode* mulFactor = inst->getMetadata("sizeOfMulFactor");
+
+                bool handled = false;
+                // Check if this is a call to malloc or pool allocator
+                CallInst* callInst = SVFUtil::dyn_cast<CallInst>(inst);
+                if (callInst) {
+                    Function* calledFunc = callInst->getCalledFunction();
+                    if (calledFunc) {
+                        if (std::find(memAllocFns.begin(), memAllocFns.end(), calledFunc->getName()) != memAllocFns.end()) {
+                            if (calledFunc->getName().startswith("ngx_array_init") ||
+                                    calledFunc->getName().startswith("ngx_array_create")) {
+                                callInst->addAnnotationMetadata("ArrayType");
+                                handled = true;
+                            } else {
+                                if (!sizeOfTyName) {
+                                    llvm::errs() << "No type annotation for heap call: " << *callInst << " in function : " << callInst->getFunction()->getName() << " treating as scalar\n";
+                                    callInst->addAnnotationMetadata("IntegerType");
+                                    handled = true;
+                                    continue;
+                                }
+
+                                HeapTy ty = getSizeOfTy(module, Ctx, sizeOfTyName, sizeOfTyArgNum, mulFactor);
+                                switch(ty) {
+                                    case ScalarTy:
+                                        callInst->addAnnotationMetadata("IntegerType");
+                                        break;
+                                    case StructTy:
+                                        callInst->addAnnotationMetadata("StructType");
+                                        break;
+                                    case ArrayTy:
+                                        callInst->addAnnotationMetadata("ArrayType"); 
+                                        break;
+                                    default:
+                                        assert(false && "Shouldn't reach here");
+                                }
+                                handled = true;
+                            }
+
+                        }
+                    }
+                }
+                // If not, check if this has the metadata that we're missing 
+                if (sizeOfTyName && !handled) {
+                    if (callInst && callInst->getCalledFunction() && callInst->getCalledFunction()->isIntrinsic()) {
+                        continue;
+                    }
+                    llvm::errs() << "Instruction: " << *inst << " has type info but not a heap allocation\n";
+                }
+            }
+        }
+    }
+}
+
 void HeapTypeAnalyzer::deriveHeapAllocationTypesWithCloning(llvm::Module& module) {
 
     //StructType* stTy = StructType::getTypeByName(module.getContext(), tyName);
@@ -331,12 +464,13 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypesWithCloning(llvm::Module& module
     }
 
 }
-*/
 
 
 bool
 HeapTypeAnalyzer::runOnModule (Module & module) {
-    deriveHeapAllocationTypesWithCloning(module);
+    handleVersions(module);
+    removePoolAllocatorBody(module);
+    deriveHeapAllocationTypes(module);
     
     std::error_code EC;
     llvm::raw_fd_ostream OS("heap-cloned-module.bc", EC,

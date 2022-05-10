@@ -46,8 +46,8 @@
 #include "WPA/Steensgaard.h"
 #include "SVF-FE/PAGBuilder.h"
 #include "WPA/InvariantHandler.h"
-#include "InsertFunctionSwitch.h"
-#include "InsertExecutionSwitch.h"
+//#include "InsertFunctionSwitch.h"
+//#include "InsertExecutionSwitch.h"
 
 #include "llvm/IR/InstIterator.h"
 #include "llvm/Transforms/Utils/Cloning.h"
@@ -477,8 +477,10 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
     IHandler.handleVGEPInvariants();
     IHandler.handlePWCInvariants();
 
+    /*
     std::unique_ptr<llvm::InsertFunctionSwitchPass> p1 = std::make_unique<llvm::InsertFunctionSwitchPass>(memViewPairs);
     p1->runOnModule(*module);
+    */
 
     /*
     Options::InvariantVGEP = false;
