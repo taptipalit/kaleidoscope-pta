@@ -590,8 +590,9 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
         if (Options::InvariantPWC) {
             // Get the edges in this SCC
             EdgeList& edges = getSCCDetector()->getSCCEdgeList(repNodeId);
+            llvm::errs() << "Edge set size: " << edges.size() << "\n";
 
-            for (EdgePair& ep: edges) {
+            for (const EdgePair& ep: edges) {
                 ConstraintNode* src = consCG->getConstraintNode(ep.first);
                 ConstraintNode* dst = consCG->getConstraintNode(ep.second);
                 // Find the instruction that should be trapped 

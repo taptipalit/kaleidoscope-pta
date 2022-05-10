@@ -169,7 +169,7 @@ public:
     typedef OrderedMap<CallSite, NodeID> CallSite2DummyValPN;
 
     typedef std::pair<NodeID, NodeID> EdgePair;
-    typedef std::vector<EdgePair> EdgeList;
+    typedef std::set<EdgePair> EdgeList;
     typedef std::map<NodeID, EdgeList> RepEdgeMap;
 
 

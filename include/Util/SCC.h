@@ -63,7 +63,7 @@ private:
     typedef typename GTraits::ChildIteratorType child_iterator;
     typedef unsigned NodeID ;
     typedef std::pair<NodeID, NodeID> EdgePair;
-    typedef std::vector<EdgePair> EdgeList;
+    typedef std::set<EdgePair> EdgeList;
     typedef std::map<NodeID, EdgeList> RepEdgeMap;
 
     RepEdgeMap repCycleMap;
@@ -279,7 +279,7 @@ private:
                 rep = _D[this->rep(v)] < _D[this->rep(w)] ?
                       this->rep(v) : this->rep(w);
                 // This is a cycle, record this edge
-                repCycleMap[rep].push_back(std::make_pair(v,w));
+                repCycleMap[rep].insert(std::make_pair(v,w));
                 
                 this->rep(v,rep);
             }
