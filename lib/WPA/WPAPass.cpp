@@ -155,45 +155,20 @@ void WPAPass::collectCFI(Module& M, bool woInv) {
     }
 }
 
-void WPAPass::instrumentCFICheck(llvm::CallInst* indCall, std::vector<llvm::Function*>& validTgts) {
+void WPAPass::instrumentCFICheck(llvm::CallInst* indCall) {
     llvm::Module* M = indCall->getParent()->getParent()->getParent();
     Type* longType = IntegerType::get(M->getContext(), 64);
     Type* intType = IntegerType::get(M->getContext(), 32);
     Type* ptrToLongType = PointerType::get(longType, 0);
 
-    // Need an alloca inst, of type arraytype, with len =
-    // indCallMap[key].size()
-    int len = validTgts.size();
-    ArrayType* checkArrTy = ArrayType::get(ptrToLongType, len);
     // Create an AllocaInst
     IRBuilder Builder(indCall);
 
-    // Create the arguments
-    // 1. a. Create an array (allocainst) with list of function pointers, each casted
-    // to ulong*
-    // b. Cast it to a ulong*, this is your first argument
-    // 2. Create a i32 from the length, this is your second argument
-    // 3. Cast the actual target in callInst->getCalledValue(), this is
-    // your last argument
+    Constant* csIdCons = ConstantInt::get(intType, indCSToIDMap[indCall]);
 
-    Constant* clen = ConstantInt::get(intType, len);
-    std::vector<Constant*> tgtVec;
-    for (Function* validTgt: validTgts) {
-        tgtVec.push_back(ConstantExpr::getBitCast(validTgt, ptrToLongType));
+    Value* tgt = Builder.CreateBitOrPointerCast(indCall->getCalledOperand(), longType);
 
-    }
-    llvm::ArrayRef<Constant*> tgtArrRef(tgtVec);
-    Constant* validTgtsConstArr = ConstantArray::get(checkArrTy, tgtArrRef);
-
-    GlobalVariable* validTgtsGVar = new GlobalVariable(*M, checkArrTy, true, GlobalValue::ExternalLinkage,
-            validTgtsConstArr);
-
-    // Cast to ulong*
-    Value* arg1 = Builder.CreateBitOrPointerCast(validTgtsGVar, ptrToLongType);
-    Value* arg2 = clen;
-    Value* arg3 = Builder.CreateBitOrPointerCast(indCall->getCalledOperand(), ptrToLongType);
-
-    Builder.CreateCall(checkCFI, {arg1, arg2, arg3});
+    Builder.CreateCall(checkCFI, {csIdCons, tgt});
 
 }
 
@@ -374,23 +349,51 @@ void WPAPass::invariantInstrumentationDriver(Module& module) {
     }
 }
 
+void WPAPass::initializeCFITargets(llvm::Module* module) {
+    LLVMContext& C = module->getContext();
+    Type* longType = IntegerType::get(module->getContext(), 64);
+    Type* intType = IntegerType::get(module->getContext(), 32);
+
+    Function* mainFunction = module->getFunction("main");
+    Instruction* inst = mainFunction->getEntryBlock().getFirstNonPHIOrDbg();
+    IRBuilder builder(inst);
+
+    for (auto pair: wInvIndCallMap) {
+        llvm::CallInst* callInst = pair.first;
+        std::vector<Function*>& wInvTgts = pair.second;
+        std::vector<Function*>& woInvTgts = woInvIndCallMap[callInst]; // TODO: does it need to have it?
+
+        indIDToCSMap[indCSId] = callInst;
+        indCSToIDMap[callInst] = indCSId;
+
+        Constant* csIdCons = ConstantInt::get(intType, indCSId);
+        for (Function* tgt: wInvTgts) {
+            Value* funcAddr = builder.CreateBitOrPointerCast(tgt, longType);
+            builder.CreateCall(updateTgtWInvFn->getFunctionType(), updateTgtWInvFn, {csIdCons, funcAddr});
+        }
+
+        for (Function* tgt: woInvTgts) {
+            Value* funcAddr = builder.CreateBitOrPointerCast(tgt, longType);
+            builder.CreateCall(updateTgtWOInvFn->getFunctionType(), updateTgtWOInvFn, {csIdCons, funcAddr});
+        }
+        indCSId++;
+    }
+}
+
 void WPAPass::addCFIFunctions(llvm::Module* module) {
-   // The block function
-    std::vector<Type*> blockTypes;
-    llvm::ArrayRef<Type*> blockArr(blockTypes);
-
-    FunctionType* blockCFIFnTy = FunctionType::get(Type::getVoidTy(module->getContext()), blockArr, false);
-    Function* blockCFI = Function::Create(blockCFIFnTy, Function::ExternalLinkage, "blockCFI", module);
-
-    // The checkCFI function
-    std::vector<Type*> typeCheckCFI;
-
     Type* longType = IntegerType::get(module->getContext(), 64);
     Type* intType = IntegerType::get(module->getContext(), 32);
     Type* ptrToLongType = PointerType::get(longType, 0);
-    typeCheckCFI.push_back(ptrToLongType);
+
+    // The updateTgtXX function 
+    FunctionType* updateTgtFnTy = FunctionType::get(Type::getVoidTy(module->getContext()), {intType, longType}, false);
+    updateTgtWInvFn = Function::Create(updateTgtFnTy, Function::ExternalLinkage, "updateTgtWInv", module);
+    updateTgtWOInvFn = Function::Create(updateTgtFnTy, Function::ExternalLinkage, "updateTgtWoInv", module);
+
+    // The checkCFI function
+    std::vector<Type*> typeCheckCFI;
     typeCheckCFI.push_back(intType);
-    typeCheckCFI.push_back(ptrToLongType); // checkCFI(unsigned long* valid_tgts, int len, unsigned long* tgt);
+    typeCheckCFI.push_back(longType); // checkCFI(unsigned long* valid_tgts, int len, unsigned long* tgt);
 
     llvm::ArrayRef<Type*> typeCheckCFIArr(typeCheckCFI);
 
@@ -452,9 +455,19 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
     // We pass the memory-view-pairs vector the the Memory View Switcher pass
     //
 
-    std::vector<std::pair<Function*, Function*>> memViewPairs;
 
     addCFIFunctions(module);
+
+    initializeCFITargets(module);
+
+    for (auto pair: wInvIndCallMap) {
+        llvm::CallInst* callInst = pair.first;
+
+        instrumentCFICheck(callInst);
+    }
+    /*
+
+    std::vector<std::pair<Function*, Function*>> memViewPairs;
     for (auto pair: wInvIndCallMap) {
         llvm::CallInst* callInst = pair.first;
         std::vector<Function*>& wInvTgts = pair.second;
@@ -471,6 +484,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 
         instrumentCFICheck(callInst, wInvTgts);
     }
+    */
 
     // Now go over all functions 
     // and see if the versions are different

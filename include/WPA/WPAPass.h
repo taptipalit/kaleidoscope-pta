@@ -70,6 +70,7 @@ public:
     WPAPass() : ModulePass(ID)
     {
 
+        indCSId = 0;
     }
 
     /// Destructor
@@ -135,8 +136,9 @@ public:
 
     //virtual llvm::CallInst* findCorrespondingCallInClone(llvm::CallInst*, llvm::Module*);
     virtual void collectCFI(llvm::Module&, bool);
-    virtual void instrumentCFICheck(llvm::CallInst*, std::vector<llvm::Function*>&);
+    virtual void instrumentCFICheck(llvm::CallInst*);
     virtual void addCFIFunctions(llvm::Module* module);
+    virtual void initializeCFITargets(llvm::Module* module);
 
 
 
@@ -157,6 +159,13 @@ private:
 
 
     llvm::Function* checkCFI;
+    llvm::Function* updateTgtWInvFn;
+    llvm::Function* updateTgtWOInvFn;
+
+    std::map<NodeID, CallInst*> indIDToCSMap;
+    std::map<CallInst*, NodeID> indCSToIDMap;
+
+    int indCSId;
 };
 
 } // End namespace SVF

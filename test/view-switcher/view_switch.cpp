@@ -16,6 +16,8 @@ std::map<CycleID, std::map<InvariantID, InvariantVal>> gepPWCInvariants;
 // For VGEP
 std::map<CycleID, uint64_t> vgepMap;
 
+extern bool invFlipped;
+
 extern "C" void vgepRecordTarget(InvariantID id, InvariantVal val) {
     vgepMap[id] = val;
 }
@@ -35,6 +37,7 @@ extern "C" uint32_t ptdTargetCheck(uint64_t* tgt, uint64_t len, uint64_t* tgts) 
         uint64_t ptrVal = vgepMap[id];
         if (tgt == (uint64_t*)ptrVal) {
             cout << "VGEP invariant failed\n";
+            invFlipped = true;
             return 1;
         }
     }
@@ -103,6 +106,7 @@ extern "C" uint32_t updateAndCheckPWC(uint32_t pwcId, uint32_t invLen, uint32_t 
         gepPWCInvariants[pwcId][invId] = val;
     }
     if (cycleHappened) {
+        invFlipped = true;
         cout << "Invariant flipped\n";
     }
     return cycleHappened;

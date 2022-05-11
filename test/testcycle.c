@@ -22,20 +22,20 @@ int main(void) {
     void* q = sptr;
     void* p, *r;
 
-    sptr[0]->id = 500;
-    sptr[0]->ptr = func;
-    sptr[0]->qtr = gunc;
+    sptr[0].id = 500;
+    sptr[0].ptr = func;
+    sptr[0].qtr = gunc;
 
     p = q;
     r = &(((struct Student*)p)->ptr);
 
     // Strong update
-    //r = &k; // Remove this to trigger invariant flip
+    r = &k; // Remove this to trigger invariant flip
     q = r;
     
     printf("%d\n", *(int*)r);
 
-    void (*myFuncPtr)() = sptr->ptr;
+    void (*myFuncPtr)() = sptr[0].ptr;
 
     dothis(myFuncPtr);
     return 0;
