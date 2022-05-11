@@ -63,12 +63,11 @@ extern "C" uint32_t updateAndCheckPWC(uint32_t pwcId, uint32_t invLen, uint32_t 
 
 
     // dump out what we've seen so far
-    /*
-    cout << "Value: " << hex << val << endl;
+    cout << "InvID: " << invId << " Value: " << hex << val << endl;
     cout << "invariant values: \n";
     for (auto invIdValPair: pwcInvariants[pwcId]) {
         InvariantVal val = invIdValPair.second;
-        cout << hex << val << " ";
+        cout << dec << "Inv id: " << invIdValPair.first << " " << hex << val << " ";
     }
     cout << endl;
     for (auto gepInvIdValPair: gepPWCInvariants[pwcId]) {
@@ -76,21 +75,29 @@ extern "C" uint32_t updateAndCheckPWC(uint32_t pwcId, uint32_t invLen, uint32_t 
         cout << hex << val << " ";
     }
     cout << endl;
-    */
 
     if (sz1 + sz2 == (invLen - 1)) { // We've seen all other invariant values
         for (auto invIdValPair: pwcInvariants[pwcId]) {
+            /*
+            if (invIdValPair.first == invId)
+                continue;
+                */
             InvariantVal prevVal = invIdValPair.second;
             if (val != prevVal) {
-                int isSeenGepVal = 0;
+                int notSeenGepVal = 0;
                 // But then, it might even be a gep
                 for (auto gepInvIdValPair: gepPWCInvariants[pwcId]) {
+                    /*
+                    if (gepInvIdValPair.first == invId) 
+                        continue;
+                        */
                     InvariantVal gepVal = gepInvIdValPair.second;
-                    if (val == gepVal) {
-                        isSeenGepVal = 1;
+                    if (val != gepVal) {
+                        notSeenGepVal = 1;
+                        break;
                     }
                 }
-                if (!isSeenGepVal) {
+                if (notSeenGepVal) {
                     cycleHappened = 0;
                     break;
                 }

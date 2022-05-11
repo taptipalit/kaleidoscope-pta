@@ -170,6 +170,7 @@ void WPAPass::instrumentCFICheck(llvm::CallInst* indCall) {
 
     Builder.CreateCall(checkCFI, {csIdCons, tgt});
 
+
 }
 
 /**
@@ -378,6 +379,14 @@ void WPAPass::initializeCFITargets(llvm::Module* module) {
         }
         indCSId++;
     }
+
+    if (Options::NoInvariants) {
+        // Flip the inv Flag
+        FunctionType* initWithNoInvType = FunctionType::get(Type::getVoidTy(module->getContext()), {}, false);
+        Function* initWithNoInvFn = Function::Create(initWithNoInvType, Function::ExternalLinkage, "initWithNoInvariant", module);
+        builder.CreateCall(initWithNoInvFn, {});
+
+    }
 }
 
 void WPAPass::addCFIFunctions(llvm::Module* module) {
@@ -490,9 +499,11 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
     // and see if the versions are different
 
     // Handle the invariants
-    InvariantHandler IHandler(svfModule, module, pag);
-    IHandler.handleVGEPInvariants();
-    IHandler.handlePWCInvariants();
+    if (!Options::NoInvariants) {
+        InvariantHandler IHandler(svfModule, module, pag);
+        IHandler.handleVGEPInvariants();
+        IHandler.handlePWCInvariants();
+    }
 
     /*
     std::unique_ptr<llvm::InsertFunctionSwitchPass> p1 = std::make_unique<llvm::InsertFunctionSwitchPass>(memViewPairs);

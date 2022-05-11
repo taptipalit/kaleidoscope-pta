@@ -22,6 +22,7 @@ public:
     static llvm::cl::opt<bool> InvariantPWC;
 
     static const llvm::cl::opt<bool> KaliRunTestDriver;
+    static llvm::cl::opt<bool> NoInvariants;
 
     /*
 

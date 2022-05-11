@@ -35,6 +35,12 @@ namespace SVF
             llvm::cl::init(true),
             llvm::cl::desc("Handle invariants for PWC"));
 
+    llvm::cl::opt<bool> Options::NoInvariants(
+            "no-invariants",
+            llvm::cl::init(false),
+            llvm::cl::desc("Don't handle invariants"));
+
+
     const llvm::cl::opt<bool> Options::KaliRunTestDriver(
         "kali-run-test-driver",
         llvm::cl::init(false),

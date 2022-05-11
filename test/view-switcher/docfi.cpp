@@ -38,6 +38,9 @@ extern "C" void checkCFI(CallSiteID callsite, uint64_t tgt) {
     }
 }
 
+extern "C" void initWithNoInvariant(void) {
+    invFlipped = true;
+}
 
 /*
 extern "C" void checkCFI(unsigned long* arr, int len_arr, unsigned long* tgt) {
