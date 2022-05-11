@@ -16,15 +16,15 @@ void dothis(void (*variantFptr)()) {
 int main(void) {
 
     //int a = 200, b = 400;
-    struct Student* sptr = malloc(sizeof(struct Student));
+    struct Student* sptr = malloc(10*sizeof(struct Student));
 
     int k = 199;
     void* q = sptr;
     void* p, *r;
 
-    sptr->id = 500;
-    sptr->ptr = func;
-    sptr->qtr = gunc;
+    sptr[0]->id = 500;
+    sptr[0]->ptr = func;
+    sptr[0]->qtr = gunc;
 
     p = q;
     r = &(((struct Student*)p)->ptr);

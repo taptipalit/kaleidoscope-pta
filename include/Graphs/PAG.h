@@ -552,6 +552,9 @@ public:
     }
     //@}
 
+    inline bool hasPAGNode(NodeID id) const {
+        return hasGNode(id);
+    }
     /// Get PAGNode ID
     inline PAGNode* getPAGNode(NodeID id) const
     {

@@ -330,6 +330,11 @@ public:
         return pag->getBaseObjNode(id);
     }
 
+    inline bool isStructTy(NodeID id) {
+        const MemObj* mem = pag->getBaseObj(id);
+        return mem->isStruct();
+    }
+
     inline bool isArrayTy(NodeID id) {
         const MemObj* mem = pag->getBaseObj(id);
         return mem->isArray();

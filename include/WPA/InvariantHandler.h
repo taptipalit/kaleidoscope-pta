@@ -13,6 +13,7 @@ class InvariantHandler {
         std::map<int, llvm::Value*> kaliIdToValueMap;
         int kaliInvariantId;
 
+        llvm::Function* vgepPtdRecordFn;
         llvm::Function* ptdTargetCheckFn;
         llvm::Function* updateCheckPWCFn;
         llvm::Module* mod;

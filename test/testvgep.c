@@ -8,7 +8,7 @@ struct Student {
 
 int main(void) {
     // Typical handling of array types
-    struct Student *s = malloc(10*sizeof(struct Student));
+    struct Student *s = malloc(sizeof(struct Student));
     char* arbitraryPtr = s;
 
     int k = 200;

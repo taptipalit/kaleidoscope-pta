@@ -409,16 +409,17 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                 */
 
                 // For the rest, we add the invariant
-                if (consCG->isArrayTy(o)) {
+                if (consCG->isStructTy(o)) {
+                    // We assume these don't happen
                     // We will add the invariant later
                     pag->addPtdForVarGep(vgepCGEdge->getLLVMValue(), o);
+                    
+                    continue;
+                } else {
                     LocationSet ls(0);
                     NodeID fieldSrcPtdNode = consCG->getGepObjNode(o, ls);
                     tmpDstPts.set(fieldSrcPtdNode);
 
-                    continue;
-                } else {
-                    // We assume these don't happen
                     continue;
                 }
             }
@@ -582,15 +583,13 @@ void Andersen::addCycleInvariants(CycleID pwcID, PAG::PWCList* sccNodeIDs) {
 void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
 {
     PAG::PWCList* sccNodeIDs = new PAG::PWCList();
-    for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
-    {
-        NodeID subNodeId = *nodeIt;
+    // Before merging this, simply collect
+    if (Options::InvariantPWC) {
+        // Get the edges in this SCC
+        EdgeList& edges = getSCCDetector()->getSCCEdgeList(repNodeId);
+        //llvm::errs() << "Edge set size: " << edges.size() << "\n";
 
-        // Before merging this, simply collect
-        if (Options::InvariantPWC) {
-            // Get the edges in this SCC
-            EdgeList& edges = getSCCDetector()->getSCCEdgeList(repNodeId);
-            llvm::errs() << "Edge set size: " << edges.size() << "\n";
+        if (getSCCDetector()->isRepPWC(repNodeId)) {
 
             for (const EdgePair& ep: edges) {
                 ConstraintNode* src = consCG->getConstraintNode(ep.first);
@@ -634,13 +633,18 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                 } /*else if (consCG->hasEdge(src, dst, ConstraintEdge::VariantGep)) {
                     ConstraintEdge* edge = consCG->getEdge(src, dst, ConstraintEdge::VariantGep);
                     instVal = edge->getLLVMValue();
-                }
-                */ // Can't have variant gep in PWC
+                    }
+                    */ // Can't have variant gep in PWC
                 if (instVal) {
                     sccNodeIDs->insert(instVal);
                 }
             }
+            edges.clear(); // We have processed them
         }
+    }
+    for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
+    {
+        NodeID subNodeId = *nodeIt;
         
         if (subNodeId != repNodeId)
         {

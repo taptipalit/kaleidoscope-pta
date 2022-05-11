@@ -9,8 +9,17 @@ typedef uint32_t CycleID;
 typedef uint32_t InvariantID;
 typedef uint64_t InvariantVal;
 
+// For PWC
 std::map<CycleID, std::map<InvariantID, InvariantVal>> pwcInvariants;
 std::map<CycleID, std::map<InvariantID, InvariantVal>> gepPWCInvariants;
+
+// For VGEP
+std::map<CycleID, uint64_t> vgepMap;
+
+extern "C" void vgepRecordTarget(InvariantID id, InvariantVal val) {
+    vgepMap[id] = val;
+}
+
 /**
  * Return true (1) if we must switch the view
  * Return false (0) if we don't need to switch the view
@@ -22,14 +31,15 @@ std::map<CycleID, std::map<InvariantID, InvariantVal>> gepPWCInvariants;
  */
 extern "C" uint32_t ptdTargetCheck(uint64_t* tgt, uint64_t len, uint64_t* tgts) {
     for (int i = 0; i < len; i++) {
-        if (tgt == (uint64_t*)tgts[i]) {
-            return 0;
+        uint64_t id = tgts[i];
+        uint64_t ptrVal = vgepMap[id];
+        if (tgt == (uint64_t*)ptrVal) {
+            cout << "VGEP invariant failed\n";
+            return 1;
         }
     }
 
-    cout << "VGEP invariant failed\n";
-    
-    return 1;
+    return 0;
 }
 
 /**

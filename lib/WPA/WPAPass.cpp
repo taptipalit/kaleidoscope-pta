@@ -410,8 +410,11 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 	PAGBuilder builder;
 
     llvm::errs() << "Running with invariants turned on\n";
+    // Accept the command line inputs here
+    /*
     Options::InvariantVGEP = true;
     Options::InvariantPWC = true;
+    */
 	PAG* pag = builder.build(svfModule);
     _pta = new AndersenWaveDiff(pag);
     ptaVector.push_back(_pta);

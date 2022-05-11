@@ -502,6 +502,7 @@ bool ConstraintGraph::moveInEdgesToRepNode(ConstraintNode* node, ConstraintNode*
     }
 
     bool criticalGepInsideSCC = false;
+
     // if this edge is inside scc, then remove this edge and two end nodes
     while(!sccEdges.empty())
     {

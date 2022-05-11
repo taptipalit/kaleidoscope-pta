@@ -65,8 +65,10 @@ private:
     typedef std::pair<NodeID, NodeID> EdgePair;
     typedef std::set<EdgePair> EdgeList;
     typedef std::map<NodeID, EdgeList> RepEdgeMap;
+    typedef std::set<NodeID> PWCNodeSet;
 
     RepEdgeMap repCycleMap;
+    PWCNodeSet pwcReps;
 
 public:
     typedef std::stack<NodeID> GNodeStack;
@@ -192,6 +194,10 @@ public:
     {
         return repNodes;
     }
+    
+    bool isRepPWC(NodeID rep) {
+        return std::find(pwcReps.begin(), pwcReps.end(), rep) != pwcReps.end();
+    }
 
     const inline GraphType & graph()
     {
@@ -256,7 +262,7 @@ private:
         return GTraits::getNodeID(node);
     }
 
-    void visit(NodeID v)
+        void visit(NodeID v)
     {
         // SVFUtil::outs() << "visit GNODE: " << Node_Index(v)<< "\n";
         _I += 1;
@@ -279,7 +285,12 @@ private:
                 rep = _D[this->rep(v)] < _D[this->rep(w)] ?
                       this->rep(v) : this->rep(w);
                 // This is a cycle, record this edge
+                // TODO: Make this faster by using bitvectors
                 repCycleMap[rep].insert(std::make_pair(v,w));
+                if ((*(EI.getCurrent()))->getEdgeKind() == 4) {
+                    // GEP (ConsGEdge.h:56)
+                    pwcReps.insert(rep);
+                }
                 
                 this->rep(v,rep);
             }

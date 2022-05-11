@@ -4,22 +4,23 @@ void InvariantHandler::recordTarget(int id, Value* target) {
     IRBuilder* builder;
     LLVMContext& C = mod->getContext();
 
-    Type* voidPtrTy = PointerType::get(Type::getInt8Ty(C), 0);
+    IntegerType* i32Ty = IntegerType::get(C, 32);
     IntegerType* i64Ty = IntegerType::get(C, 64);
+    /*
     GlobalVariable* kaliMapGVar = mod->getGlobalVariable("kaliMap");
     assert(kaliMapGVar && "can't find KaliMap");
 
-    // Get the index into the kaliMap
     Constant* zero = ConstantInt::get(i64Ty, 0);
     Constant* idConstant = ConstantInt::get(i64Ty, id);
     std::vector<Value*> idxVec;
     idxVec.push_back(zero);
     idxVec.push_back(idConstant);
     llvm::ArrayRef<Value*> idxs(idxVec);
+    */
 
     if (AllocaInst* allocaInst = SVFUtil::dyn_cast<AllocaInst>(target)) {
         builder = new IRBuilder(allocaInst->getNextNode());
-    } else if (GlobalVariable* gvar = SVFUtil::dyn_cast<GlobalVariable>(target)) {
+    } else if (GlobalValue* gvar = SVFUtil::dyn_cast<GlobalValue>(target)) {
         Function* mainFunction = mod->getFunction("main");
         Instruction* inst = mainFunction->getEntryBlock().getFirstNonPHIOrDbg();
         builder = new IRBuilder(inst);
@@ -29,11 +30,9 @@ void InvariantHandler::recordTarget(int id, Value* target) {
         assert(false && "Not handling stuff here");
     }
 
-    Value* gepIndexMapEntry = builder->CreateGEP(kaliMapGVar, idxs);
-    // Cast the address to void*
-    Value* voidPtrAddress = builder->CreateBitCast(target, voidPtrTy);
-    // Do the store now!
-    StoreInst* storeInst = builder->CreateStore(voidPtrAddress, gepIndexMapEntry);
+    Constant* idConstant = ConstantInt::get(i32Ty, id);
+    Value* ptrVal = builder->CreateBitOrPointerCast(target, i64Ty);
+    builder->CreateCall(vgepPtdRecordFn, {idConstant, ptrVal});
 }
 
 /**
@@ -92,9 +91,11 @@ void InvariantHandler::instrumentVGEPInvariant(GetElementPtrInst* gep, std::vect
     //Value* firstCons = Builder.CreateGEP(kaliIdArr->getType(), kaliIdArr, Zero);
     llvm::ArrayRef<Constant*> zeroIdxs {Zero, Zero};
     Value* firstCons = ConstantExpr::getGetElementPtr(arrTy, kaliArrGvar, zeroIdxs);
-    Value* arg1 = Builder.CreateBitOrPointerCast(firstCons, ptrToLongType);
+
+    Value* arg1 = Builder.CreateBitOrPointerCast(pointer, ptrToLongType);
+
     Value* arg2 = clen;
-    Value* arg3 = Builder.CreateBitOrPointerCast(pointer, ptrToLongType);
+    Value* arg3 = Builder.CreateBitOrPointerCast(firstCons, ptrToLongType);
 
     Builder.CreateCall(ptdTargetCheckFn, {arg1, arg2, arg3});
 }
@@ -102,15 +103,19 @@ void InvariantHandler::instrumentVGEPInvariant(GetElementPtrInst* gep, std::vect
 void InvariantHandler::handleVGEPInvariants() {
     for (const GetElementPtrInst* gep: pag->getVarGeps()) {
         std::vector<Value*> targets;
+        //if (pag->getVarGepPtdMap()[gep].size() > 0) {
         for (NodeID ptdId: pag->getVarGepPtdMap()[gep]) {
-            PAGNode* pagNode = pag->getPAGNode(ptdId);
-            if (pagNode->hasValue()) {
-                Value* ptdValue = const_cast<Value*>(pagNode->getValue());
-                // we will be modifying the value by inserting instrumentation
-                targets.push_back(ptdValue);
+            if (pag->hasPAGNode(ptdId)) {
+                PAGNode* pagNode = pag->getPAGNode(ptdId);
+                if (pagNode->hasValue()) {
+                    Value* ptdValue = const_cast<Value*>(pagNode->getValue());
+                    // we will be modifying the value by inserting instrumentation
+                    targets.push_back(ptdValue);
+                }
             }
         }
         instrumentVGEPInvariant(const_cast<GetElementPtrInst*>(gep), targets);
+        //}
     }
 }
 
@@ -130,6 +135,13 @@ void InvariantHandler::handlePWCInvariants() {
             Value* valPtr = const_cast<Value*>(vPtr);
             // Insert a call to record this
             if (Instruction* inst = SVFUtil::dyn_cast<Instruction>(valPtr)) {
+                // If this is a callInst that doesn't return anything, just
+                // ignore it
+                if (CallInst* callInst = SVFUtil::dyn_cast<CallInst>(inst)) {
+                    if (callInst->getType()->isVoidTy()) {
+                        continue;
+                    }
+                }
                 IRBuilder builder(inst->getNextNode());
                 std::vector<Value*> argsList;
                 argsList.push_back(ConstantInt::get(intType, pwcID));
@@ -169,12 +181,24 @@ void InvariantHandler::handlePWCInvariants() {
  * ptdTargetCheck(unsigned long* valid_tgts, long len, unsigned long* tgt);
  */
 void InvariantHandler::initVGEPInvariants() {
+    Type* voidType = Type::getVoidTy(mod->getContext());
+    Type* longType = IntegerType::get(mod->getContext(), 64);
+    Type* intType = IntegerType::get(mod->getContext(), 32);
+
+    // Install the vgepRecord Routine
+    std::vector<Type*> vgepRecordTypes;
+    vgepRecordTypes.push_back(intType);
+    vgepRecordTypes.push_back(longType);
+
+    llvm::ArrayRef<Type*> vgepRecordTypeArr(vgepRecordTypes);
+
+    FunctionType* vgepRecordFnTy = FunctionType::get(voidType, vgepRecordTypeArr, false);
+    vgepPtdRecordFn = Function::Create(vgepRecordFnTy, Function::ExternalLinkage, "vgepRecordTarget", mod);
+
+    svfMod->addFunctionSet(vgepPtdRecordFn);
     // Install the ptdTargetCheck Routine
     // ptdTargetCheck(unsigned long* valid_tgts, long len, unsigned long* tgt);
     std::vector<Type*> ptdTargetCheckType;
-
-    Type* longType = IntegerType::get(mod->getContext(), 64);
-    Type* intType = IntegerType::get(mod->getContext(), 32);
 
     Type* ptrToLongType = PointerType::get(longType, 0);
     ptdTargetCheckType.push_back(ptrToLongType);
