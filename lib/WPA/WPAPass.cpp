@@ -153,6 +153,17 @@ void WPAPass::collectCFI(Module& M, bool woInv) {
         }
 
     }
+    std::map<int, int> histogram;
+    for (auto it: *indCallMap) {
+        CallInst* cInst = it.first;
+        int sz = it.second.size();
+        histogram[sz]++;
+    }
+
+    llvm::errs() << "EC Size:\t Ind. Call-sites\n";
+    for (auto it: histogram) {
+        llvm::errs() << it.first << "\t" << it.second << "\n";
+    }
 }
 
 void WPAPass::instrumentCFICheck(llvm::CallInst* indCall) {
@@ -436,7 +447,8 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 
     Options::InvariantVGEP = false;
     Options::InvariantPWC = false;
-    _pta = new AndersenWaveDiff(pag);
+    PAG* pag2 = builder.build(svfModule);
+    _pta = new AndersenWaveDiff(pag2);
     ptaVector.clear();
     ptaVector.push_back(_pta);
     _pta->analyze();
