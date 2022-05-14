@@ -15,8 +15,8 @@ then
     clang -c -O0 -ggdb $file_c -emit-llvm -o $file_bc
 fi
 
-/morespace/introspection/svf-kernel/Debug-build/bin/wpa -invariant-pwc=true \
--invariant-vgep=true -ander $file_bc
+/morespace/introspection/svf-kernel/Debug-build/bin/wpa -invariant-pwc=false \
+-invariant-vgep=false -ander $file_bc
 
 if [ $? -ne 0 ]; then
     echo "Failed to run invariant-based pointer analysis"

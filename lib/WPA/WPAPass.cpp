@@ -434,10 +434,8 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 
     llvm::errs() << "Running with invariants turned on\n";
     // Accept the command line inputs here
-    /*
     Options::InvariantVGEP = true;
     Options::InvariantPWC = true;
-    */
 	PAG* pag = builder.build(svfModule);
     _pta = new AndersenWaveDiff(pag);
     ptaVector.push_back(_pta);
@@ -445,6 +443,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 
     collectCFI(*module, false);
 
+    /*
     Options::InvariantVGEP = false;
     Options::InvariantPWC = false;
     PAG* pag2 = builder.build(svfModule);
@@ -454,6 +453,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
     _pta->analyze();
 
     collectCFI(*module, true);
+    */
     
     // At the end of collectCFI
     // we have two maps inside WPAPass populated
