@@ -443,7 +443,6 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 
     collectCFI(*module, false);
 
-    /*
     Options::InvariantVGEP = false;
     Options::InvariantPWC = false;
     PAG* pag2 = builder.build(svfModule);
@@ -453,7 +452,6 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
     _pta->analyze();
 
     collectCFI(*module, true);
-    */
     
     // At the end of collectCFI
     // we have two maps inside WPAPass populated

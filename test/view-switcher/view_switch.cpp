@@ -36,7 +36,7 @@ extern "C" uint32_t ptdTargetCheck(uint64_t* tgt, uint64_t len, uint64_t* tgts) 
         uint64_t id = tgts[i];
         uint64_t ptrVal = vgepMap[id];
         if (tgt == (uint64_t*)ptrVal) {
-            cout << "VGEP invariant failed\n";
+            //cout << "VGEP invariant failed\n";
             invFlipped = true;
             return 1;
         }
@@ -63,6 +63,7 @@ extern "C" uint32_t updateAndCheckPWC(uint32_t pwcId, uint32_t invLen, uint32_t 
 
 
     // dump out what we've seen so far
+    /*
     cout << "InvID: " << invId << " Value: " << hex << val << endl;
     cout << "invariant values: \n";
     for (auto invIdValPair: pwcInvariants[pwcId]) {
@@ -75,6 +76,7 @@ extern "C" uint32_t updateAndCheckPWC(uint32_t pwcId, uint32_t invLen, uint32_t 
         cout << hex << val << " ";
     }
     cout << endl;
+    */
 
     if (sz1 + sz2 == (invLen - 1)) { // We've seen all other invariant values
         for (auto invIdValPair: pwcInvariants[pwcId]) {
