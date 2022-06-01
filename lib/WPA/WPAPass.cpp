@@ -429,6 +429,10 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 {
     llvm::Module *module = SVF::LLVMModuleSet::getLLVMModuleSet()->getMainLLVMModule(); 
 
+    if ((Options::InvariantVGEP || Options::InvariantPWC) && Options::NoInvariants) {
+        llvm::errs() << "Invalid configuration ...\n";
+        return;
+    }
 	/// Build PAG
 	PAGBuilder builder;
 
