@@ -41,10 +41,11 @@ if [ $? -ne 0 ]; then
 fi
 
 opt -always-inline $file_linked -o $file_linked_inline
+#cp $file_linked $file_linked_inline
 
 llvm-dis $file_linked_inline -o $file_linked_inline_ll
 
-clang++ -v -ggdb $file_linked_inline -o $file_exe # -L/data/tpalit/SVF/test/view_switcher  # -lkali 
+clang++ -v -ggdb $file_linked_inline -o $file_exe -lcrypt # -L/data/tpalit/SVF/test/view_switcher  # -lkali 
 
 if [ $? -ne 0 ]; then
     echo "Failed to link into binary"
