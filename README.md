@@ -5,3 +5,5 @@ and adapts accordingly.
 
 
 `test/run_kali.sh <bitcode_name>`
+
+**TODO: fill this out**
