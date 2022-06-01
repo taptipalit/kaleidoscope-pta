@@ -13,13 +13,16 @@ file_linked_inline="$file"_linked_inline.bc
 file_linked_inline_ll="$file"_linked_inline.ll
 file_exe="$file".exe
 
+#$SVF_HOME=/home/tpalit/svf-kernel/
+SVF_HOME=/morespace/introspection/svf-kernel
+
 if [ -f $file_c ]
 then
     clang -c -O0 -ggdb $file_c -emit-llvm -o $file_bc
 fi
 
 
-/home/tpalit/svf-kernel/Debug-build/bin/wpa -invariant-pwc=true \
+$SVF_HOME/Debug-build/bin/wpa -invariant-pwc=true \
 -invariant-vgep=true -ander $file_bc
 
 if [ $? -ne 0 ]; then
@@ -33,7 +36,7 @@ llvm-dis $file_inst -o $file_inst_ll
 opt -verify $file_inst -o $file_discard
 
 
-llvm-link $file_inst /home/tpalit/svf-kernel/test/view-switcher/docfi.bc /home/tpalit/svf-kernel/test/view-switcher/view_switch.bc -o $file_linked
+llvm-link $file_inst $SVF_HOME/test/view-switcher/docfi.bc $SVF_HOME/test/view-switcher/view_switch.bc -o $file_linked
 
 if [ $? -ne 0 ]; then
     echo "Generated broken bitcode"
