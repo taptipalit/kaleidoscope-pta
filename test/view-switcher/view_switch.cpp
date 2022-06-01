@@ -18,6 +18,7 @@ std::map<CycleID, uint64_t> vgepMap;
 
 extern bool invFlipped;
 
+__attribute__((always_inline))
 extern "C" void vgepRecordTarget(InvariantID id, InvariantVal val) {
     vgepMap[id] = val;
 }
@@ -31,6 +32,7 @@ extern "C" void vgepRecordTarget(InvariantID id, InvariantVal val) {
  * changing the view
  *
  */
+__attribute__((always_inline))
 extern "C" uint32_t ptdTargetCheck(uint64_t* tgt, uint64_t len, uint64_t* tgts) {
     for (int i = 0; i < len; i++) {
         uint64_t id = tgts[i];
@@ -49,6 +51,7 @@ extern "C" uint32_t ptdTargetCheck(uint64_t* tgt, uint64_t len, uint64_t* tgts) 
  * Return 1 if the view needs to be changed
  * Return 0 if the view does not need to be changed
  */
+__attribute__((always_inline))
 extern "C" uint32_t updateAndCheckPWC(uint32_t pwcId, uint32_t invLen, uint32_t invId, uint64_t val, int isGep) {
     int cycleHappened = 1;
     // Check if the cycle happened
@@ -121,6 +124,7 @@ extern "C" uint32_t updateAndCheckPWC(uint32_t pwcId, uint32_t invLen, uint32_t 
     return cycleHappened;
 }
 
+__attribute__((always_inline))
 void switch_view(void) {
     cerr << "Invariant violated\n";
 }
