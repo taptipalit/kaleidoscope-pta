@@ -171,6 +171,19 @@ public:
         }
     }
 
+    /// create a new PAG for invariant changes 
+    //@{
+    static inline void resetPAG()
+    {
+        /*
+        if (pag) {
+            delete pag;
+        }
+        */
+        pag = nullptr;
+        
+    }
+ 
     /// Singleton design here to make sure we only have one instance during any analysis
     //@{
     static inline PAG* getPAG(bool buildFromFile = false)

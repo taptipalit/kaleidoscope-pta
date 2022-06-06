@@ -320,10 +320,15 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypes(llvm::Module& module) {
                 }
                 // If not, check if this has the metadata that we're missing 
                 if (sizeOfTyName && !handled) {
-                    if (callInst && callInst->getCalledFunction() && callInst->getCalledFunction()->isIntrinsic()) {
-                        continue;
+                    if (callInst && callInst->getCalledFunction()) {
+                        if (callInst->getCalledFunction()->isIntrinsic()) {
+                            continue;
+                        } else {
+                            llvm::errs() << "Call to function: " << callInst->getCalledFunction()->getName() << " has type info but not a heap allocation\n";
+                        }
+                    } else {
+                        llvm::errs() << "Instruction: " << *inst << " has type info but not a heap allocation\n";
                     }
-                    llvm::errs() << "Instruction: " << *inst << " has type info but not a heap allocation\n";
                 }
             }
         }

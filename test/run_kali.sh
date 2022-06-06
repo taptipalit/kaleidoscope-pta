@@ -3,6 +3,8 @@
 set -x 
 
 file="$1"
+options="$2"
+
 file_c="$1".c
 file_bc="$file".bc
 file_linked="$file"_linked.bc
@@ -19,8 +21,8 @@ then
 fi
 
 
-/home/tpalit/svf-kernel/Debug-build/bin/wpa -invariant-pwc=true \
--invariant-vgep=true -ander $file_bc
+/home/tpalit/svf-kernel/Debug-build/bin/wpa -invariant-pwc=false \
+-invariant-vgep=true -stat-limit=100 -ander $file_bc
 
 if [ $? -ne 0 ]; then
     echo "Failed to run invariant-based pointer analysis"
@@ -45,7 +47,7 @@ opt -always-inline $file_linked -o $file_linked_inline
 
 llvm-dis $file_linked_inline -o $file_linked_inline_ll
 
-clang++ -v -ggdb $file_linked_inline -o $file_exe -lcrypt # -L/data/tpalit/SVF/test/view_switcher  # -lkali 
+clang++ -v -ggdb $file_linked_inline -o $file_exe $options # -L/data/tpalit/SVF/test/view_switcher  # -lkali 
 
 if [ $? -ne 0 ]; then
     echo "Failed to link into binary"

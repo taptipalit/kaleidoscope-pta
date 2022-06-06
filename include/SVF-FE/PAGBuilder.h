@@ -55,6 +55,10 @@ public:
     PAGBuilder(): pag(PAG::getPAG()), svfMod(nullptr), curBB(nullptr),curVal(nullptr)
     {
     }
+
+    void resetPAG() {
+        pag->resetPAG();
+    }
     /// Destructor
     virtual ~PAGBuilder()
     {

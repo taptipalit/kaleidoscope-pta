@@ -113,8 +113,8 @@ CallInst* WPAPass::findCorrespondingCallInClone(CallInst* indCall, llvm::Module*
 
 void WPAPass::collectCFI(Module& M, bool woInv) {
     
-    std::map<llvm::CallInst*, std::vector<Function*>>* indCallMap;
-    std::vector<llvm::CallInst*>* indCallProhibited;
+    std::map<llvm::CallInst*, std::set<Function*>>* indCallMap;
+    std::set<llvm::CallInst*>* indCallProhibited;
 
     if (!woInv) {
         indCallMap = &wInvIndCallMap;
@@ -140,12 +140,12 @@ void WPAPass::collectCFI(Module& M, bool woInv) {
                             if (tgtNode->hasValue()) {
                                 if (const Function* tgtFunction = SVFUtil::dyn_cast<Function>(tgtNode->getValue())) {
                                     hasTarget = true;
-                                    (*indCallMap)[callInst].push_back(const_cast<Function*>(tgtFunction));
+                                    (*indCallMap)[callInst].insert(const_cast<Function*>(tgtFunction));
                                 }
                             }
                         }
                         if (!hasTarget) {
-                            (*indCallProhibited).push_back(callInst);
+                            (*indCallProhibited).insert(callInst);
                         }
                     }
                 }
@@ -154,6 +154,8 @@ void WPAPass::collectCFI(Module& M, bool woInv) {
 
     }
     std::map<int, int> histogram;
+    histogram[0] = indCallProhibited->size();
+    
     for (auto it: *indCallMap) {
         CallInst* cInst = it.first;
         int sz = it.second.size();
@@ -161,9 +163,16 @@ void WPAPass::collectCFI(Module& M, bool woInv) {
     }
 
     llvm::errs() << "EC Size:\t Ind. Call-sites\n";
+    int totalTgts = 0;
+    int totalIndCallSites = 0;
     for (auto it: histogram) {
         llvm::errs() << it.first << "\t" << it.second << "\n";
+        totalIndCallSites += it.second;
+        totalTgts += it.first*it.second;
     }
+    llvm::errs() << "Total Ind. Call-sites: " << totalIndCallSites << "\n";
+    llvm::errs() << "Total Tgts: " << totalTgts << "\n";
+    std::cerr << "Average CFI: " << std::fixed << (float)totalTgts / (float)totalIndCallSites << "\n";
 }
 
 void WPAPass::instrumentCFICheck(llvm::CallInst* indCall) {
@@ -372,8 +381,8 @@ void WPAPass::initializeCFITargets(llvm::Module* module) {
 
     for (auto pair: wInvIndCallMap) {
         llvm::CallInst* callInst = pair.first;
-        std::vector<Function*>& wInvTgts = pair.second;
-        std::vector<Function*>& woInvTgts = woInvIndCallMap[callInst]; // TODO: does it need to have it?
+        std::set<Function*>& wInvTgts = pair.second;
+        std::set<Function*>& woInvTgts = woInvIndCallMap[callInst]; // TODO: does it need to have it?
 
         indIDToCSMap[indCSId] = callInst;
         indCSToIDMap[callInst] = indCSId;
@@ -438,8 +447,10 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 
     llvm::errs() << "Running with invariants turned on\n";
     // Accept the command line inputs here
+    /*
     Options::InvariantVGEP = true;
     Options::InvariantPWC = true;
+    */
 	PAG* pag = builder.build(svfModule);
     _pta = new AndersenWaveDiff(pag);
     ptaVector.push_back(_pta);
@@ -449,7 +460,16 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 
     Options::InvariantVGEP = false;
     Options::InvariantPWC = false;
-    PAG* pag2 = builder.build(svfModule);
+
+    builder.getPAG()->resetPAG();
+    SymbolTableInfo::releaseSymbolInfo();
+
+    // Round 2
+    svfModule->buildSymbolTableInfo();
+
+    PAGBuilder builder2;
+
+    PAG* pag2 = builder2.build(svfModule);
     _pta = new AndersenWaveDiff(pag2);
     ptaVector.clear();
     ptaVector.push_back(_pta);
@@ -514,7 +534,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 
     // Handle the invariants
     if (!Options::NoInvariants) {
-        InvariantHandler IHandler(svfModule, module, pag);
+        InvariantHandler IHandler(svfModule, module, pag); // this one should be the original PAG
         IHandler.handleVGEPInvariants();
         IHandler.handlePWCInvariants();
     }

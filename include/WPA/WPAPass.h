@@ -151,11 +151,11 @@ private:
     PointerAnalysis* _pta;	///<  pointer analysis to be executed.
     SVFG* _svfg;  ///< svfg generated through -ander pointer analysis
 
-    std::map<llvm::CallInst*, std::vector<Function*>> wInvIndCallMap;
-    std::vector<llvm::CallInst*> wInvIndCallProhibited;
+    std::map<llvm::CallInst*, std::set<Function*>> wInvIndCallMap;
+    std::set<llvm::CallInst*> wInvIndCallProhibited;
 
-    std::map<llvm::CallInst*, std::vector<Function*>> woInvIndCallMap;
-    std::vector<llvm::CallInst*> woInvIndCallProhibited;
+    std::map<llvm::CallInst*, std::set<Function*>> woInvIndCallMap;
+    std::set<llvm::CallInst*> woInvIndCallProhibited;
 
 
     llvm::Function* checkCFI;
