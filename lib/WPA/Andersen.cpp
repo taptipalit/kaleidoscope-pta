@@ -584,6 +584,8 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
 {
     PAG::PWCList* sccNodeIDs = new PAG::PWCList();
     // Before merging this, simply collect
+    bool isHandled = false;
+    std::vector<ConstraintEdge*> edgesInPWC;
     if (Options::InvariantPWC) {
         // Get the edges in this SCC
         EdgeList& edges = getSCCDetector()->getSCCEdgeList(repNodeId);
@@ -602,6 +604,7 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                     ConstraintEdge* edge = consCG->getEdge(src, dst, ConstraintEdge::Copy);
                     if (edge->getDerivedWeight() > 0) {
                         ConstraintEdge* origEdge = edge->getSourceEdge();
+                        edgesInPWC.push_back(origEdge);
                         instVal = origEdge->getLLVMValue();
                         // For load it's the loaded return value
                         // For stores, it's the stored value operand
@@ -640,24 +643,40 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                 }
             }
             edges.clear(); // We have processed them
+            isHandled = true;
         }
-    }
-    for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
-    {
-        NodeID subNodeId = *nodeIt;
-        
-        if (subNodeId != repNodeId)
-        {
-            mergeNodeToRep(subNodeId, repNodeId);
-        }
-    }
-    if (Options::InvariantPWC) {
         if (consCG->isPWCNode(repNodeId) && subNodes.count() > 1) {
             pwcCycleId++;
             addCycleInvariants(pwcCycleId, sccNodeIDs);
             consCG->resetPWCNode(repNodeId);
         }
+    } 
+    if (!isHandled) {
+        for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
+        {
+            NodeID subNodeId = *nodeIt;
+
+            if (subNodeId != repNodeId)
+            {
+                mergeNodeToRep(subNodeId, repNodeId);
+            }
+        }
+    } else {
+        for (int i = 0; i < 2; i++) {
+            for (ConstraintEdge* pwcEdge: edgesInPWC) {
+                if (CopyCGEdge* copyCGEdge = SVFUtil::dyn_cast<CopyCGEdge>(pwcEdge)) {
+                    processCopy(copyCGEdge->getSrcID(), copyCGEdge);
+                } else if (GepCGEdge* gepCGEdge = SVFUtil::dyn_cast<GepCGEdge>(pwcEdge)) {
+                    processGep(gepCGEdge->getSrcID(), gepCGEdge);
+                }
+            }
+        }
     }
+    /*
+    if (Options::InvariantPWC) {
+        
+    }
+    */
 }
     /*
     bool skipCycle = false;

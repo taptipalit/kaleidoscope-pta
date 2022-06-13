@@ -485,8 +485,3 @@ HeapTypeAnalyzer::runOnModule (Module & module) {
 
     return false;
 }
-
-
-
-
-

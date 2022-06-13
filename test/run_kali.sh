@@ -21,8 +21,8 @@ then
 fi
 
 
-/home/tpalit/svf-kernel/Debug-build/bin/wpa -invariant-pwc=false \
--invariant-vgep=true -stat-limit=100 -ander $file_bc
+/home/tpalit/svf-kernel/Debug-build/bin/wpa -invariant-pwc=true \
+-invariant-vgep=false -ptd=persistent -stat-limit=100 -ander $file_bc
 
 if [ $? -ne 0 ]; then
     echo "Failed to run invariant-based pointer analysis"

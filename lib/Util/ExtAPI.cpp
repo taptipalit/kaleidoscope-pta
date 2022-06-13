@@ -523,6 +523,7 @@ static const ei_pair ei_pairs[]=
     {"lalloc", ExtAPI::EFT_ALLOC},
     {"lalloc_clear", ExtAPI::EFT_ALLOC},
     {"malloc", ExtAPI::EFT_ALLOC},
+
     {"nhalloc", ExtAPI::EFT_ALLOC},
     {"oballoc", ExtAPI::EFT_ALLOC},
     {"ngx_alloc", ExtAPI::EFT_ALLOC},
