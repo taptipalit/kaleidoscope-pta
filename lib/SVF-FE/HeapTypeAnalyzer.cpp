@@ -286,34 +286,36 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypes(llvm::Module& module) {
                     Function* calledFunc = callInst->getCalledFunction();
                     if (calledFunc) {
                         if (std::find(memAllocFns.begin(), memAllocFns.end(), calledFunc->getName()) != memAllocFns.end()) {
+                            /*
                             if (calledFunc->getName().startswith("ngx_array_init") ||
                                     calledFunc->getName().startswith("ngx_array_create")) {
                                 callInst->addAnnotationMetadata("ArrayType");
                                 handled = true;
                             } else {
-                                if (!sizeOfTyName) {
-                                    llvm::errs() << "No type annotation for heap call: " << *callInst << " in function : " << callInst->getFunction()->getName() << " treating as scalar\n";
-                                    callInst->addAnnotationMetadata("IntegerType");
-                                    handled = true;
-                                    continue;
-                                }
-
-                                HeapTy ty = getSizeOfTy(module, Ctx, sizeOfTyName, sizeOfTyArgNum, mulFactor);
-                                switch(ty) {
-                                    case ScalarTy:
-                                        callInst->addAnnotationMetadata("IntegerType");
-                                        break;
-                                    case StructTy:
-                                        callInst->addAnnotationMetadata("StructType");
-                                        break;
-                                    case ArrayTy:
-                                        callInst->addAnnotationMetadata("ArrayType"); 
-                                        break;
-                                    default:
-                                        assert(false && "Shouldn't reach here");
-                                }
+                            */
+                            if (!sizeOfTyName) {
+                                llvm::errs() << "No type annotation for heap call: " << *callInst << " in function : " << callInst->getFunction()->getName() << " treating as scalar\n";
+                                callInst->addAnnotationMetadata("IntegerType");
                                 handled = true;
+                                continue;
                             }
+
+                            HeapTy ty = getSizeOfTy(module, Ctx, sizeOfTyName, sizeOfTyArgNum, mulFactor);
+                            switch(ty) {
+                                case ScalarTy:
+                                    callInst->addAnnotationMetadata("IntegerType");
+                                    break;
+                                case StructTy:
+                                    callInst->addAnnotationMetadata("StructType");
+                                    break;
+                                case ArrayTy:
+                                    callInst->addAnnotationMetadata("ArrayType"); 
+                                    break;
+                                default:
+                                    assert(false && "Shouldn't reach here");
+                            }
+                            handled = true;
+                            //}
 
                         }
                     }

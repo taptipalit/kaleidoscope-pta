@@ -400,42 +400,39 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                 // when the type is a complex type, are most definitely accessing 
                 // an element in the array.
                 // GetElementPtrInst* vgep = vgepCGEdge->getLLVMValue();
-                /*
-                Type* gepPtrTy = vgep->getPointerOperand()->getType()->getPointerElementType();
-
-                if (gepPtrTy->isStructTy()) {
-                    continue;
-                }
-                */
 
                 // For the rest, we add the invariant
                 if (consCG->isStructTy(o)) {
                     // We assume these don't happen
                     // We will add the invariant later
                     pag->addPtdForVarGep(vgepCGEdge->getLLVMValue(), o);
-                    
+                    PAGNode* node = pag->getPAGNode(o);
+                    if (node && node->hasValue()) {
+                        const llvm::Value* val = node->getValue();
+                        llvm::errs() << "adding vgep invariant: " << *val << "\n";
+                    }
                     continue;
                 } else {
                     LocationSet ls(0);
                     NodeID fieldSrcPtdNode = consCG->getGepObjNode(o, ls);
                     tmpDstPts.set(fieldSrcPtdNode);
-
                     continue;
                 }
-            }
+            } else {
 
-            if (!isFieldInsensitive(o))
-            {
-                PAGNode* ptdNode = pag->getPAGNode(o);
-                errs() << "Setting object " << o << " field-insensitive for vargep\n";
-                errs() << *ptdNode << "\n";
-                setObjFieldInsensitive(o);
-                consCG->addNodeToBeCollapsed(consCG->getBaseObjNode(o));
-            }
+                if (!isFieldInsensitive(o))
+                {
+                    PAGNode* ptdNode = pag->getPAGNode(o);
+                    errs() << "Setting object " << o << " field-insensitive for vargep\n";
+                    errs() << *ptdNode << "\n";
+                    setObjFieldInsensitive(o);
+                    consCG->addNodeToBeCollapsed(consCG->getBaseObjNode(o));
+                }
 
-            // Add the field-insensitive node into pts.
-            NodeID baseId = consCG->getFIObjNode(o);
-            tmpDstPts.set(baseId);
+                // Add the field-insensitive node into pts.
+                NodeID baseId = consCG->getFIObjNode(o);
+                tmpDstPts.set(baseId);
+            }
         }
     }
     else if (const NormalGepCGEdge* normalGepEdge = SVFUtil::dyn_cast<NormalGepCGEdge>(edge))
