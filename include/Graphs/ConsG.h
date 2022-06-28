@@ -330,14 +330,68 @@ public:
         return pag->getBaseObjNode(id);
     }
 
+    inline bool isStructTyForKali(NodeID id) {
+        bool isStruct = false;
+        const MemObj* mem = pag->getBaseObj(id);
+        isStruct |= mem->isStruct();      
+        PAGNode* node = pag->getPAGNode(id);
+        if (node->hasValue()) {
+            const llvm::Value* pagValue = node->getValue();
+            const llvm::Type* type = pagValue->getType();
+            isStruct |= SVFUtil::isa<StructType>(type);
+        }
+        return isStruct;
+    }
+
     inline bool isStructTy(NodeID id) {
         const MemObj* mem = pag->getBaseObj(id);
         return mem->isStruct();
     }
 
+    inline bool isSimpleArrayTyForKali(NodeID id) {
+        bool isSimpleArray = false;
+        const MemObj* mem = pag->getBaseObj(id);
+        isSimpleArray |= mem->isSimpleArray();
+        PAGNode* node = pag->getPAGNode(id);
+        if (node->hasValue()) {
+            const llvm::Value* pagValue = node->getValue();
+            const llvm::Type* type = pagValue->getType();
+            if (const llvm::PointerType* pointerElemTy =
+                    SVFUtil::dyn_cast<llvm::PointerType>(type)) { 
+                type = type->getPointerElementType();
+            }
+            if (const ArrayType* arrTy = SVFUtil::dyn_cast<ArrayType>(type)) {
+                const Type* elemTy = arrTy->getElementType();
+                isSimpleArray |= SVFUtil::isa<IntegerType>(elemTy);
+            }
+        }
+        return isSimpleArray;
+    }
+
+
     inline bool isSimpleArrayTy(NodeID id) {
         const MemObj* mem = pag->getBaseObj(id);
         return mem->isSimpleArray();
+    }
+
+    inline bool isStructArrayTyForKali(NodeID id) {
+        bool isStructArray = false;
+        const MemObj* mem = pag->getBaseObj(id);
+        isStructArray |= mem->isStructArray();
+        PAGNode* node = pag->getPAGNode(id);
+        if (node->hasValue()) {
+            const llvm::Value* pagValue = node->getValue();
+            const llvm::Type* type = pagValue->getType();
+            if (const llvm::PointerType* pointerElemTy =
+                    SVFUtil::dyn_cast<llvm::PointerType>(type)) { 
+                type = type->getPointerElementType();
+            }
+            if (const ArrayType* arrTy = SVFUtil::dyn_cast<ArrayType>(type)) {
+                const Type* elemTy = arrTy->getElementType();
+                isStructArray |= SVFUtil::isa<StructType>(elemTy);
+            }
+        }
+        return isStructArray;
     }
 
     inline bool isStructArrayTy(NodeID id) {

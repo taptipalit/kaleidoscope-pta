@@ -402,7 +402,7 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                 // GetElementPtrInst* vgep = vgepCGEdge->getLLVMValue();
 
                 // For the rest, we add the invariant
-                if (consCG->isStructTy(o)) {
+                if (consCG->isStructTyForKali(o)) {
                     // We assume these don't happen
                     // We will add the invariant later
                     pag->addPtdForVarGep(vgepCGEdge->getLLVMValue(), o);
@@ -412,7 +412,7 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                         llvm::errs() << "adding vgep invariant: " << *val << "\n";
                     }
                     continue;
-                } else if (consCG->isStructArrayTy(o)) {
+                } else if (consCG->isStructArrayTyForKali(o)) {
                     int n = consCG->getNumElementsForArrObj(o);
                     // Add direct gep edges
                     for (int i = 0; i < n; i++) {
@@ -420,14 +420,14 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                         consCG->addNormalGepCGEdge(edge->getSrcID(), edge->getDstID(), ls);
                     }
                     
-                } else if (consCG->isSimpleArrayTy(o)) {
+                } else /*if (consCG->isSimpleArrayTyForKali(o))*/ { // TODO: in some cases none of these are true. why?
                     LocationSet ls(0);
                     NodeID fieldSrcPtdNode = consCG->getGepObjNode(o, ls);
                     tmpDstPts.set(fieldSrcPtdNode);
                     continue;
-                } else {
+                } /*else {
                     assert(false && "unreachable");
-                }
+                }*/
             } else {
 
                 if (!isFieldInsensitive(o))
