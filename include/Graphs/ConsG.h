@@ -335,10 +335,24 @@ public:
         return mem->isStruct();
     }
 
+    inline bool isSimpleArrayTy(NodeID id) {
+        const MemObj* mem = pag->getBaseObj(id);
+        return mem->isSimpleArray();
+    }
+
+    inline bool isStructArrayTy(NodeID id) {
+        const MemObj* mem = pag->getBaseObj(id);
+        return mem->isStructArray();
+    }
+
     inline bool isArrayTy(NodeID id) {
         const MemObj* mem = pag->getBaseObj(id);
         return mem->isArray();
     }
+
+    int getNumElementsForArrObj(NodeID);
+
+    
 
     inline bool isSingleFieldObj(NodeID id) const
     {

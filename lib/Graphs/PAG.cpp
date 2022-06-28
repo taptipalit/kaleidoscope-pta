@@ -1168,9 +1168,13 @@ struct DOTGraphTraits<PAG*> : public DefaultDOTGraphTraits
         {
             return "color=black";
         }
-        else if (SVFUtil::isa<GepPE>(edge))
+        else if (SVFUtil::isa<NormalGepPE>(edge))
         {
             return "color=purple";
+        }
+        else if (SVFUtil::isa<VariantGepPE>(edge))
+        {
+            return "color=pink";
         }
         else if (SVFUtil::isa<StorePE>(edge))
         {

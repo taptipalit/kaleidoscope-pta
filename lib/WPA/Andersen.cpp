@@ -412,11 +412,21 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                         llvm::errs() << "adding vgep invariant: " << *val << "\n";
                     }
                     continue;
-                } else {
+                } else if (consCG->isStructArrayTy(o)) {
+                    int n = consCG->getNumElementsForArrObj(o);
+                    // Add direct gep edges
+                    for (int i = 0; i < n; i++) {
+                        LocationSet ls(i);
+                        consCG->addNormalGepCGEdge(edge->getSrcID(), edge->getDstID(), ls);
+                    }
+                    
+                } else if (consCG->isSimpleArrayTy(o)) {
                     LocationSet ls(0);
                     NodeID fieldSrcPtdNode = consCG->getGepObjNode(o, ls);
                     tmpDstPts.set(fieldSrcPtdNode);
                     continue;
+                } else {
+                    assert(false && "unreachable");
                 }
             } else {
 

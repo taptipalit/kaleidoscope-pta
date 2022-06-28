@@ -140,6 +140,7 @@ CallInst* HeapTypeAnalyzer::findCInstFA(Value* val) {
  * cloneHeapTy: What type the deepest malloc clone should be set to
  * origHeapTy: What type the deepest malloc of the original should be set to
  */
+/*
 bool HeapTypeAnalyzer::deepClone(llvm::Function* func, llvm::Function*& topClonedFunc, std::vector<std::string>& mallocFunctions, 
         Type* cloneHeapTy, Type* origHeapTy) {
     std::vector<Function*> workList;
@@ -244,24 +245,60 @@ bool HeapTypeAnalyzer::deepClone(llvm::Function* func, llvm::Function*& topClone
     topClonedFunc = cloneMap[func];
     return true;
 }
+*/
 
-HeapTypeAnalyzer::HeapTy HeapTypeAnalyzer::getSizeOfTy(Module& module, LLVMContext& Ctx, MDNode* sizeOfTyName, MDNode* sizeOfTyArgNum, MDNode* mulFactor) {
+llvm::Type* HeapTypeAnalyzer::getSizeOfTy(Module& module, LLVMContext& Ctx, MDNode* sizeOfTyName, MDNode* sizeOfTyArgNum, MDNode* mulFactor, CallInst* heapCall) {
     // Get the type
     MDString* typeNameStr = (MDString*)sizeOfTyName->getOperand(0).get();
     Type* sizeOfTy = nullptr;
     if (typeNameStr->getString() == "scalar_type") {
-        return HeapTy::ScalarTy;
+        sizeOfTy = IntegerType::get(Ctx, 8);
     } else {
-        MDString* mulFactorStr = (MDString*)mulFactor->getOperand(0).get();
-        int mulFactorInt = std::stoi(mulFactorStr->getString().str());
-        assert(mulFactorInt > 0 && "The multiplicator must be greater than 1");
+        sizeOfTy = StructType::getTypeByName(Ctx, "struct."+(typeNameStr->getString().str()));
+        if (!sizeOfTy) {
+            // We have a problem, then track the bitcast operator for now
+            for (User* u: heapCall->users()) {
+                if (StoreInst* storeInst = SVFUtil::dyn_cast<StoreInst>(u)) {
+                    Type* targetType = storeInst->getPointerOperand()->getType();
+                    PointerType* targetPtTy = SVFUtil::dyn_cast<PointerType>(targetType);
+                    assert(targetPtTy && "heap allocation should be stored in a pointer ty");
+                    while (targetPtTy) {
+                        targetType = targetPtTy->getPointerElementType();
+                        targetPtTy = SVFUtil::dyn_cast<PointerType>(targetType);
+                    }
+                    sizeOfTy = SVFUtil::dyn_cast<StructType>(targetType);
+                    if (!sizeOfTy) {
+                        sizeOfTy = IntegerType::get(Ctx, 8);
+                    }
+                    break;
 
-        if (mulFactorInt == 1) {
-            return HeapTy::StructTy;
-        } else {
-            return HeapTy::ArrayTy;
+                } else if (BitCastInst* bcInst = SVFUtil::dyn_cast<BitCastInst>(u)) {
+                    // Get the target type
+                    Type* targetType = bcInst->getDestTy();
+                    PointerType* targetPtTy = SVFUtil::dyn_cast<PointerType>(targetType);
+                    assert(targetPtTy && "heap allocation should be stored in a pointer ty");
+                    while (targetPtTy) {
+                        targetType = targetPtTy->getPointerElementType();
+                        targetPtTy = SVFUtil::dyn_cast<PointerType>(targetType);
+                    }
+                    sizeOfTy = SVFUtil::dyn_cast<StructType>(targetType);
+                    break;
+                }
+            }
         }
     }
+
+    assert(sizeOfTy && "can't find type");
+    MDString* mulFactorStr = (MDString*)mulFactor->getOperand(0).get();
+    int mulFactorInt = std::stoi(mulFactorStr->getString().str());
+    assert(mulFactorInt > 0 && "The multiplicator must be greater than 1");
+
+    if (mulFactorInt == 1) {
+        return sizeOfTy;
+    } else {
+        return ArrayType::get(sizeOfTy, mulFactorInt);            
+    }
+
     assert(false && "Shouldn't reach here");
     
 }
@@ -286,37 +323,46 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypes(llvm::Module& module) {
                     Function* calledFunc = callInst->getCalledFunction();
                     if (calledFunc) {
                         if (std::find(memAllocFns.begin(), memAllocFns.end(), calledFunc->getName()) != memAllocFns.end()) {
-                            /*
-                            if (calledFunc->getName().startswith("ngx_array_init") ||
-                                    calledFunc->getName().startswith("ngx_array_create")) {
-                                callInst->addAnnotationMetadata("ArrayType");
-                                handled = true;
-                            } else {
-                            */
                             if (!sizeOfTyName) {
                                 llvm::errs() << "No type annotation for heap call: " << *callInst << " in function : " << callInst->getFunction()->getName() << " treating as scalar\n";
-                                callInst->addAnnotationMetadata("IntegerType");
+                                callInst->addAnnotationMetadata(SCALAR_TYPE);
                                 handled = true;
                                 continue;
                             }
 
-                            HeapTy ty = getSizeOfTy(module, Ctx, sizeOfTyName, sizeOfTyArgNum, mulFactor);
+                            llvm::Type* heapTy = getSizeOfTy(module, Ctx, sizeOfTyName, sizeOfTyArgNum, mulFactor, callInst);
+                            if (SVFUtil::isa<IntegerType>(heapTy)) {
+                                callInst->addAnnotationMetadata(SCALAR_TYPE);
+                            } else if (SVFUtil::isa<StructType>(heapTy)) {
+                                callInst->addAnnotationMetadata(STRUCT_TYPE);
+                            } else if (SVFUtil::isa<ArrayType>(heapTy)) {
+                                ArrayType* arrTy = SVFUtil::dyn_cast<ArrayType>(heapTy);
+                                Type* elemTy = arrTy->getElementType();
+                                if (SVFUtil::isa<IntegerType>(elemTy)) {
+                                    callInst->addAnnotationMetadata(SIMPLE_ARRAY_TYPE); 
+                                } else {
+                                    callInst->addAnnotationMetadata(STRUCT_ARRAY_TYPE);
+                                    MDNode* N = MDNode::get(Ctx, MDString::get(Ctx, std::to_string(arrTy->getNumElements())));
+                                    callInst->setMetadata("arr_size", N);
+                                }
+                            } 
+                            /*
                             switch(ty) {
                                 case ScalarTy:
-                                    callInst->addAnnotationMetadata("IntegerType");
                                     break;
                                 case StructTy:
-                                    callInst->addAnnotationMetadata("StructType");
+                                    callInst->addAnnotationMetadata(STRUCT_TYPE);
                                     break;
-                                case ArrayTy:
-                                    callInst->addAnnotationMetadata("ArrayType"); 
+                                case SimpleArrayTy:
+                                    callInst->addAnnotationMetadata(SIMPLE_ARRAY_TYPE); 
                                     break;
+                                case StructArrayTy:
+                                    callInst->addAnnotationMetadata(STRUCT_ARRAY_TYPE);
                                 default:
                                     assert(false && "Shouldn't reach here");
                             }
+                            */
                             handled = true;
-                            //}
-
                         }
                     }
                 }
@@ -337,6 +383,7 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypes(llvm::Module& module) {
     }
 }
 
+/*
 void HeapTypeAnalyzer::deriveHeapAllocationTypesWithCloning(llvm::Module& module) {
 
     //StructType* stTy = StructType::getTypeByName(module.getContext(), tyName);
@@ -471,6 +518,7 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypesWithCloning(llvm::Module& module
     }
 
 }
+*/
 
 
 bool

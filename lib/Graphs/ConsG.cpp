@@ -299,6 +299,22 @@ StoreCGEdge* ConstraintGraph::addStoreCGEdge(NodeID src, NodeID dst)
     return edge;
 }
 
+int ConstraintGraph::getNumElementsForArrObj(NodeID id) {
+    PAGNode* node = pag->getPAGNode(id);
+    assert(node->hasValue() && "node must have value");
+    const Value* value = node->getValue();
+    int arrSz = -1;
+    if (const CallInst* callInst = SVFUtil::dyn_cast<CallInst>(value)) {
+        MDNode* arrSzMdNode = callInst->getMetadata("arr_size");                        
+        MDString* arrSzMdStr = (MDString*)arrSzMdNode->getOperand(0).get();
+        arrSz = std::stoi(arrSzMdStr->getString().str());
+    } else {
+        ArrayType* arrTy = SVFUtil::dyn_cast<ArrayType>(value->getType());
+        assert(arrTy && "Must be an array type if looking to get number of elements");
+        arrSz = arrTy->getNumElements();
+    }
+    return arrSz;
+}
 
 /*!
  * Re-target dst node of an edge
@@ -752,10 +768,12 @@ struct DOTGraphTraits<ConstraintGraph*> : public DOTGraphTraits<PAG*>
         {
             return "color=black";
         }
-        else if (edge->getEdgeKind() == ConstraintEdge::NormalGep
-                 || edge->getEdgeKind() == ConstraintEdge::VariantGep)
+        else if (edge->getEdgeKind() == ConstraintEdge::NormalGep)
         {
             return "color=purple";
+        } else if (edge->getEdgeKind() == ConstraintEdge::VariantGep)
+        {
+            return "color=pink";
         }
         else if (edge->getEdgeKind() == ConstraintEdge::Store)
         {

@@ -62,7 +62,12 @@ void ObjTypeInfo::analyzeGlobalStackObjType(const Value* val)
         if(SVFUtil::isa<GlobalVariable>(val) && SVFUtil::cast<GlobalVariable>(val)->hasInitializer()
                 && SVFUtil::isa<ConstantArray>(SVFUtil::cast<GlobalVariable>(val)->getInitializer()))
         {
-            setFlag(CONST_ARRAY_OBJ);
+            //setFlag(CONST_ARRAY_OBJ);
+            if (SVFUtil::isa<StructType>(elemTy)) {
+                setFlag(CONST_STRUCT_ARRAY_OBJ);
+            } else {
+                setFlag(CONST_SIMPLE_ARRAY_OBJ);
+            }
         }
         else
             setFlag(VAR_ARRAY_OBJ);
@@ -103,9 +108,11 @@ void ObjTypeInfo::analyzeHeapStaticObjType(const Value* heapValue)
             if (heapCall->hasMetadata("annotation")) {
                 MDNode* mdNode = heapCall->getMetadata("annotation");
                 MDString* tyAnnotStr = (MDString*)mdNode->getOperand(0).get();
-                if (tyAnnotStr->getString() == "ArrayType") {
-                    setFlag(CONST_ARRAY_OBJ);
-                } else if (tyAnnotStr->getString() == "StructType") {
+                if (tyAnnotStr->getString() == SIMPLE_ARRAY_TYPE) {
+                    setFlag(CONST_SIMPLE_ARRAY_OBJ);
+                } else if (tyAnnotStr->getString() == STRUCT_ARRAY_TYPE) {
+                    setFlag(CONST_STRUCT_ARRAY_OBJ);
+                } else if (tyAnnotStr->getString() == STRUCT_TYPE) {
                     setFlag(CONST_STRUCT_OBJ);
                 }
             } else {

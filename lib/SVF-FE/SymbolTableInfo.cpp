@@ -272,15 +272,23 @@ bool SymbolTableInfo::computeGepOffset(const User *V, LocationSet& ls)
         if(SVFUtil::isa<ArrayType>(giType))
             continue;
 
-        // If the pointer type is known and it's a pointer to a struct then it's like an array
+        // <---If the pointer type is known and it's a pointer to a struct then it's like an array
         // Because if you're doing a gep on a struct-to-pointer type, then
-        // you can't access internal fields of the struct
+        // you can't access internal fields of the struct--->
+        // Even if it is a pointer to an array of struct, you can still access
+        // the different elements of that array using this pointer.
+        //
+        // If you treat this as a constant gep, then you'll only point to the
+        // first element and not be able to capture any of the other pointer
+        // relationships. 
+        /*
         PointerType* ptrGIType = SVFUtil::dyn_cast<PointerType>(giType);
         if (ptrGIType) {
             if (SVFUtil::isa<StructType>(ptrGIType->getPointerElementType())) {
                 continue;
             }
         }
+        */
 
         //The int-value object of the current index operand
         //  (may not be constant for arrays).

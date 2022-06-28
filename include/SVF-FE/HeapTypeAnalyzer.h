@@ -21,13 +21,18 @@ private:
     std::vector<std::string> memAllocFns;
 
     std::vector<std::string> L_A0_Fns;
+    /*
     enum HeapTy {
         StructTy,
-        ArrayTy,
+        SimpleArrayTy,
+        StructArrayTy,
         ScalarTy
     };
+    */
 public:
     static char ID;
+
+
     HeapTypeAnalyzer() : ModulePass(ID) {
         memAllocFns.push_back("ngx_alloc");
         memAllocFns.push_back("ngx_palloc");
@@ -69,12 +74,14 @@ public:
     CallInst* findCInstFA(llvm::Value*);
     void deriveHeapAllocationTypes(llvm::Module&);
 
+    /*
     void deriveHeapAllocationTypesWithCloning(llvm::Module&);
 
     bool deepClone(llvm::Function*, llvm::Function*&, std::vector<std::string>&, 
             llvm::Type*, llvm::Type*);
+            */
 
-    HeapTypeAnalyzer::HeapTy getSizeOfTy(llvm::Module&, llvm::LLVMContext&, llvm::MDNode*, llvm::MDNode*, llvm::MDNode*);
+    llvm::Type* getSizeOfTy(llvm::Module&, llvm::LLVMContext&, llvm::MDNode*, llvm::MDNode*, llvm::MDNode*, llvm::CallInst*);
     void removePoolAllocatorBody(llvm::Module&);
 
 };
