@@ -54,7 +54,7 @@
 
 #include "llvm/Transforms/Utils/FunctionComparator.h"
 
-
+#include <iostream>
 using namespace SVF;
 
 char WPAPass::ID = 0;
@@ -116,14 +116,17 @@ void WPAPass::collectCFI(Module& M, bool woInv) {
     std::map<llvm::CallInst*, std::set<Function*>>* indCallMap;
     std::set<llvm::CallInst*>* indCallProhibited;
 
+    std::map<int, int>* histogram;
+
     if (!woInv) {
         indCallMap = &wInvIndCallMap;
         indCallProhibited = &wInvIndCallProhibited;
+        histogram = &wInvHistogram;
     } else {
         indCallMap = &woInvIndCallMap;
         indCallProhibited = &woInvIndCallProhibited;
+        histogram = &woInvHistogram;
     }
-
 
     PAG* pag = _pta->getPAG();
     for (Module::iterator MIterator = M.begin(); MIterator != M.end(); MIterator++) {
@@ -153,20 +156,21 @@ void WPAPass::collectCFI(Module& M, bool woInv) {
         }
 
     }
-    std::map<int, int> histogram;
-    histogram[0] = indCallProhibited->size();
+
+    (*histogram)[0] = indCallProhibited->size();
     
     for (auto it: *indCallMap) {
         CallInst* cInst = it.first;
         int sz = it.second.size();
-        histogram[sz]++;
+        (*histogram)[sz]++;
     }
 
+  
     llvm::errs() << "EC Size:\t Ind. Call-sites\n";
     int totalTgts = 0;
     int totalIndCallSites = 0;
-    for (auto it: histogram) {
-        llvm::errs() << it.first << "\t" << it.second << "\n";
+    for (auto it: (*histogram)) {
+        llvm::errs() << it.first << " : " << it.second << "\n";
         totalIndCallSites += it.second;
         totalTgts += it.first*it.second;
     }
@@ -539,6 +543,81 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
         IHandler.handlePWCInvariants();
     }
 
+
+    // Print CDF / PDF
+    std::map<int, float> pdfWInv;
+    std::map<int, float> cdfWInv;
+    std::map<int, float> pdfWoInv;
+    std::map<int, float> cdfWoInv;
+
+    // Find the largest EC Size (this is going to be without Invariant
+    // Find the total number of callsites. This won't change depending on
+    // whether or not we're running w/ or wo/ invariants
+
+    int largestEC = 0;
+    int totalCS = 0;
+    for (auto it: woInvHistogram) {
+        if (it.first > largestEC) {
+            largestEC = it.first;
+        }
+        totalCS += it.second;
+    }
+
+    // Compute the PDF and CDF for wo/ invariant
+    for (auto it: woInvHistogram) {
+        int ecSize = it.first;
+        int csCount = it.second;
+        pdfWoInv[ecSize] = ((float) csCount) / ((float) totalCS) * 100;
+    }
+
+    for (int i = 0; i <= largestEC; i++) {
+        if (pdfWoInv.find(i) == pdfWoInv.end()) {
+            pdfWoInv[i] = 0.0;
+        }
+    }
+
+    cdfWoInv[0] = pdfWoInv[0];
+    for (int i = 1; i <= largestEC; i++) {
+        cdfWoInv[i] = cdfWoInv[i-1] + pdfWoInv[i];
+    }
+    cdfWoInv[0] = 0; // testing
+    
+
+    // Compute the PDF and CDF for w/ invariant
+    for (auto it: wInvHistogram) {
+        int ecSize = it.first;
+        int csCount = it.second;
+        pdfWInv[ecSize] = ((float) csCount) / ((float) totalCS) * 100;
+    }
+
+    for (int i = 0; i <= largestEC; i++) {
+        if (pdfWInv.find(i) == pdfWInv.end()) {
+            pdfWInv[i] = 0.0;
+        }
+    }
+
+    cdfWInv[0] = pdfWInv[0];
+    for (int i = 1; i <= largestEC; i++) {
+        cdfWInv[i] = cdfWInv[i-1] + pdfWInv[i];
+    }
+    cdfWInv[0] = 0; // testing
+
+
+    std::cerr << std::fixed;
+    std::cerr << "CDF:\n";
+    std::string appName = std::get<0>(module->getName().split(".")).str();
+    appName[0] = std::toupper(appName[0]);
+    for (auto it: cdfWoInv) {
+        std::cerr << appName << "," << "0, " << it.first << "," << it.second << "\n";
+    }
+ 
+    for (auto it: cdfWInv) {
+        std::cerr << appName << "," << "1, " << it.first << "," << it.second << "\n";
+        if (it.second >= 100.0) {
+            break;
+        }
+    }
+ 
     /*
     std::unique_ptr<llvm::InsertFunctionSwitchPass> p1 = std::make_unique<llvm::InsertFunctionSwitchPass>(memViewPairs);
     p1->runOnModule(*module);

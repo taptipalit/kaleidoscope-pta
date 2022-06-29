@@ -153,9 +153,11 @@ private:
 
     std::map<llvm::CallInst*, std::set<Function*>> wInvIndCallMap;
     std::set<llvm::CallInst*> wInvIndCallProhibited;
+    std::map<int, int> wInvHistogram;
 
     std::map<llvm::CallInst*, std::set<Function*>> woInvIndCallMap;
     std::set<llvm::CallInst*> woInvIndCallProhibited;
+    std::map<int, int> woInvHistogram;
 
 
     llvm::Function* checkCFI;
