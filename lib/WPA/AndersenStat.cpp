@@ -267,6 +267,16 @@ void AndersenStat::statNullPtr()
 
 }
 
+void AndersenStat::filter(std::set<NodeID>& fiPts, const PointsTo& pts) {
+    ConstraintGraph* consCG = pta->getConstraintGraph();
+
+    for (PointsTo::iterator piter = pts.begin(), epiter = pts.end(); 
+            piter != epiter; ++piter) {
+        NodeID ptd = *piter;
+        fiPts.insert(consCG->getBaseObjNode(ptd));
+    } 
+}
+
 /*!
  * Start here
  */
@@ -294,7 +304,11 @@ void AndersenStat::performStat()
     {
         NodeID node = iter->first;
         const PointsTo& pts = pta->getPts(node);
-        u32_t size = pts.count();
+        // Changing how we collect stats
+        std::set<NodeID> fiPts;
+        filter(fiPts, pts);
+        u32_t size = fiPts.size();
+        //u32_t size = pts.count();
         totalPointers++;
         totalPtsSize+=size;
 

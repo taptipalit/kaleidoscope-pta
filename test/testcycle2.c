@@ -21,7 +21,6 @@ int main(void) {
     sptr->qtr = &b;
 
         
-    /*
     p = q;
     r = &(((struct Student*)p)->ptr);
 
@@ -29,7 +28,6 @@ int main(void) {
     // Strong update
     r = &k;
     q = r;
-    */
 
     
     printf("%d\n", *(int*)r);

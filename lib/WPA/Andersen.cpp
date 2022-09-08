@@ -409,7 +409,7 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                     PAGNode* node = pag->getPAGNode(o);
                     if (node && node->hasValue()) {
                         const llvm::Value* val = node->getValue();
-                        llvm::errs() << "adding vgep invariant: " << *val << "\n";
+                        //llvm::errs() << "adding vgep invariant: " << *val << "\n";
                     }
                     continue;
                 } else if (consCG->isStructArrayTyForKali(o)) {
@@ -433,8 +433,8 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                 if (!isFieldInsensitive(o))
                 {
                     PAGNode* ptdNode = pag->getPAGNode(o);
-                    errs() << "Setting object " << o << " field-insensitive for vargep\n";
-                    errs() << *ptdNode << "\n";
+                    //errs() << "Setting object " << o << " field-insensitive for vargep\n";
+                    //errs() << *ptdNode << "\n";
                     setObjFieldInsensitive(o);
                     consCG->addNodeToBeCollapsed(consCG->getBaseObjNode(o));
                 }
@@ -596,19 +596,25 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
     if (Options::InvariantPWC) {
         // Get the edges in this SCC
         EdgeList& edges = getSCCDetector()->getSCCEdgeList(repNodeId);
-        //llvm::errs() << "Edge set size: " << edges.size() << "\n";
 
+        bool isPWC = false;
         if (getSCCDetector()->isRepPWC(repNodeId)) {
+            isPWC = true;
 
+
+            llvm::errs() << "Edge set size: " << edges.size() << "\n";
+            Value* instVal = nullptr;
             for (const EdgePair& ep: edges) {
                 ConstraintNode* src = consCG->getConstraintNode(ep.first);
                 ConstraintNode* dst = consCG->getConstraintNode(ep.second);
                 // Find the instruction that should be trapped 
                 // that caused this edge
 
-                Value* instVal = nullptr;
                 if (consCG->hasEdge(src, dst, ConstraintEdge::Copy)) {
                     ConstraintEdge* edge = consCG->getEdge(src, dst, ConstraintEdge::Copy);
+                    
+                    llvm::errs() << "here\n";
+                    instVal = edge->getLLVMValue();
                     if (edge->getDerivedWeight() > 0) {
                         ConstraintEdge* origEdge = edge->getSourceEdge();
                         edgesInPWC.push_back(origEdge);
@@ -646,16 +652,27 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                     }
                     */ // Can't have variant gep in PWC
                 if (instVal) {
+
                     sccNodeIDs->insert(instVal);
                 }
             }
             edges.clear(); // We have processed them
+
             isHandled = true;
+
         }
-        if (consCG->isPWCNode(repNodeId) && subNodes.count() > 1) {
+        if (isPWC && subNodes.count() > 1) {
             pwcCycleId++;
+
+            for (const llvm::Value* val: *sccNodeIDs) {
+                llvm::errs() << "value = " << *val << "\n";
+                if (const llvm::Instruction* inst = SVFUtil::dyn_cast<llvm::Instruction>(val)) {
+                    llvm::errs() << inst->getParent()->getParent()->getName() << "\n";
+                }
+            }
             addCycleInvariants(pwcCycleId, sccNodeIDs);
             consCG->resetPWCNode(repNodeId);
+
         }
     } 
     if (!isHandled) {

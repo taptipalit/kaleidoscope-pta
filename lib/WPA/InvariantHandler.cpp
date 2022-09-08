@@ -126,6 +126,7 @@ void InvariantHandler::handlePWCInvariants() {
     Type* intType = IntegerType::get(mod->getContext(), 32);
 
     int ptrID = 0;
+    std::set<Value*> instrumented; // TODO: make this handle different PWCs
     for (it = beg; it != end; it++) {
         CycleID pwcID = it->first;
         // Not all pointer nodes have backing values
@@ -135,10 +136,14 @@ void InvariantHandler::handlePWCInvariants() {
             Value* valPtr = const_cast<Value*>(vPtr);
             // Insert a call to record this
             if (Instruction* inst = SVFUtil::dyn_cast<Instruction>(valPtr)) {
+                if (std::find(instrumented.begin(), instrumented.end(), inst) != instrumented.end()) {
+                    continue;
+                }
+                instrumented.insert(inst);
                 // If this is a callInst that doesn't return anything, just
                 // ignore it
                 if (CallInst* callInst = SVFUtil::dyn_cast<CallInst>(inst)) {
-                    if (callInst->getType()->isVoidTy()) {
+                    if (callInst->getType()->isVoidTy() || !callInst->getType()->isPointerTy()) {
                         continue;
                     }
                 }

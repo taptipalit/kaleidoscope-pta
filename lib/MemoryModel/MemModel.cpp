@@ -101,7 +101,7 @@ void ObjTypeInfo::analyzeGlobalStackObjType(const Value* val)
  */
 void ObjTypeInfo::analyzeHeapStaticObjType(const Value* heapValue)
 {
-    if (Options::InvariantVGEP) {
+    //if (Options::InvariantVGEP) {
         // TODO: Heap and static objects are considered as pointers right now.
         //       Refine this function to get more details about heap and static objects.
         if (const CallInst* heapCall = SVFUtil::dyn_cast<CallInst>(heapValue)) {
@@ -121,9 +121,11 @@ void ObjTypeInfo::analyzeHeapStaticObjType(const Value* heapValue)
         } else {
             setFlag(HASPTR_OBJ);
         }
+        /*
     } else {
         setFlag(HASPTR_OBJ);
     }
+    */
 }
 
 /*!

@@ -34,6 +34,7 @@
 #include "MemoryModel/PTAStat.h"
 #include "WPA/FlowSensitive.h"
 #include "WPA/VersionedFlowSensitive.h"
+#include <set>
 
 namespace SVF
 {
@@ -71,6 +72,7 @@ public:
 
     }
 
+    virtual void filter(std::set<NodeID>&, const PointsTo&);
     virtual void performStat();
 
     void collectCycleInfo(ConstraintGraph* consCG);

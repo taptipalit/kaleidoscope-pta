@@ -90,6 +90,12 @@ public:
         return this;
     }
 
+    /*
+    virtual void oneRun(SVFModule*, bool, bool, bool);
+    virtual void resetState();
+    virtual void printCDF(llvm::Module*);
+    */
+
     /// Interface expose to users of our pointer analysis, given Location infos
     virtual inline AliasResult alias(const MemoryLocation  &LocA, const MemoryLocation  &LocB)
     {
