@@ -230,11 +230,6 @@ typedef llvm::DINodeArray DINodeArray;
 typedef llvm::DITypeRefArray DITypeRefArray;
 namespace dwarf = llvm::dwarf;
 
-const std::string SCALAR_TYPE = "ScalarType";
-const std::string STRUCT_TYPE = "StructType";
-const std::string SIMPLE_ARRAY_TYPE = "SimpleArrayType";
-const std::string STRUCT_ARRAY_TYPE = "StructArrayType";
-
 class SVFFunction : public SVFValue
 {
 private:

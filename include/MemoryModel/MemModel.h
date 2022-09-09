@@ -142,10 +142,8 @@ public:
         VAR_ARRAY_OBJ = 0x40,  // object contains array
         CONST_STRUCT_OBJ = 0x80,  // constant struct
         CONST_ARRAY_OBJ = 0x100,  // constant array
-        CONST_STRUCT_ARRAY_OBJ = 0x200, // const array of struct 
-        CONST_SIMPLE_ARRAY_OBJ = 0x400,
-        CONST_OBJ = 0x800,  // constant object str e.g.
-        HASPTR_OBJ = 0x1000		// non pointer object including compound type have field that is a pointer type
+        CONST_OBJ = 0x200,  // constant object str e.g.
+        HASPTR_OBJ = 0x400		// non pointer object including compound type have field that is a pointer type
     } MEMTYPE;
 
 private:
@@ -262,23 +260,12 @@ public:
     }
     inline bool isConstArray()
     {
-        return  hasFlag(CONST_ARRAY_OBJ) || hasFlag(CONST_STRUCT_ARRAY_OBJ) || hasFlag(CONST_SIMPLE_ARRAY_OBJ);
+        return  hasFlag(CONST_ARRAY_OBJ);
     }
     inline bool isArray()
     {
-        return hasFlag(VAR_ARRAY_OBJ) || hasFlag(CONST_ARRAY_OBJ) || hasFlag(CONST_STRUCT_ARRAY_OBJ) || hasFlag(CONST_SIMPLE_ARRAY_OBJ);
+        return hasFlag(VAR_ARRAY_OBJ) || hasFlag(CONST_ARRAY_OBJ);
     }
-
-    inline bool isSimpleArray() 
-    {
-        return hasFlag(CONST_SIMPLE_ARRAY_OBJ);
-    }
-
-    inline bool isStructArray() 
-    {
-        return hasFlag(CONST_STRUCT_ARRAY_OBJ);
-    }
-
     inline bool isConstant()
     {
         return hasFlag(CONST_OBJ);
@@ -391,17 +378,6 @@ public:
     {
         return typeInfo->isStruct();
     }
-
-    inline bool isSimpleArray() const 
-    {
-        return typeInfo->isSimpleArray();
-    }
-
-    inline bool isStructArray() const 
-    {
-        return typeInfo->isStructArray();
-    }
-
     inline bool isArray() const
     {
         return typeInfo->isArray();

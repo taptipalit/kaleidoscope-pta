@@ -402,32 +402,24 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                 // GetElementPtrInst* vgep = vgepCGEdge->getLLVMValue();
 
                 // For the rest, we add the invariant
-                if (consCG->isStructTyForKali(o)) {
+                if (consCG->isStructTy(o)) {
                     // We assume these don't happen
                     // We will add the invariant later
                     pag->addPtdForVarGep(vgepCGEdge->getLLVMValue(), o);
                     PAGNode* node = pag->getPAGNode(o);
+                    /*
                     if (node && node->hasValue()) {
                         const llvm::Value* val = node->getValue();
-                        //llvm::errs() << "adding vgep invariant: " << *val << "\n";
+                        llvm::errs() << "adding vgep invariant: " << *val << "\n";
                     }
+                    */
                     continue;
-                } else if (consCG->isStructArrayTyForKali(o)) {
-                    int n = consCG->getNumElementsForArrObj(o);
-                    // Add direct gep edges
-                    for (int i = 0; i < n; i++) {
-                        LocationSet ls(i);
-                        consCG->addNormalGepCGEdge(edge->getSrcID(), edge->getDstID(), ls);
-                    }
-                    
-                } else /*if (consCG->isSimpleArrayTyForKali(o))*/ { // TODO: in some cases none of these are true. why?
+                } else {
                     LocationSet ls(0);
                     NodeID fieldSrcPtdNode = consCG->getGepObjNode(o, ls);
                     tmpDstPts.set(fieldSrcPtdNode);
                     continue;
-                } /*else {
-                    assert(false && "unreachable");
-                }*/
+                }
             } else {
 
                 if (!isFieldInsensitive(o))
@@ -613,7 +605,6 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                 if (consCG->hasEdge(src, dst, ConstraintEdge::Copy)) {
                     ConstraintEdge* edge = consCG->getEdge(src, dst, ConstraintEdge::Copy);
                     
-                    llvm::errs() << "here\n";
                     instVal = edge->getLLVMValue();
                     if (edge->getDerivedWeight() > 0) {
                         ConstraintEdge* origEdge = edge->getSourceEdge();
@@ -665,7 +656,6 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
             pwcCycleId++;
 
             for (const llvm::Value* val: *sccNodeIDs) {
-                llvm::errs() << "value = " << *val << "\n";
                 if (const llvm::Instruction* inst = SVFUtil::dyn_cast<llvm::Instruction>(val)) {
                     llvm::errs() << inst->getParent()->getParent()->getName() << "\n";
                 }

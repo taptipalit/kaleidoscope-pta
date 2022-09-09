@@ -247,58 +247,23 @@ bool HeapTypeAnalyzer::deepClone(llvm::Function* func, llvm::Function*& topClone
 }
 */
 
-llvm::Type* HeapTypeAnalyzer::getSizeOfTy(Module& module, LLVMContext& Ctx, MDNode* sizeOfTyName, MDNode* sizeOfTyArgNum, MDNode* mulFactor, CallInst* heapCall) {
+HeapTypeAnalyzer::HeapTy HeapTypeAnalyzer::getSizeOfTy(Module& module, LLVMContext& Ctx, MDNode* sizeOfTyName, MDNode* sizeOfTyArgNum, MDNode* mulFactor) {
     // Get the type
     MDString* typeNameStr = (MDString*)sizeOfTyName->getOperand(0).get();
     Type* sizeOfTy = nullptr;
     if (typeNameStr->getString() == "scalar_type") {
-        sizeOfTy = IntegerType::get(Ctx, 8);
+        return HeapTy::ScalarTy;
     } else {
-        sizeOfTy = StructType::getTypeByName(Ctx, "struct."+(typeNameStr->getString().str()));
-        if (!sizeOfTy) {
-            // We have a problem, then track the bitcast operator for now
-            for (User* u: heapCall->users()) {
-                if (StoreInst* storeInst = SVFUtil::dyn_cast<StoreInst>(u)) {
-                    Type* targetType = storeInst->getPointerOperand()->getType();
-                    PointerType* targetPtTy = SVFUtil::dyn_cast<PointerType>(targetType);
-                    assert(targetPtTy && "heap allocation should be stored in a pointer ty");
-                    while (targetPtTy) {
-                        targetType = targetPtTy->getPointerElementType();
-                        targetPtTy = SVFUtil::dyn_cast<PointerType>(targetType);
-                    }
-                    sizeOfTy = SVFUtil::dyn_cast<StructType>(targetType);
-                    if (!sizeOfTy) {
-                        sizeOfTy = IntegerType::get(Ctx, 8);
-                    }
-                    break;
+        MDString* mulFactorStr = (MDString*)mulFactor->getOperand(0).get();
+        int mulFactorInt = std::stoi(mulFactorStr->getString().str());
+        assert(mulFactorInt > 0 && "The multiplicator must be greater than 1");
 
-                } else if (BitCastInst* bcInst = SVFUtil::dyn_cast<BitCastInst>(u)) {
-                    // Get the target type
-                    Type* targetType = bcInst->getDestTy();
-                    PointerType* targetPtTy = SVFUtil::dyn_cast<PointerType>(targetType);
-                    assert(targetPtTy && "heap allocation should be stored in a pointer ty");
-                    while (targetPtTy) {
-                        targetType = targetPtTy->getPointerElementType();
-                        targetPtTy = SVFUtil::dyn_cast<PointerType>(targetType);
-                    }
-                    sizeOfTy = SVFUtil::dyn_cast<StructType>(targetType);
-                    break;
-                }
-            }
+        if (mulFactorInt == 1) {
+            return HeapTy::StructTy;
+        } else {
+            return HeapTy::ArrayTy;
         }
     }
-
-    assert(sizeOfTy && "can't find type");
-    MDString* mulFactorStr = (MDString*)mulFactor->getOperand(0).get();
-    int mulFactorInt = std::stoi(mulFactorStr->getString().str());
-    assert(mulFactorInt > 0 && "The multiplicator must be greater than 1");
-
-    if (mulFactorInt == 1) {
-        return sizeOfTy;
-    } else {
-        return ArrayType::get(sizeOfTy, mulFactorInt);            
-    }
-
     assert(false && "Shouldn't reach here");
     
 }
@@ -325,44 +290,28 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypes(llvm::Module& module) {
                         if (std::find(memAllocFns.begin(), memAllocFns.end(), calledFunc->getName()) != memAllocFns.end()) {
                             if (!sizeOfTyName) {
                                 llvm::errs() << "No type annotation for heap call: " << *callInst << " in function : " << callInst->getFunction()->getName() << " treating as scalar\n";
-                                callInst->addAnnotationMetadata(SCALAR_TYPE);
+                                callInst->addAnnotationMetadata("IntegerType");
                                 handled = true;
                                 continue;
                             }
 
-                            llvm::Type* heapTy = getSizeOfTy(module, Ctx, sizeOfTyName, sizeOfTyArgNum, mulFactor, callInst);
-                            if (SVFUtil::isa<IntegerType>(heapTy)) {
-                                callInst->addAnnotationMetadata(SCALAR_TYPE);
-                            } else if (SVFUtil::isa<StructType>(heapTy)) {
-                                callInst->addAnnotationMetadata(STRUCT_TYPE);
-                            } else if (SVFUtil::isa<ArrayType>(heapTy)) {
-                                ArrayType* arrTy = SVFUtil::dyn_cast<ArrayType>(heapTy);
-                                Type* elemTy = arrTy->getElementType();
-                                if (SVFUtil::isa<IntegerType>(elemTy)) {
-                                    callInst->addAnnotationMetadata(SIMPLE_ARRAY_TYPE); 
-                                } else {
-                                    callInst->addAnnotationMetadata(STRUCT_ARRAY_TYPE);
-                                    MDNode* N = MDNode::get(Ctx, MDString::get(Ctx, std::to_string(arrTy->getNumElements())));
-                                    callInst->setMetadata("arr_size", N);
-                                }
-                            } 
-                            /*
+                            HeapTy ty = getSizeOfTy(module, Ctx, sizeOfTyName, sizeOfTyArgNum, mulFactor);
                             switch(ty) {
                                 case ScalarTy:
+                                    callInst->addAnnotationMetadata("IntegerType");
                                     break;
                                 case StructTy:
-                                    callInst->addAnnotationMetadata(STRUCT_TYPE);
+                                    callInst->addAnnotationMetadata("StructType");
                                     break;
-                                case SimpleArrayTy:
-                                    callInst->addAnnotationMetadata(SIMPLE_ARRAY_TYPE); 
+                                case ArrayTy:
+                                    callInst->addAnnotationMetadata("ArrayType"); 
                                     break;
-                                case StructArrayTy:
-                                    callInst->addAnnotationMetadata(STRUCT_ARRAY_TYPE);
                                 default:
                                     assert(false && "Shouldn't reach here");
                             }
-                            */
                             handled = true;
+                            //}
+
                         }
                     }
                 }

@@ -62,12 +62,7 @@ void ObjTypeInfo::analyzeGlobalStackObjType(const Value* val)
         if(SVFUtil::isa<GlobalVariable>(val) && SVFUtil::cast<GlobalVariable>(val)->hasInitializer()
                 && SVFUtil::isa<ConstantArray>(SVFUtil::cast<GlobalVariable>(val)->getInitializer()))
         {
-            //setFlag(CONST_ARRAY_OBJ);
-            if (SVFUtil::isa<StructType>(elemTy)) {
-                setFlag(CONST_STRUCT_ARRAY_OBJ);
-            } else {
-                setFlag(CONST_SIMPLE_ARRAY_OBJ);
-            }
+            setFlag(CONST_ARRAY_OBJ);
         }
         else
             setFlag(VAR_ARRAY_OBJ);
@@ -101,18 +96,16 @@ void ObjTypeInfo::analyzeGlobalStackObjType(const Value* val)
  */
 void ObjTypeInfo::analyzeHeapStaticObjType(const Value* heapValue)
 {
-    //if (Options::InvariantVGEP) {
+    if (Options::InvariantVGEP) {
         // TODO: Heap and static objects are considered as pointers right now.
         //       Refine this function to get more details about heap and static objects.
         if (const CallInst* heapCall = SVFUtil::dyn_cast<CallInst>(heapValue)) {
             if (heapCall->hasMetadata("annotation")) {
                 MDNode* mdNode = heapCall->getMetadata("annotation");
                 MDString* tyAnnotStr = (MDString*)mdNode->getOperand(0).get();
-                if (tyAnnotStr->getString() == SIMPLE_ARRAY_TYPE) {
-                    setFlag(CONST_SIMPLE_ARRAY_OBJ);
-                } else if (tyAnnotStr->getString() == STRUCT_ARRAY_TYPE) {
-                    setFlag(CONST_STRUCT_ARRAY_OBJ);
-                } else if (tyAnnotStr->getString() == STRUCT_TYPE) {
+                if (tyAnnotStr->getString() == "ArrayType") {
+                    setFlag(CONST_ARRAY_OBJ);
+                } else if (tyAnnotStr->getString() == "StructType") {
                     setFlag(CONST_STRUCT_OBJ);
                 }
             } else {
@@ -121,11 +114,9 @@ void ObjTypeInfo::analyzeHeapStaticObjType(const Value* heapValue)
         } else {
             setFlag(HASPTR_OBJ);
         }
-        /*
     } else {
         setFlag(HASPTR_OBJ);
     }
-    */
 }
 
 /*!
