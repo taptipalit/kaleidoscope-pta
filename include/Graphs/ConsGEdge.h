@@ -353,6 +353,7 @@ private:
     VariantGepCGEdge(const VariantGepCGEdge &);  ///< place holder
     void operator=(const VariantGepCGEdge &); ///< place holder
 
+    bool isStructTyFlag;
 public:
     /// Methods for support type inquiry through isa, cast, and dyn_cast:
     //@{
@@ -375,9 +376,12 @@ public:
     //@}
 
     /// Constructor
-    VariantGepCGEdge(ConstraintNode* s, ConstraintNode* d, EdgeID id)
-        : GepCGEdge(s,d,VariantGep,id)
+    VariantGepCGEdge(ConstraintNode* s, ConstraintNode* d, EdgeID id, bool flag)
+        : GepCGEdge(s,d,VariantGep,id), isStructTyFlag(flag)
     {}
+
+
+    bool isStructTy() const { return isStructTyFlag; }
 };
 
 } // End namespace SVF

@@ -38,7 +38,7 @@ cp instrumented-module.bc $file_inst
 llvm-dis $file_inst -o $file_inst_ll
 opt -verify $file_inst -o $file_discard
 
-
+clang++ -c -ggdb -emit-llvm $SVF_HOME/test/view-switcher/view_switch.cpp -o $SVF_HOME/test/view-switcher/view_switch.bc
 llvm-link $file_inst $SVF_HOME/test/view-switcher/docfi.bc $SVF_HOME/test/view-switcher/view_switch.bc -o $file_linked
 
 if [ $? -ne 0 ]; then

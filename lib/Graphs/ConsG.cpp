@@ -129,7 +129,7 @@ void ConstraintGraph::buildCG()
                 vgeps.end(); iter != eiter; ++iter)
     {
         VariantGepPE* edge = SVFUtil::cast<VariantGepPE>(*iter);
-        ConstraintEdge* consEdge = addVariantGepCGEdge(edge->getSrcID(),edge->getDstID());
+        ConstraintEdge* consEdge = addVariantGepCGEdge(edge->getSrcID(),edge->getDstID(), edge->isStructTy());
         if (consEdge) {
             consEdge->setLLVMValue(edge->getValue());
         }
@@ -245,14 +245,14 @@ NormalGepCGEdge*  ConstraintGraph::addNormalGepCGEdge(NodeID src, NodeID dst, co
 /*!
  * Add variant gep edge
  */
-VariantGepCGEdge* ConstraintGraph::addVariantGepCGEdge(NodeID src, NodeID dst)
+VariantGepCGEdge* ConstraintGraph::addVariantGepCGEdge(NodeID src, NodeID dst, bool flag)
 {
     ConstraintNode* srcNode = getConstraintNode(src);
     ConstraintNode* dstNode = getConstraintNode(dst);
     if(hasEdge(srcNode,dstNode,ConstraintEdge::VariantGep))
         return nullptr;
 
-    VariantGepCGEdge* edge = new VariantGepCGEdge(srcNode, dstNode, edgeIndex++);
+    VariantGepCGEdge* edge = new VariantGepCGEdge(srcNode, dstNode, edgeIndex++, flag);
     bool added = directEdgeSet.insert(edge).second;
     assert(added && "not added??");
     srcNode->addOutgoingGepEdge(edge);
@@ -350,7 +350,7 @@ void ConstraintGraph::reTargetDstOfEdge(ConstraintEdge* edge, ConstraintNode* ne
     {
 
         removeDirectEdge(gep);
-        ConstraintEdge* newEdge = addVariantGepCGEdge(srcId,newDstNodeID);
+        ConstraintEdge* newEdge = addVariantGepCGEdge(srcId,newDstNodeID, gep->isStructTy());
         if (newEdge) {
             newEdge->setLLVMValue(oldValue);
         }
@@ -411,7 +411,7 @@ void ConstraintGraph::reTargetSrcOfEdge(ConstraintEdge* edge, ConstraintNode* ne
     else if(VariantGepCGEdge* gep = SVFUtil::dyn_cast<VariantGepCGEdge>(edge))
     {
         removeDirectEdge(gep);
-        ConstraintEdge* newEdge = addVariantGepCGEdge(newSrcNodeID,dstId);
+        ConstraintEdge* newEdge = addVariantGepCGEdge(newSrcNodeID,dstId, gep->isStructTy());
         if (newEdge) {
             newEdge->setLLVMValue(oldValue);
         }

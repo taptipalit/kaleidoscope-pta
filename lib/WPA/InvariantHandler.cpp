@@ -132,7 +132,9 @@ void InvariantHandler::handlePWCInvariants() {
         // Not all pointer nodes have backing values
         // Let's get the count of the ones that do
         int ptrValCount = it->second.size();
+        llvm::errs() << "PWC ID: " << pwcID << "\n";
         for (const Value* vPtr: it->second) {
+            llvm::errs() << *vPtr << "\n";
             Value* valPtr = const_cast<Value*>(vPtr);
             // Insert a call to record this
             if (Instruction* inst = SVFUtil::dyn_cast<Instruction>(valPtr)) {

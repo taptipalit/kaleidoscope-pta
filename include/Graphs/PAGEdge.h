@@ -525,6 +525,7 @@ private:
     VariantGepPE(); ///< place holder
     VariantGepPE(const VariantGepPE&); ///< place holder
     void operator=(const VariantGepPE&); ///< place holder
+    bool isStructTyFlag;
 
 public:
     /// Methods for support type inquiry through isa, cast, and dyn_cast:
@@ -545,6 +546,7 @@ public:
     {
         return edge->getEdgeKind() == PAGEdge::VariantGep;
     }
+    
     //@}
 
     /// constructor
@@ -552,6 +554,13 @@ public:
 
     virtual const std::string toString() const;
 
+    virtual inline void setStructType(bool flag) {
+        this->isStructTyFlag = flag;
+    }
+
+    inline bool isStructTy() {
+        return isStructTyFlag;
+    }
 };
 
 

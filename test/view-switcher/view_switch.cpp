@@ -9,6 +9,8 @@ typedef uint32_t CycleID;
 typedef uint32_t InvariantID;
 typedef uint64_t InvariantVal;
 
+//#define INLINE __attribute__((always_inline))
+#define INLINE
 // For PWC
 std::map<CycleID, std::map<InvariantID, InvariantVal>> pwcInvariants;
 std::map<CycleID, std::map<InvariantID, InvariantVal>> gepPWCInvariants;
@@ -18,7 +20,7 @@ std::map<CycleID, uint64_t> vgepMap;
 
 extern bool invFlipped;
 
-__attribute__((always_inline))
+INLINE
 extern "C" void vgepRecordTarget(InvariantID id, InvariantVal val) {
     vgepMap[id] = val;
 }
@@ -32,13 +34,13 @@ extern "C" void vgepRecordTarget(InvariantID id, InvariantVal val) {
  * changing the view
  *
  */
-__attribute__((always_inline))
+INLINE
 extern "C" uint32_t ptdTargetCheck(uint64_t* tgt, uint64_t len, uint64_t* tgts) {
     for (int i = 0; i < len; i++) {
         uint64_t id = tgts[i];
         uint64_t ptrVal = vgepMap[id];
         if (tgt == (uint64_t*)ptrVal) {
-            //cout << "VGEP invariant failed\n";
+            cout << "VGEP invariant failed\n";
             invFlipped = true;
             return 1;
         }
@@ -51,7 +53,7 @@ extern "C" uint32_t ptdTargetCheck(uint64_t* tgt, uint64_t len, uint64_t* tgts) 
  * Return 1 if the view needs to be changed
  * Return 0 if the view does not need to be changed
  */
-__attribute__((always_inline))
+INLINE
 extern "C" uint32_t updateAndCheckPWC(uint32_t pwcId, uint32_t invLen, uint32_t invId, uint64_t val, int isGep) {
     int cycleHappened = 1;
     // Check if the cycle happened
@@ -66,7 +68,7 @@ extern "C" uint32_t updateAndCheckPWC(uint32_t pwcId, uint32_t invLen, uint32_t 
 
 
     // dump out what we've seen so far
-    /*
+    cout << "\nPWC ID: " << pwcId << " invLen = " << invLen << endl;
     cout << "InvID: " << invId << " Value: " << hex << val << endl;
     cout << "invariant values: \n";
     for (auto invIdValPair: pwcInvariants[pwcId]) {
@@ -78,8 +80,7 @@ extern "C" uint32_t updateAndCheckPWC(uint32_t pwcId, uint32_t invLen, uint32_t 
         InvariantVal val = gepInvIdValPair.second;
         cout << hex << val << " ";
     }
-    cout << endl;
-    */
+    cout << dec << endl;
 
     if (sz1 + sz2 == (invLen - 1)) { // We've seen all other invariant values
         for (auto invIdValPair: pwcInvariants[pwcId]) {
@@ -119,12 +120,12 @@ extern "C" uint32_t updateAndCheckPWC(uint32_t pwcId, uint32_t invLen, uint32_t 
     }
     if (cycleHappened) {
         invFlipped = true;
-        cout << "Invariant flipped\n";
+        cout << dec << "PWC Invariant " << pwcId << " for invariant-id " << invId << " flipped\n";
     }
     return cycleHappened;
 }
 
-__attribute__((always_inline))
+INLINE
 void switch_view(void) {
     cerr << "Invariant violated\n";
 }

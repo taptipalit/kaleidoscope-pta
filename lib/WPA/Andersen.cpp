@@ -395,7 +395,7 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                 continue;
             } 
             
-            if (Options::InvariantVGEP) {
+            if (Options::InvariantVGEP && !vgepCGEdge->isStructTy()) {
                 // First of all, we believe that variable indices
                 // when the type is a complex type, are most definitely accessing 
                 // an element in the array.

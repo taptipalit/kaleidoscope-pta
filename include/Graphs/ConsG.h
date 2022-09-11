@@ -191,7 +191,7 @@ public:
     CopyCGEdge* addCopyCGEdge(NodeID src, NodeID dst);
     /// Add Gep edge
     NormalGepCGEdge*  addNormalGepCGEdge(NodeID src, NodeID dst, const LocationSet& ls);
-    VariantGepCGEdge* addVariantGepCGEdge(NodeID src, NodeID dst);
+    VariantGepCGEdge* addVariantGepCGEdge(NodeID src, NodeID dst, bool flag);
     /// Add Load edge
     LoadCGEdge* addLoadCGEdge(NodeID src, NodeID dst);
     /// Add Store edge

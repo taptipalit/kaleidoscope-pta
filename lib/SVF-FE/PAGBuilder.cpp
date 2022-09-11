@@ -605,13 +605,29 @@ void PAGBuilder::visitGetElementPtrInst(GetElementPtrInst &inst)
     LocationSet ls;
     bool constGep = computeGepOffset(&inst, ls);
     GepPE* gepEdge = addGepEdge(src, dst, ls, constGep);
-    if (SVFUtil::isa<VariantGepPE>(gepEdge)) {
-        const Value* edgeValue = gepEdge->getValue();
+    if (VariantGepPE* vgepEdge = SVFUtil::dyn_cast<VariantGepPE>(gepEdge)) {
+        const Value* edgeValue = vgepEdge->getValue();
         const GetElementPtrInst* gepInst = SVFUtil::dyn_cast<GetElementPtrInst>(edgeValue);
         assert(gepInst && "Not gep inst and is variantGep edge?");
         pag->getVarGeps().push_back(gepInst);
-    }
-}
+        // Check the type of the pointer. If it is a pointer to a struct type
+        // then it's probably iterating over an array of that type. We need to
+        // record this here, so that we can skip VGEP invariants later on
+        Type* gepTy = gepInst->getPointerOperand()->getType();
+        
+        // See if it's a pointer to array-of-struct, or
+        // arrays-of-pointers-of-structs
+        while (PointerType* ptrTy = SVFUtil::dyn_cast<PointerType>(gepTy)) {
+            gepTy = gepTy->getPointerElementType();
+        }
+
+        if (SVFUtil::isa<StructType>(gepTy)) {
+            vgepEdge->setStructType(true);
+        } else {
+            vgepEdge->setStructType(false);
+        }
+
+    }}
 
 /*
  * Visit cast instructions
