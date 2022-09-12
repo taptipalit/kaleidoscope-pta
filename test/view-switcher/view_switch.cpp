@@ -12,8 +12,7 @@ typedef uint64_t InvariantVal;
 //#define INLINE __attribute__((always_inline))
 #define INLINE
 // For PWC
-std::map<CycleID, std::map<InvariantID, InvariantVal>> pwcInvariants;
-std::map<CycleID, std::map<InvariantID, InvariantVal>> gepPWCInvariants;
+std::map<InvariantID, InvariantVal> pwcInvariants;
 
 // For VGEP
 std::map<CycleID, uint64_t> vgepMap;
@@ -49,6 +48,21 @@ extern "C" uint32_t ptdTargetCheck(uint64_t* tgt, uint64_t len, uint64_t* tgts) 
     return 0;
 }
 
+INLINE 
+extern "C" void updatePWC(uint32_t pwcId, uint32_t invVal) {
+   pwcInvariants[pwcId] = invVal;  
+}
+
+INLINE 
+extern "C" uin32_t checkPWC(uint32_t pwcId, uint64_t newVal, uint64_t offset) {
+    if (newVal == pwcInvariants[pwcId] + offset) {
+        invFlipped = true;
+        return 1;
+    } else {
+        return 0;
+    } 
+}
+ 
 /**
  * Return 1 if the view needs to be changed
  * Return 0 if the view does not need to be changed

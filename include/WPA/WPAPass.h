@@ -38,6 +38,7 @@
 #define WPA_H_
 
 #include "MemoryModel/PointerAnalysisImpl.h"
+#include "llvm/Analysis/LoopInfo.h"
 
 namespace SVF
 {
@@ -174,6 +175,7 @@ private:
     std::map<CallInst*, NodeID> indCSToIDMap;
 
     int indCSId;
+    LoopInfo* loopInfo;
 };
 
 } // End namespace SVF

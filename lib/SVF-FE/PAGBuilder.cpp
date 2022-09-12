@@ -36,7 +36,7 @@
 #include "Util/BasicTypes.h"
 #include "MemoryModel/PAGBuilderFromFile.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
-
+#include "llvm/Analysis/LoopInfo.h"
 
 using namespace std;
 using namespace SVF;

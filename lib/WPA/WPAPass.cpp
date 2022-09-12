@@ -53,6 +53,9 @@
 #include "llvm/Transforms/Utils/Cloning.h"
 
 #include "llvm/Transforms/Utils/FunctionComparator.h"
+#include "llvm/Analysis/LoopInfo.h"
+#include "llvm/IR/LegacyPassManager.h"
+
 
 #include <iostream>
 using namespace SVF;
@@ -292,6 +295,15 @@ void WPAPass::deriveHeapAllocationTypes(llvm::Module& module) {
 void WPAPass::runOnModule(SVFModule* svfModule)
 {
     llvm::Module *module = SVF::LLVMModuleSet::getLLVMModuleSet()->getMainLLVMModule(); 
+    llvm::legacy::PassManager PM;
+    llvm::DominatorTreeWrapperPass* domPass = new llvm::DominatorTreeWrapperPass();
+    llvm::LoopInfoWrapperPass* loopPass = new llvm::LoopInfoWrapperPass();
+    PM.add(domPass);
+    PM.add(loopPass);
+    PM.run(*module);
+
+    loopInfo = &(loopPass->getLoopInfo());
+
     //deriveHeapAllocationTypesWithCloning(*module);
 
     /*
@@ -538,7 +550,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 
     // Handle the invariants
     if (!Options::NoInvariants) {
-        InvariantHandler IHandler(svfModule, module, pag); // this one should be the original PAG
+        InvariantHandler IHandler(svfModule, module, pag, loopInfo); // this one should be the original PAG
         IHandler.handleVGEPInvariants();
         IHandler.handlePWCInvariants();
     }

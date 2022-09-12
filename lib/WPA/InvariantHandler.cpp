@@ -133,7 +133,20 @@ void InvariantHandler::handlePWCInvariants() {
         // Let's get the count of the ones that do
         int ptrValCount = it->second.size();
         llvm::errs() << "PWC ID: " << pwcID << "\n";
+        GetElementPtrInst* bestGep = nullptr;
         for (const Value* vPtr: it->second) {
+            if (const GetElementPtrInst* gep = SVFUtil::dyn_cast<GetElementPtrInst>(vPtr)) {
+                BasicBlock* bb = gep->getParent();
+                if (!loopInfo->getLoopFor(bb)) {
+                    bestGep = gep;
+                    break;
+                }
+            }
+        }
+
+        // TODO: Try to find one that isn't in a loop
+        
+            /*
             llvm::errs() << *vPtr << "\n";
             Value* valPtr = const_cast<Value*>(vPtr);
             // Insert a call to record this
@@ -178,7 +191,7 @@ void InvariantHandler::handlePWCInvariants() {
                 FunctionType* fTy = updateCheckPWCFn->getFunctionType();
                 builder.CreateCall(fTy, updateCheckPWCFn, argsList);
             }
-        }
+            */
     }
 }
 
@@ -232,26 +245,32 @@ void InvariantHandler::initVGEPInvariants() {
  * It returns true if the invariant no longer is held
  */
 void InvariantHandler::initPWCInvariants() {
-    // Install the cycle invariant check
-    // Each Cycle has a cycle id, a list of values that can't be equal to each
-    // other
-    std::vector<Type*> updateAndCheckType;
-
+    Type* voidType = Type::getVoidTy(mod->getContext());
     Type* intType = IntegerType::get(mod->getContext(), 32);
     Type* longType = IntegerType::get(mod->getContext(), 64);
-    //Type* ptrToLongType = PointerType::get(longType, 0);
-    updateAndCheckType.push_back(intType);
-    updateAndCheckType.push_back(intType);
-    updateAndCheckType.push_back(intType);
-    updateAndCheckType.push_back(longType); 
-    updateAndCheckType.push_back(intType);
 
-    llvm::ArrayRef<Type*> updateAndCheckTypeArr(updateAndCheckType);
+    std::vector<Type*> updatePWCType;
 
-    FunctionType* updateAndCheckFnTy = FunctionType::get(intType, updateAndCheckTypeArr, false);
-    updateCheckPWCFn = Function::Create(updateAndCheckFnTy, Function::ExternalLinkage, "updateAndCheckPWC", mod);
+    updatePWCType.push_back(intType);
+    updatePWCType.push_back(longType);
 
-    svfMod->addFunctionSet(updateCheckPWCFn);
+    FunctionType* updatePWCFnTy = FunctionType::get(voidType, {intType, longType}, false);
+    updatePWCFn = Function::Create(updatePWCFnTy, Function::ExternalLinkage, "updatePWC", mod);
+
+    svfMod->addFunctionSet(updatePWCFn);
+
+    std::vector<Type*> checkPWCType;
+
+    checkPWCType.push_back(intType);
+    checkPWCType.push_back(longType);
+    checkPWCType.push_back(longType);
+
+    llvm::ArrayRef<Type*> checkPWCTypeArr(checkPWCType);
+
+    FunctionType* checkFnTy = FunctionType::get(intType, checkPWCTypeArr, false);
+    checkPWCFn = Function::Create(checkFnTy, Function::ExternalLinkage, "checkPWC", mod);
+
+    svfMod->addFunctionSet(checkPWCFn);
 }
 
 void InvariantHandler::init() { 

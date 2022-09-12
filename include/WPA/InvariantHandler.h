@@ -3,6 +3,9 @@
 #include <Util/SVFBasicTypes.h>
 #include <Util/SVFUtil.h>
 #include <Graphs/PAG.h>
+#include "llvm/Analysis/LoopInfo.h"
+
+
 
 #include<vector>
 
@@ -15,11 +18,13 @@ class InvariantHandler {
 
         llvm::Function* vgepPtdRecordFn;
         llvm::Function* ptdTargetCheckFn;
-        llvm::Function* updateCheckPWCFn;
+        llvm::Function* updatePWCFn;
+        llvm::Function* checkPWCFn;
         llvm::Module* mod;
         SVFModule* svfMod;
 
         PAG* pag;
+        LoopInfo* loopInfo;
 
     public:
         void handleVGEPInvariants();
@@ -27,7 +32,7 @@ class InvariantHandler {
         void instrumentVGEPInvariant(llvm::GetElementPtrInst*, std::vector<llvm::Value*>&);
         void recordTarget(int, llvm::Value*);
 
-        InvariantHandler(SVFModule* S, llvm::Module* M, PAG* p): kaliInvariantId(0), ptdTargetCheckFn(nullptr), mod(M), svfMod(S), pag(p) {
+        InvariantHandler(SVFModule* S, llvm::Module* M, PAG* p, LoopInfo* lInfo): kaliInvariantId(0), ptdTargetCheckFn(nullptr), mod(M), svfMod(S), pag(p), loopInfo(lInfo) {
             init();
         }
 
