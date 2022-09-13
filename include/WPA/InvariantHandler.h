@@ -24,7 +24,7 @@ class InvariantHandler {
         SVFModule* svfMod;
 
         PAG* pag;
-        LoopInfo* loopInfo;
+        LoopInfoWrapperPass* loopInfo;
 
     public:
         void handleVGEPInvariants();
@@ -32,11 +32,12 @@ class InvariantHandler {
         void instrumentVGEPInvariant(llvm::GetElementPtrInst*, std::vector<llvm::Value*>&);
         void recordTarget(int, llvm::Value*);
 
-        InvariantHandler(SVFModule* S, llvm::Module* M, PAG* p, LoopInfo* lInfo): kaliInvariantId(0), ptdTargetCheckFn(nullptr), mod(M), svfMod(S), pag(p), loopInfo(lInfo) {
+        InvariantHandler(SVFModule* S, llvm::Module* M, PAG* p, LoopInfoWrapperPass* lInfo): kaliInvariantId(0), ptdTargetCheckFn(nullptr), mod(M), svfMod(S), pag(p), loopInfo(lInfo) {
             init();
         }
 
         void initVGEPInvariants();
         void initPWCInvariants();
         void init();
+        int computeOffsetInPWC(std::vector<llvm::GetElementPtrInst*>&, llvm::GetElementPtrInst*);
 };

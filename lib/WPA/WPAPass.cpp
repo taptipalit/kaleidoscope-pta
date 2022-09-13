@@ -56,6 +56,8 @@
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/IR/LegacyPassManager.h"
 
+#include "llvm/Analysis/LoopInfo.h"
+
 
 #include <iostream>
 using namespace SVF;
@@ -142,11 +144,13 @@ void WPAPass::collectCFI(Module& M, bool woInv) {
                         bool hasTarget = false;
                         for (PointsTo::iterator piter = pts.begin(), epiter = pts.end(); piter != epiter; ++piter) {
                             NodeID ptd = *piter;
-                            PAGNode* tgtNode = pag->getPAGNode(ptd);
-                            if (tgtNode->hasValue()) {
-                                if (const Function* tgtFunction = SVFUtil::dyn_cast<Function>(tgtNode->getValue())) {
-                                    hasTarget = true;
-                                    (*indCallMap)[callInst].insert(const_cast<Function*>(tgtFunction));
+                            if (pag->hasPAGNode(ptd)) {
+                                PAGNode* tgtNode = pag->getPAGNode(ptd);
+                                if (tgtNode->hasValue()) {
+                                    if (const Function* tgtFunction = SVFUtil::dyn_cast<Function>(tgtNode->getValue())) {
+                                        hasTarget = true;
+                                        (*indCallMap)[callInst].insert(const_cast<Function*>(tgtFunction));
+                                    }
                                 }
                             }
                         }
@@ -295,15 +299,6 @@ void WPAPass::deriveHeapAllocationTypes(llvm::Module& module) {
 void WPAPass::runOnModule(SVFModule* svfModule)
 {
     llvm::Module *module = SVF::LLVMModuleSet::getLLVMModuleSet()->getMainLLVMModule(); 
-    llvm::legacy::PassManager PM;
-    llvm::DominatorTreeWrapperPass* domPass = new llvm::DominatorTreeWrapperPass();
-    llvm::LoopInfoWrapperPass* loopPass = new llvm::LoopInfoWrapperPass();
-    PM.add(domPass);
-    PM.add(loopPass);
-    PM.run(*module);
-
-    loopInfo = &(loopPass->getLoopInfo());
-
     //deriveHeapAllocationTypesWithCloning(*module);
 
     /*
@@ -454,6 +449,15 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 {
     llvm::Module *module = SVF::LLVMModuleSet::getLLVMModuleSet()->getMainLLVMModule(); 
 
+    llvm::legacy::PassManager PM;
+    llvm::DominatorTreeWrapperPass* domPass = new llvm::DominatorTreeWrapperPass();
+    loopInfoPass = new llvm::LoopInfoWrapperPass();
+    PM.add(domPass);
+    PM.add(loopInfoPass);
+    PM.run(*module);
+
+
+
     if ((Options::InvariantVGEP || Options::InvariantPWC) && Options::NoInvariants) {
         llvm::errs() << "Invalid configuration ...\n";
         return;
@@ -469,6 +473,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
     */
 	PAG* pag = builder.build(svfModule);
     _pta = new AndersenWaveDiff(pag);
+    _pta->setLoopInfoPass(loopInfoPass);
     ptaVector.push_back(_pta);
     _pta->analyze();
 
@@ -550,7 +555,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 
     // Handle the invariants
     if (!Options::NoInvariants) {
-        InvariantHandler IHandler(svfModule, module, pag, loopInfo); // this one should be the original PAG
+        InvariantHandler IHandler(svfModule, module, pag, loopInfoPass); // this one should be the original PAG
         IHandler.handleVGEPInvariants();
         IHandler.handlePWCInvariants();
     }

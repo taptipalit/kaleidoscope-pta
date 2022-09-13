@@ -175,7 +175,7 @@ private:
     std::map<CallInst*, NodeID> indCSToIDMap;
 
     int indCSId;
-    LoopInfo* loopInfo;
+    LoopInfoWrapperPass* loopInfoPass;
 };
 
 } // End namespace SVF

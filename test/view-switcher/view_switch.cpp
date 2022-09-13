@@ -40,7 +40,7 @@ extern "C" uint32_t ptdTargetCheck(uint64_t* tgt, uint64_t len, uint64_t* tgts) 
         uint64_t ptrVal = vgepMap[id];
         if (tgt == (uint64_t*)ptrVal) {
             cout << "VGEP invariant failed\n";
-            invFlipped = true;
+            //invFlipped = true;
             return 1;
         }
     }
@@ -54,9 +54,10 @@ extern "C" void updatePWC(uint32_t pwcId, uint32_t invVal) {
 }
 
 INLINE 
-extern "C" uin32_t checkPWC(uint32_t pwcId, uint64_t newVal, uint64_t offset) {
+extern "C" uint32_t checkPWC(uint32_t pwcId, uint64_t newVal, uint64_t offset) {
     if (newVal == pwcInvariants[pwcId] + offset) {
-        invFlipped = true;
+        cout << "PWC invariant " << pwcId << " failed\n";
+        //invFlipped = true;
         return 1;
     } else {
         return 0;
@@ -67,6 +68,7 @@ extern "C" uin32_t checkPWC(uint32_t pwcId, uint64_t newVal, uint64_t offset) {
  * Return 1 if the view needs to be changed
  * Return 0 if the view does not need to be changed
  */
+/*
 INLINE
 extern "C" uint32_t updateAndCheckPWC(uint32_t pwcId, uint32_t invLen, uint32_t invId, uint64_t val, int isGep) {
     int cycleHappened = 1;
@@ -98,19 +100,11 @@ extern "C" uint32_t updateAndCheckPWC(uint32_t pwcId, uint32_t invLen, uint32_t 
 
     if (sz1 + sz2 == (invLen - 1)) { // We've seen all other invariant values
         for (auto invIdValPair: pwcInvariants[pwcId]) {
-            /*
-            if (invIdValPair.first == invId)
-                continue;
-                */
             InvariantVal prevVal = invIdValPair.second;
             if (val != prevVal) {
                 int notSeenGepVal = 0;
                 // But then, it might even be a gep
                 for (auto gepInvIdValPair: gepPWCInvariants[pwcId]) {
-                    /*
-                    if (gepInvIdValPair.first == invId) 
-                        continue;
-                        */
                     InvariantVal gepVal = gepInvIdValPair.second;
                     if (val != gepVal) {
                         notSeenGepVal = 1;
@@ -138,6 +132,7 @@ extern "C" uint32_t updateAndCheckPWC(uint32_t pwcId, uint32_t invLen, uint32_t 
     }
     return cycleHappened;
 }
+*/
 
 INLINE
 void switch_view(void) {

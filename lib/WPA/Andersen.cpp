@@ -571,8 +571,16 @@ bool Andersen::addInvariant(ConstraintEdge* edge) {
 }
 */
 
-void Andersen::addCycleInvariants(CycleID pwcID, PAG::PWCList* sccNodeIDs) {
-    pag->addPWCInvariants(pwcID, sccNodeIDs);
+void Andersen::addCycleInvariants(CycleID pwcID, PAG::PWCList* gepNodesInSCC) {
+    pag->addPWCInvariants(pwcID, gepNodesInSCC);
+}
+
+void Andersen::handlePointersAsPA(std::set<const llvm::Value*>* gepsInPWC) {
+    // TODO pick a vgep outside of a loop if possible
+    for (const llvm::Value* gep: *gepsInPWC) {
+        pag->addPtdForVarGep(gep, -1); 
+        break;
+    }
 }
 
 /**
@@ -581,88 +589,57 @@ void Andersen::addCycleInvariants(CycleID pwcID, PAG::PWCList* sccNodeIDs) {
  */
 void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
 {
-    PAG::PWCList* sccNodeIDs = new PAG::PWCList();
+    std::set<const llvm::Value*>* gepNodesInSCC = new std::set<const llvm::Value*>();
     // Before merging this, simply collect
     bool isHandled = false;
     std::vector<ConstraintEdge*> edgesInPWC;
     if (Options::InvariantPWC) {
         // Get the edges in this SCC
         EdgeList& edges = getSCCDetector()->getSCCEdgeList(repNodeId);
-
-        bool isPWC = false;
         if (getSCCDetector()->isRepPWC(repNodeId)) {
-            isPWC = true;
-
-
-            llvm::errs() << "Edge set size: " << edges.size() << "\n";
-            Value* instVal = nullptr;
-            for (const EdgePair& ep: edges) {
-                ConstraintNode* src = consCG->getConstraintNode(ep.first);
-                ConstraintNode* dst = consCG->getConstraintNode(ep.second);
-                // Find the instruction that should be trapped 
-                // that caused this edge
-
-                if (consCG->hasEdge(src, dst, ConstraintEdge::Copy)) {
-                    ConstraintEdge* edge = consCG->getEdge(src, dst, ConstraintEdge::Copy);
-                    
-                    instVal = edge->getLLVMValue();
-                    if (edge->getDerivedWeight() > 0) {
-                        ConstraintEdge* origEdge = edge->getSourceEdge();
-                        edgesInPWC.push_back(origEdge);
-                        instVal = origEdge->getLLVMValue();
-                        // For load it's the loaded return value
-                        // For stores, it's the stored value operand
-                        if (StoreInst* stInst = SVFUtil::dyn_cast<StoreInst>(instVal)) {
-                            // pts(q) = {a, b}
-                            // p -- store --> q; [ *q = p ]
-                            // p -- copy --> a
-                            // p -- copy --> b --- copy --> c -- copy --> p
-                            // Thus, we care about p, the store _value_ of the
-                            // StoreInst
-                            instVal = stInst->getValueOperand();
-                        } else if (LoadInst* ldInst = SVFUtil::dyn_cast<LoadInst>(instVal)) {
-                            // pts(p) = {a, b}
-                            // p -- load --> q; [ q = *p ]
-                            // a -- copy --> q
-                            // b -- copy --> q
-                            // a -- copy --> q -- copy --> b -- copy --> a
-                            // Thus, we care about the loaded value of p
-                            // So this is no-op
+            bool treatAsPAInv = false;
+            for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
+            {
+                NodeID subNodeId = *nodeIt;
+                PAGNode* pagNode = pag->getPAGNode(subNodeId);
+                if (pagNode->hasValue()) {
+                    const Value* pagVal = pagNode->getValue();
+                    if (const Instruction* inst = SVFUtil::dyn_cast<Instruction>(pagVal)) {
+                        BasicBlock* bb = const_cast<BasicBlock*>(inst->getParent());
+                        Function* func = bb->getParent();
+                        //llvm::errs() << pwcCycleId + 1 << " PWC val = " << *inst << " : " << inst->getParent()->getParent()->getName() << " " << inst->getParent()->getName() << "\n";
+                        // TODO handle the loop correctly   
+                        if (bb->hasName() && (bb->getName().contains("while") || bb->getName().contains("for"))) {
+                            treatAsPAInv = true;
+                            break;
                         }
                     }
-
-                } else if (consCG->hasEdge(src, dst, ConstraintEdge::NormalGep)) {
-                    ConstraintEdge* edge = consCG->getEdge(src, dst, ConstraintEdge::NormalGep);                    
-                    instVal = edge->getLLVMValue();
-                    GetElementPtrInst* gepInst = SVFUtil::dyn_cast<GetElementPtrInst>(instVal);
-                    assert(gepInst && "GEP Edge must have gep inst");
-                    instVal = gepInst->getPointerOperand();
-                } /*else if (consCG->hasEdge(src, dst, ConstraintEdge::VariantGep)) {
-                    ConstraintEdge* edge = consCG->getEdge(src, dst, ConstraintEdge::VariantGep);
-                    instVal = edge->getLLVMValue();
+                    if (const GetElementPtrInst* gepVal = SVFUtil::dyn_cast<GetElementPtrInst>(pagVal)) {
+                        gepNodesInSCC->insert(gepVal);
                     }
-                    */ // Can't have variant gep in PWC
-                if (instVal) {
-
-                    sccNodeIDs->insert(instVal);
                 }
             }
-            edges.clear(); // We have processed them
 
-            isHandled = true;
-
-        }
-        if (isPWC && subNodes.count() > 1) {
-            pwcCycleId++;
-
-            for (const llvm::Value* val: *sccNodeIDs) {
-                if (const llvm::Instruction* inst = SVFUtil::dyn_cast<llvm::Instruction>(val)) {
-                    llvm::errs() << inst->getParent()->getParent()->getName() << "\n";
+            if (!treatAsPAInv) {
+                for (const EdgePair& ep: edges) {
+                    ConstraintNode* src = consCG->getConstraintNode(ep.first);
+                    ConstraintNode* dst = consCG->getConstraintNode(ep.second);
+                    // Find the instruction that should be trapped 
+                    // that caused this edge
+                    if (consCG->hasEdge(src, dst, ConstraintEdge::NormalGep)) {
+                        edgesInPWC.push_back(consCG->getEdge(src, dst, ConstraintEdge::NormalGep));
+                    } else if (consCG->hasEdge(src, dst, ConstraintEdge::Copy)) {
+                        edgesInPWC.push_back(consCG->getEdge(src, dst, ConstraintEdge::Copy));
+                    }
                 }
+                pwcCycleId++;
+                addCycleInvariants(pwcCycleId, gepNodesInSCC);
+            } else {
+                handlePointersAsPA(gepNodesInSCC);
             }
-            addCycleInvariants(pwcCycleId, sccNodeIDs);
             consCG->resetPWCNode(repNodeId);
-
+            edges.clear(); // We have processed them
+            isHandled = true;
         }
     } 
     if (!isHandled) {
@@ -676,7 +653,7 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
             }
         }
     } else {
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 1; i++) {
             for (ConstraintEdge* pwcEdge: edgesInPWC) {
                 if (CopyCGEdge* copyCGEdge = SVFUtil::dyn_cast<CopyCGEdge>(pwcEdge)) {
                     processCopy(copyCGEdge->getSrcID(), copyCGEdge);
@@ -686,84 +663,7 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
             }
         }
     }
-    /*
-    if (Options::InvariantPWC) {
-        
-    }
-    */
 }
-    /*
-    bool skipCycle = false;
-
-    // For Kaleidoscope: Find the edges in the cycle
-    std::set<ConstraintEdge*> cycleEdges;
-
-    bool isPWC = false;
-
-    if (Options::Kaleidoscope) {
-        if (subNodes.count() > 1) {
-            // Dump the constraint graph
-            //consCG->dump("consCG_before_cyc");
-            for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++) {
-                NodeID subNodeId = *nodeIt;
-                ConstraintNode* node = consCG->getConstraintNode(subNodeId);
-                for (ConstraintEdge* outEdge: node->getDirectOutEdges()) {
-                    if (subNodes.test(outEdge->getDstID())) {
-                        if (NormalGepCGEdge* ngep = SVFUtil::dyn_cast<NormalGepCGEdge>(outEdge)) {
-                            isPWC = true;
-                        }
-                        cycleEdges.insert(outEdge);
-                    }
-                }
-            }   
-        }
-
-        // Find the first indirect cycle edges
-        if (cycleEdges.size() > 0 ) { //&& isPWC
-            //llvm::errs() << "Cycle edges start:\n";
-            std::tuple<ConstraintEdge*, Instruction*, Value*> tup = pickCycleEdgeToBreak(cycleEdges);
-            ConstraintEdge* candidateEdge = std::get<0>(tup);
-            Instruction* memInst = std::get<1>(tup);
-            Value* tgtValue = std::get<2>(tup);
-            if (memInst && tgtValue) {
-                llvm::errs() << "Adding invariant\n";
-                instrumentInvariant(memInst, tgtValue);
-                
-
-
-                //cycleEdges.erase(candidateEdge);
-
-                dbgCycleProcessId++;
-                
-                consCG->blackListEdge(candidateEdge);
-                consCG->removeDirectEdge(candidateEdge);
-                skipCycle = true;
-            }
-        }
-    }
-
-    if (!skipCycle) {
-        if (Options::Kaleidoscope) {
-            if (subNodes.count() > 1) { //&& isPWC
-                for (ConstraintEdge* cycleEdge: cycleEdges) {
-                    llvm::errs() << cycleEdge->getSrcID() << " " << cycleEdge->getDstID() << " ";
-                }
-            }
-        }
-        for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
-        {
-            NodeID subNodeId = *nodeIt;
-            if (subNodeId != repNodeId)
-            {
-                mergeNodeToRep(subNodeId, repNodeId);
-            }
-        }
-    } else {
-        if (Options::Kaleidoscope) {
-            reanalyze = true;
-        }
-    }
-    */
 
 /**
  * Collapse node's points-to set. Change all points-to elements into field-insensitive.
@@ -802,7 +702,6 @@ bool Andersen::collapseField(NodeID nodeId)
     double start = stat->getClk();
 
     // set base node field-insensitive.
-    errs() << "Setting object " << nodeId << " field-insensitive from collapseField\n";
     setObjFieldInsensitive(nodeId);
 
     // replace all occurrences of each field with the field-insensitive node

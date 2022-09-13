@@ -38,6 +38,8 @@
 #include "Graphs/OfflineConsG.h"
 #include <tuple>
 
+
+
 namespace SVF
 {
 
@@ -164,6 +166,8 @@ class Andersen:  public AndersenBase
 
     CycleID pwcCycleId; /* the unique id for each PWC */
 
+    bool firstPWC;
+
 public:
     typedef SCCDetection<ConstraintGraph*> CGSCC;
     typedef OrderedMap<CallSite, NodeID> CallSite2DummyValPN;
@@ -180,6 +184,7 @@ public:
         numChildren = 0;
 //        kaliInvariantId = 0;
         pwcCycleId = 0;
+        firstPWC = true;
     }
 
     /// Destructor
@@ -209,6 +214,8 @@ public:
     void instrumentInvariant(llvm::Instruction*, llvm::Value*);
 
     void addCycleInvariants(CycleID, PAG::PWCList*);
+
+    void handlePointersAsPA(std::set<const llvm::Value*>*);
 
     /// Reset data
     inline void resetData()
@@ -293,6 +300,7 @@ public:
     {
         return diffOpt;
     }
+
 
 protected:
 

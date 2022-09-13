@@ -269,11 +269,16 @@ void AndersenStat::statNullPtr()
 
 void AndersenStat::filter(std::set<NodeID>& fiPts, const PointsTo& pts) {
     ConstraintGraph* consCG = pta->getConstraintGraph();
+    PAG* pag = pta->getPAG();
 
     for (PointsTo::iterator piter = pts.begin(), epiter = pts.end(); 
             piter != epiter; ++piter) {
         NodeID ptd = *piter;
-        fiPts.insert(consCG->getBaseObjNode(ptd));
+        if (pag->hasPAGNode(ptd)) {
+            fiPts.insert(consCG->getBaseObjNode(ptd));
+        } else {
+            fiPts.insert(ptd);
+        }
     } 
 }
 

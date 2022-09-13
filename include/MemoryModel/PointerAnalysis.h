@@ -163,6 +163,10 @@ protected:
     static CommonCHGraph *chgraph;
     /// TypeSystem
     TypeSystem *typeSystem;
+    
+    /// LoopInfo pass
+
+    LoopInfoWrapperPass* loopInfoPass;
 
 public:
 	/// Get ICFG
@@ -262,6 +266,9 @@ public:
     {
     }
 
+    void setLoopInfoPass(LoopInfoWrapperPass* lInfo) {
+        loopInfoPass = lInfo;
+    }
     /// Print targets of a function pointer
     void printIndCSTargets(const CallBlockNode* cs, const FunctionSet& targets);
 
@@ -364,7 +371,6 @@ public:
     }
     inline void setObjFieldInsensitive(NodeID id)
     {
-        llvm::errs() << "Setting object " << id << " field-insensitive\n";
         MemObj* mem =  const_cast<MemObj*>(pag->getBaseObj(id));
         mem->setFieldInsensitive();
     }

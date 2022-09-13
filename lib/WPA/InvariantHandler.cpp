@@ -133,66 +133,78 @@ void InvariantHandler::handlePWCInvariants() {
         // Let's get the count of the ones that do
         int ptrValCount = it->second.size();
         llvm::errs() << "PWC ID: " << pwcID << "\n";
-        GetElementPtrInst* bestGep = nullptr;
+        GetElementPtrInst* nonLoopGep = nullptr;
+        std::vector<GetElementPtrInst*> geps;
+
         for (const Value* vPtr: it->second) {
             if (const GetElementPtrInst* gep = SVFUtil::dyn_cast<GetElementPtrInst>(vPtr)) {
-                BasicBlock* bb = gep->getParent();
+                geps.push_back(const_cast<GetElementPtrInst*>(gep));
+                /*
+                const BasicBlock* bb = gep->getParent();
                 if (!loopInfo->getLoopFor(bb)) {
-                    bestGep = gep;
+                    llvm::errs() << "found gep outside loop\n";
+                    nonLoopGep = const_cast<GetElementPtrInst*>(gep);
                     break;
                 }
+                */
             }
         }
+        nonLoopGep = geps[0];
+        /*
+        if (!nonLoopGep) {
+            llvm::errs() << "Did not find gep outside loop\n";
+            nonLoopGep = geps[0];
+        }
+        */
 
-        // TODO: Try to find one that isn't in a loop
-        
-            /*
-            llvm::errs() << *vPtr << "\n";
-            Value* valPtr = const_cast<Value*>(vPtr);
-            // Insert a call to record this
-            if (Instruction* inst = SVFUtil::dyn_cast<Instruction>(valPtr)) {
-                if (std::find(instrumented.begin(), instrumented.end(), inst) != instrumented.end()) {
-                    continue;
-                }
-                instrumented.insert(inst);
-                // If this is a callInst that doesn't return anything, just
-                // ignore it
-                if (CallInst* callInst = SVFUtil::dyn_cast<CallInst>(inst)) {
-                    if (callInst->getType()->isVoidTy() || !callInst->getType()->isPointerTy()) {
-                        continue;
-                    }
-                }
-                IRBuilder builder(inst->getNextNode());
-                std::vector<Value*> argsList;
-                argsList.push_back(ConstantInt::get(intType, pwcID));
-                argsList.push_back(ConstantInt::get(intType, ptrValCount));
-                argsList.push_back(ConstantInt::get(intType, ptrID++));
-                argsList.push_back(builder.CreateBitOrPointerCast(valPtr, longType));
-                bool isGep = false;
-                CastInst* castInst = SVFUtil::dyn_cast<CastInst>(inst);
-                Instruction* baseInst = inst;
-                while (castInst) {
-                    baseInst = castInst;
-                    castInst = SVFUtil::dyn_cast<CastInst>(castInst->getOperand(0));
-                }
-                if (BitCastInst* bcInst = SVFUtil::dyn_cast<BitCastInst>(inst)) {
-                    if (SVFUtil::isa<GetElementPtrInst>(bcInst->getOperand(0))) {
-                        isGep = true;
-                    }
-                } else if (SVFUtil::isa<GetElementPtrInst>(inst)) {
-                    isGep = true;
-                }
-                if (isGep) {
-                    argsList.push_back(ConstantInt::get(intType, 1));
-                } else {
-                    argsList.push_back(ConstantInt::get(intType, 0));
-                }
-                llvm::ArrayRef<Value*> args(argsList);
-                FunctionType* fTy = updateCheckPWCFn->getFunctionType();
-                builder.CreateCall(fTy, updateCheckPWCFn, argsList);
-            }
-            */
+        if (std::find(instrumented.begin(), instrumented.end(), nonLoopGep) != instrumented.end()) {
+            continue;
+        }
+
+        instrumented.insert(nonLoopGep);
+        // p = r + 4
+        // If the cycle is complete, then the first time r will have the value
+        // r'
+        // When the cycle is complete it'll have r' + 4
+        // This indicates the cycle is complete
+
+        // Invoke updatePWC (pwcId, gepVal) after this gep
+        IRBuilder builder(nonLoopGep->getNextNode());
+        std::vector<Value*> updatePWCArgsList;
+        updatePWCArgsList.push_back(ConstantInt::get(intType, pwcID));
+        updatePWCArgsList.push_back(builder.CreateBitOrPointerCast(nonLoopGep, longType));
+
+        llvm::ArrayRef<Value*> updateArgs(updatePWCArgsList);
+        FunctionType* fTy = updatePWCFn->getFunctionType();
+        builder.CreateCall(fTy, updatePWCFn, updateArgs);
+
+        // Invoke checkPWC (pwcId, gepPtrVal, offset) before this gep
+
+        builder.SetInsertPoint(nonLoopGep);
+        Value* gepPtr = nonLoopGep->getPointerOperand();
+        std::vector<Value*> checkPWCArgsList;
+        checkPWCArgsList.push_back(ConstantInt::get(intType, pwcID));
+        checkPWCArgsList.push_back(builder.CreateBitOrPointerCast(gepPtr, longType));
+        int totalOffset = computeOffsetInPWC(geps, nonLoopGep);
+        checkPWCArgsList.push_back(ConstantInt::get(longType, totalOffset));
+        llvm::ArrayRef<Value*> checkPWCArgs(checkPWCArgsList);
+
+        fTy = checkPWCFn->getFunctionType();
+        builder.CreateCall(fTy, checkPWCFn, checkPWCArgs); 
     }
+}
+
+int InvariantHandler::computeOffsetInPWC(std::vector<GetElementPtrInst*>& geps, GetElementPtrInst* nonLoopGep) {
+    llvm::Module* mod = nonLoopGep->getModule();
+
+    int totalOffset = 0;
+    for (GetElementPtrInst* gep: geps) {
+        llvm::APInt offset(64, 0);
+        if (gep->accumulateConstantOffset(mod->getDataLayout(), offset)) {
+            totalOffset += offset.getZExtValue();
+        }
+    }
+    return totalOffset;
 }
 
 /**

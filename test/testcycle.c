@@ -26,12 +26,14 @@ int main(void) {
     sptr[0].ptr = func;
     sptr[0].qtr = gunc;
 
-    p = q;
-    r = &(((struct Student*)p)->ptr);
+    for (int i = 0; i < 10; i++) {
+        p = q;
+        r = &(((struct Student*)p)->ptr);
 
-    // Strong update
-    //r = &k; // Remove this to trigger invariant flip
-    q = r;
+        // Strong update
+        r = &k; // Remove this to trigger invariant flip
+        q = r;
+    }
     
     printf("%d\n", *(int*)r);
 
