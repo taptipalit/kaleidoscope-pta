@@ -103,7 +103,6 @@ void InvariantHandler::instrumentVGEPInvariant(GetElementPtrInst* gep, std::vect
 void InvariantHandler::handleVGEPInvariants() {
     for (const GetElementPtrInst* gep: pag->getVarGeps()) {
         std::vector<Value*> targets;
-        //if (pag->getVarGepPtdMap()[gep].size() > 0) {
         for (NodeID ptdId: pag->getVarGepPtdMap()[gep]) {
             if (pag->hasPAGNode(ptdId)) {
                 PAGNode* pagNode = pag->getPAGNode(ptdId);
@@ -115,7 +114,6 @@ void InvariantHandler::handleVGEPInvariants() {
             }
         }
         instrumentVGEPInvariant(const_cast<GetElementPtrInst*>(gep), targets);
-        //}
     }
 }
 

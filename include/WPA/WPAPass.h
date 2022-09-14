@@ -38,7 +38,7 @@
 #define WPA_H_
 
 #include "MemoryModel/PointerAnalysisImpl.h"
-#include "llvm/Analysis/LoopInfo.h"
+#include "WPA/LoopInfoConsolidatorPass.h"
 
 namespace SVF
 {
@@ -147,9 +147,6 @@ public:
     virtual void addCFIFunctions(llvm::Module* module);
     virtual void initializeCFITargets(llvm::Module* module);
 
-
-
-
 private:
     /// Create pointer analysis according to specified kind and analyze the module.
     void runPointerAnalysis(SVFModule* svfModule, u32_t kind);
@@ -175,7 +172,7 @@ private:
     std::map<CallInst*, NodeID> indCSToIDMap;
 
     int indCSId;
-    LoopInfoWrapperPass* loopInfoPass;
+    LoopInfoConsolidatorPass* svfLoopInfo;
 };
 
 } // End namespace SVF

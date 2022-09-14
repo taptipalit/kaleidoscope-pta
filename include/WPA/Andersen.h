@@ -38,6 +38,7 @@
 #include "Graphs/OfflineConsG.h"
 #include <tuple>
 
+#include "WPA/LoopInfoConsolidatorPass.h"
 
 
 namespace SVF
@@ -165,8 +166,8 @@ class Andersen:  public AndersenBase
     */
 
     CycleID pwcCycleId; /* the unique id for each PWC */
-
     bool firstPWC;
+    LoopInfoConsolidatorPass* svfLoopInfo;
 
 public:
     typedef SCCDetection<ConstraintGraph*> CGSCC;
@@ -175,7 +176,6 @@ public:
     typedef std::pair<NodeID, NodeID> EdgePair;
     typedef std::set<EdgePair> EdgeList;
     typedef std::map<NodeID, EdgeList> RepEdgeMap;
-
 
     /// Constructor
     Andersen(PAG* _pag, PTATY type = Andersen_WPA, bool alias_check = true)
@@ -212,10 +212,13 @@ public:
     std::tuple<ConstraintEdge*, llvm::Instruction*, llvm::Value*> pickCycleEdgeToBreak(std::set<ConstraintEdge*>&);
 
     void instrumentInvariant(llvm::Instruction*, llvm::Value*);
-
     void addCycleInvariants(CycleID, PAG::PWCList*);
 
     void handlePointersAsPA(std::set<const llvm::Value*>*);
+
+    void setSVFLoopInfo(LoopInfoConsolidatorPass* pass) {
+        svfLoopInfo = pass;
+    }
 
     /// Reset data
     inline void resetData()
@@ -300,7 +303,6 @@ public:
     {
         return diffOpt;
     }
-
 
 protected:
 

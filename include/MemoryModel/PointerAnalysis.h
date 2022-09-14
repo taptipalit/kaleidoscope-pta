@@ -164,10 +164,6 @@ protected:
     /// TypeSystem
     TypeSystem *typeSystem;
     
-    /// LoopInfo pass
-
-    LoopInfoWrapperPass* loopInfoPass;
-
 public:
 	/// Get ICFG
 	inline ICFG* getICFG() const {
@@ -266,9 +262,7 @@ public:
     {
     }
 
-    void setLoopInfoPass(LoopInfoWrapperPass* lInfo) {
-        loopInfoPass = lInfo;
-    }
+
     /// Print targets of a function pointer
     void printIndCSTargets(const CallBlockNode* cs, const FunctionSet& targets);
 

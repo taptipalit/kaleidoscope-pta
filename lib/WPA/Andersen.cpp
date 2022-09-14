@@ -598,8 +598,7 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
         EdgeList& edges = getSCCDetector()->getSCCEdgeList(repNodeId);
         if (getSCCDetector()->isRepPWC(repNodeId)) {
             bool treatAsPAInv = false;
-            for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
-            {
+            for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++) {
                 NodeID subNodeId = *nodeIt;
                 PAGNode* pagNode = pag->getPAGNode(subNodeId);
                 if (pagNode->hasValue()) {
@@ -607,9 +606,8 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                     if (const Instruction* inst = SVFUtil::dyn_cast<Instruction>(pagVal)) {
                         BasicBlock* bb = const_cast<BasicBlock*>(inst->getParent());
                         Function* func = bb->getParent();
-                        //llvm::errs() << pwcCycleId + 1 << " PWC val = " << *inst << " : " << inst->getParent()->getParent()->getName() << " " << inst->getParent()->getName() << "\n";
                         // TODO handle the loop correctly   
-                        if (bb->hasName() && (bb->getName().contains("while") || bb->getName().contains("for"))) {
+                        if (svfLoopInfo->bbIsLoop(bb)) {
                             treatAsPAInv = true;
                             break;
                         }

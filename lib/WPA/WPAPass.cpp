@@ -55,6 +55,7 @@
 #include "llvm/Transforms/Utils/FunctionComparator.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/IR/LegacyPassManager.h"
+#include "WPA/LoopInfoConsolidatorPass.h"
 
 #include "llvm/Analysis/LoopInfo.h"
 
@@ -451,12 +452,12 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 
     llvm::legacy::PassManager PM;
     llvm::DominatorTreeWrapperPass* domPass = new llvm::DominatorTreeWrapperPass();
-    loopInfoPass = new llvm::LoopInfoWrapperPass();
+    LoopInfoWrapperPass* loopInfoPass = new llvm::LoopInfoWrapperPass();
+    svfLoopInfo = new LoopInfoConsolidatorPass();
     PM.add(domPass);
     PM.add(loopInfoPass);
+    PM.add(svfLoopInfo);
     PM.run(*module);
-
-
 
     if ((Options::InvariantVGEP || Options::InvariantPWC) && Options::NoInvariants) {
         llvm::errs() << "Invalid configuration ...\n";
@@ -472,8 +473,9 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
     Options::InvariantPWC = true;
     */
 	PAG* pag = builder.build(svfModule);
-    _pta = new AndersenWaveDiff(pag);
-    _pta->setLoopInfoPass(loopInfoPass);
+    Andersen* anderAnalysis = new AndersenWaveDiff(pag);
+    _pta = anderAnalysis;
+    anderAnalysis->setSVFLoopInfo(svfLoopInfo);
     ptaVector.push_back(_pta);
     _pta->analyze();
 
