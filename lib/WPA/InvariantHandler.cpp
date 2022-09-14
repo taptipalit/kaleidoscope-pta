@@ -1,4 +1,6 @@
 #include <WPA/InvariantHandler.h>
+#include "llvm/IR/InstIterator.h"
+
 
 void InvariantHandler::recordTarget(int id, Value* target) {
     IRBuilder* builder;
@@ -6,20 +8,14 @@ void InvariantHandler::recordTarget(int id, Value* target) {
 
     IntegerType* i32Ty = IntegerType::get(C, 32);
     IntegerType* i64Ty = IntegerType::get(C, 64);
-    /*
-    GlobalVariable* kaliMapGVar = mod->getGlobalVariable("kaliMap");
-    assert(kaliMapGVar && "can't find KaliMap");
-
-    Constant* zero = ConstantInt::get(i64Ty, 0);
-    Constant* idConstant = ConstantInt::get(i64Ty, id);
-    std::vector<Value*> idxVec;
-    idxVec.push_back(zero);
-    idxVec.push_back(idConstant);
-    llvm::ArrayRef<Value*> idxs(idxVec);
-    */
+    PointerType* i64PtrTy = PointerType::get(i64Ty, 0);
+    bool shouldReset = false;
+    AllocaInst* stackVar = nullptr;
 
     if (AllocaInst* allocaInst = SVFUtil::dyn_cast<AllocaInst>(target)) {
         builder = new IRBuilder(allocaInst->getNextNode());
+        stackVar = allocaInst;
+        shouldReset = true;
     } else if (GlobalValue* gvar = SVFUtil::dyn_cast<GlobalValue>(target)) {
         Function* mainFunction = mod->getFunction("main");
         Instruction* inst = mainFunction->getEntryBlock().getFirstNonPHIOrDbg();
@@ -33,6 +29,17 @@ void InvariantHandler::recordTarget(int id, Value* target) {
     Constant* idConstant = ConstantInt::get(i32Ty, id);
     Value* ptrVal = builder->CreateBitOrPointerCast(target, i64Ty);
     builder->CreateCall(vgepPtdRecordFn, {idConstant, ptrVal});
+
+    if (shouldReset) {
+        Function* func = stackVar->getParent()->getParent();
+        for (inst_iterator I = inst_begin(func), E = inst_end(func); I != E; ++I) {
+            if (ReturnInst* ret = SVFUtil::dyn_cast<ReturnInst>(&*I)) {
+                builder->SetInsertPoint(ret); 
+                // Reset the Invariant
+                builder->CreateCall(vgepPtdRecordFn, {idConstant, Constant::getNullValue(i64Ty)});
+            }
+        }
+    }
 }
 
 /**

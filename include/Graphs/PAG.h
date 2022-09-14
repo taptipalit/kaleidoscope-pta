@@ -78,8 +78,8 @@ public:
     typedef Map<const Value*, NodeLocationSetMap> GepValPNMap;
     typedef Map<NodePair,NodeID> NodePairSetMap;
     typedef std::vector<const GetElementPtrInst*> VarGepList;
-    typedef std::vector<NodeID> PtdList;
-    typedef Map<const Value*, PtdList> VarGepPtdMap;
+    typedef std::set<NodeID> PtdSet;
+    typedef Map<const Value*, PtdSet> VarGepPtdMap;
 
     typedef std::set<const llvm::Value*> PWCList;
     typedef Map<CycleID, PWCList> PWCInvariantMap;
@@ -930,7 +930,7 @@ public:
     }
 
     void addPtdForVarGep(const Value* gepValue, NodeID nodeID) {
-        varGepPtdMap[gepValue].push_back(nodeID);
+        varGepPtdMap[gepValue].insert(nodeID);
     }
 
     VarGepPtdMap& getVarGepPtdMap() {
