@@ -1,6 +1,7 @@
 #ifndef HEAPTYPEANALYZER_H
 #define HEAPTYPEANALYZER_H
 
+#include "llvm/Analysis/CFLAndersAliasAnalysis.h"
 #include "Util/BasicTypes.h"
 #include <map>
 #include <utility>
@@ -26,9 +27,18 @@ private:
         ArrayTy,
         ScalarTy
     };
+
+    void buildCallGraphs(llvm::Module&);
+    bool returnsUntypedMalloc(llvm::Function*);
+    void findHeapContexts(llvm::Module&);
+
+
+    std::map<Function*, std::vector<Function*>> callers;
+    std::map<Function*, std::vector<Function*>> callees;
 public:
     static char ID;
     HeapTypeAnalyzer() : ModulePass(ID) {
+        /*
         memAllocFns.push_back("ngx_alloc");
         memAllocFns.push_back("ngx_palloc");
         memAllocFns.push_back("ngx_pnalloc");
@@ -42,17 +52,17 @@ public:
         memAllocFns.push_back("ngx_list_init");
         memAllocFns.push_back("ngx_hash_init");
         memAllocFns.push_back("ngx_hash_keys_array_init");
+        */
 
         memAllocFns.push_back("malloc");
         memAllocFns.push_back("mmap");
         memAllocFns.push_back("calloc");
 
+        /*
         L_A0_Fns.push_back("ngx_array_push");
         L_A0_Fns.push_back("ngx_array_push_n");
         L_A0_Fns.push_back("ngx_list_push");
-
-
-        
+        */
     }
     StringRef getPassName() const
     {
@@ -63,6 +73,7 @@ public:
     virtual bool runOnModule (Module & M);
     virtual void getAnalysisUsage(AnalysisUsage &AU) const
     {
+        AU.addRequired<llvm::CFLAndersAAWrapperPass>();
         // This pass modifies the control-flow graph of the function
         //AU.setPreservesCFG();
     }

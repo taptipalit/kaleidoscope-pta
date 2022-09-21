@@ -470,8 +470,102 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypesWithCloning(llvm::Module& module
 */
 
 
+void HeapTypeAnalyzer::buildCallGraphs (Module & module) {
+    for (llvm::Function& F: module.getFunctionList()) {
+        for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
+            if (CallInst* cInst = SVFUtil::dyn_cast<CallInst>(&*I)) {
+                if (Function* calledFunc = cInst->getCalledFunction()) {
+                    callers[calledFunc].push_back(&F);
+                    callees[&F].push_back(calledFunc);
+                }
+            }
+        }
+    }
+}
+
+bool HeapTypeAnalyzer::returnsUntypedMalloc(Function* potentialMallocWrapper) {
+    llvm::CFLAndersAAWrapperPass& aaPass = getAnalysis<llvm::CFLAndersAAWrapperPass>();
+    llvm::CFLAndersAAResult& aaResult = aaPass.getResult();
+    
+    Instruction* mallockedPtr = nullptr;
+
+    for (inst_iterator I = inst_begin(potentialMallocWrapper), E = inst_end(potentialMallocWrapper); I != E; ++I) {
+        if (CallInst* cInst = SVFUtil::dyn_cast<CallInst>(&*I)) {
+            if (cInst->getCalledFunction() && 
+                    std::find(memAllocFns.begin(), memAllocFns.end(), cInst->getCalledFunction()->getName().str()) != memAllocFns.end()) {
+                mallockedPtr = cInst;
+                break;
+            }
+        }
+    }
+    // There are situations that call malloc with a known type inside a small function. 
+    // We don't care about these if the type is known.
+    if (mallockedPtr->getMetadata("sizeOfTypeName")) { 
+        return false;
+    }
+
+    if (!mallockedPtr) {
+        return false;
+    }
+
+    for (inst_iterator I = inst_begin(potentialMallocWrapper), E = inst_end(potentialMallocWrapper); I != E; ++I) {
+        if (ReturnInst* retInst = SVFUtil::dyn_cast<ReturnInst>(&*I)) {
+            if (Instruction* retValue = SVFUtil::dyn_cast<Instruction>(retInst->getReturnValue())) {
+                llvm::AliasResult isAlias = aaResult.query(
+                        llvm::MemoryLocation(mallockedPtr, llvm::LocationSize(64)), 
+                        llvm::MemoryLocation(retValue, llvm::LocationSize(64)));
+                if (isAlias == llvm::AliasResult::MayAlias) {
+                    return true;
+                }
+            } else {
+                return false;
+            }
+        }
+    }
+    return false;
+}
+
+void HeapTypeAnalyzer::findHeapContexts (Module& M) {
+    buildCallGraphs(M);
+    std::vector<Function*> oneLevelFuncs;
+
+    std::vector<Function*> twoLevelFuncs;
+
+    for (std::string& memFnStr: memAllocFns) {
+        Function* memAllocFn = M.getFunction(memFnStr);
+        if (memAllocFn) {
+            for (Function* caller: callers[memAllocFn]) {
+                if (caller->getReturnType()->isVoidTy()) {
+                    continue;
+                }
+                if (returnsUntypedMalloc(caller) && callees[caller].size() < 7) {
+                    oneLevelFuncs.push_back(caller);
+                }
+            }
+        }
+    }
+
+    for (Function* f: oneLevelFuncs) {
+        llvm::errs() << "One Level Function name: " << f->getName() << "\n";
+    }
+
+    for (Function* memAllocFn: oneLevelFuncs) {
+        for (Function* caller: callers[memAllocFn]) {
+            if (caller->getInstructionCount() < 10) {
+                twoLevelFuncs.push_back(caller);
+            }
+        }
+    }
+
+    for (Function* f: twoLevelFuncs) {
+        llvm::errs() << "Two Level Function name: " << f->getName() << "\n";
+    }
+
+}
+
 bool
 HeapTypeAnalyzer::runOnModule (Module & module) {
+    findHeapContexts(module);
     handleVersions(module);
     removePoolAllocatorBody(module);
     deriveHeapAllocationTypes(module);

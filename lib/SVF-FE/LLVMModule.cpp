@@ -35,6 +35,10 @@
 #include "SVF-FE/BreakConstantExpr.h"
 #include "SVF-FE/HeapTypeAnalyzer.h"
 
+#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/Analysis/TargetLibraryInfo.h"
+#include "llvm/Analysis/CFLAndersAliasAnalysis.h"
+
 using namespace std;
 using namespace SVF;
 
@@ -152,13 +156,16 @@ void LLVMModuleSet::build()
 }
 
 void LLVMModuleSet::preInitialize() {
-    // The HeapTypeAnalyzer Pass
-    std::unique_ptr<HeapTypeAnalyzer> p3 = 
-        std::make_unique<HeapTypeAnalyzer>();
-    for (u32_t i = 0; i < LLVMModuleSet::getLLVMModuleSet()->getModuleNum(); ++i) 
-    {
+    for (u32_t i = 0; i < LLVMModuleSet::getLLVMModuleSet()->getModuleNum(); ++i) {
         Module *module = LLVMModuleSet::getLLVMModuleSet()->getModule(i);
-        p3->runOnModule(*module);
+        llvm::legacy::PassManager PM;
+        llvm::TargetLibraryInfoWrapperPass* infoPass = new llvm::TargetLibraryInfoWrapperPass();
+        llvm::CFLAndersAAWrapperPass* aaPass = new llvm::CFLAndersAAWrapperPass();
+        HeapTypeAnalyzer* heapTyPass = new HeapTypeAnalyzer();
+        PM.add(infoPass);
+        PM.add(aaPass);
+        PM.add(heapTyPass);
+        PM.run(*module);
     }
 }
 
