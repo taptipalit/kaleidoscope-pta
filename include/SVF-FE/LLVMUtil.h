@@ -89,6 +89,9 @@ inline bool isHeapAllocExtFunViaArg(const SVFFunction* fun)
     return fun && ExtAPI::getExtAPI()->is_arg_alloc(fun);
 }
 
+inline void addHeapCall(Function* heapFunctionCall) {
+    ExtAPI::getExtAPI()->addHeapCall(heapFunctionCall->getName());
+}
 /// interfaces to be used externally
 inline bool isHeapAllocExtCallViaRet(const CallSite cs)
 {

@@ -33,6 +33,7 @@
 #include "SVF-FE/CPPUtil.h"
 #include "Util/BasicTypes.h"
 #include "Util/SVFModule.h"
+#include <vector>
 
 namespace SVF
 {
@@ -63,9 +64,13 @@ private:
     /// Constructor
     LLVMModuleSet(): svfModule(nullptr), cxts(nullptr), preProcessed(false) {}
 
+    std::vector<Function*> heapCalls;
     void build();
 
 public:
+
+    std::vector<Function*>& getHeapCalls() { return heapCalls; }
+
     static inline LLVMModuleSet *getLLVMModuleSet()
     {
         if (llvmModuleSet == nullptr)

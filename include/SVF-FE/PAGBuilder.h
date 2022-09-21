@@ -65,6 +65,15 @@ public:
     }
 
     
+    bool isPseudoExtHeapCall(CallSite cs) {
+        if (!cs.getCalledFunction()) return false;
+        return isPseudoExtHeapCall(cs.getCalledFunction());
+    }
+
+    bool isPseudoExtHeapCall(Function* function) {
+        return svfMod->isHeapCall(function);
+    }
+
     /// Start building PAG here
     virtual PAG* build(SVFModule* svfModule);
 

@@ -56,7 +56,9 @@ int main(int argc, char ** argv)
     SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
 
    // llvm::Module *module = SVF::LLVMModuleSet::getLLVMModuleSet()->getMainLLVMModule(); 
-
+    for (Function* heapCall: svfModule->getHeapCalls()) {
+        SVFUtil::addHeapCall(heapCall); 
+    }
     
     svfModule->buildSymbolTableInfo();
 

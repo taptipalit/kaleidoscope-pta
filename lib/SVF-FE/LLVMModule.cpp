@@ -70,6 +70,10 @@ SVFModule* LLVMModuleSet::buildSVFModule(Module &mod)
     
     build();
 
+    for (Function* heapCall: heapCalls) {
+        svfModule->addHeapCall(heapCall);
+    }
+
     return svfModule;
 }
 
@@ -120,6 +124,11 @@ SVFModule* LLVMModuleSet::buildSVFModule(const std::vector<std::string> &moduleN
 
     build();
 
+    for (Function* heapCall: heapCalls) {
+        svfModule->addHeapCall(heapCall);
+    }
+
+
     return svfModule;
 }
 
@@ -166,6 +175,10 @@ void LLVMModuleSet::preInitialize() {
         PM.add(aaPass);
         PM.add(heapTyPass);
         PM.run(*module);
+
+        for (Function* heapCall: heapTyPass->getHeapCalls()) {
+            heapCalls.push_back(heapCall);
+        }
     }
 }
 

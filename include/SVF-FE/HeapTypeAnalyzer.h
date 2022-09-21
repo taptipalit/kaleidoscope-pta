@@ -35,8 +35,13 @@ private:
 
     std::map<Function*, std::vector<Function*>> callers;
     std::map<Function*, std::vector<Function*>> callees;
+
+    std::vector<Function*> heapCalls;
+
 public:
     static char ID;
+
+    std::vector<Function*>& getHeapCalls() { return heapCalls; }
     HeapTypeAnalyzer() : ModulePass(ID) {
         /*
         memAllocFns.push_back("ngx_alloc");

@@ -503,6 +503,19 @@ void SymbolTableInfo::buildMemModel(SVFModule* svfModule)
         {
             const Instruction *inst = &*II;
             collectSym(inst);
+            
+            // Special handling for CallInsts to psuedo heap calls
+            // We need this callsite to be treated as an object
+            // Update: We change the ExtAPI cache
+            /*
+            if (const CallInst* cInst = SVFUtil::dyn_cast<CallInst>(inst)) {
+                if (Function* calledFunc = cInst->getCalledFunction()) {
+                    if (svfModule->isHeapCall(calledFunc)) {
+                        collectObj(inst);
+                    }
+                }
+            }
+            */
 
             // initialization for some special instructions
             //{@

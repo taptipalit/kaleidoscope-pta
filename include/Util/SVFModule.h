@@ -62,12 +62,13 @@ private:
     GlobalSetType GlobalSet;      ///< The Global Variables in the module
     AliasSetType AliasSet;        ///< The Aliases in the module
     LLVMFun2SVFFunMap LLVMFunc2SVFFunc; ///< Map an LLVM Function to an SVF Function
+
+    std::vector<Function*> heapCalls;
 public:
     /// Constructors
     SVFModule(std::string moduleName = "") : moduleIdentifier(moduleName)
     {
     }
-
 
     static inline void setPagFromTXT(std::string txt)
     {
@@ -86,6 +87,16 @@ public:
         else
             return true;
     }
+
+    void addHeapCall(Function* func) {
+        heapCalls.push_back(func);
+    }
+
+    bool isHeapCall(Function* func) {
+        return std::find(heapCalls.begin(), heapCalls.end(), func) != heapCalls.end();
+    }
+
+    std::vector<Function*>& getHeapCalls() { return heapCalls; }
 
     void buildSymbolTableInfo();
 

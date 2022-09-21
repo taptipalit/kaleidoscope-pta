@@ -287,7 +287,9 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypes(llvm::Module& module) {
                 if (callInst) {
                     Function* calledFunc = callInst->getCalledFunction();
                     if (calledFunc) {
-                        if (std::find(memAllocFns.begin(), memAllocFns.end(), calledFunc->getName()) != memAllocFns.end()) {
+                        if (std::find(memAllocFns.begin(), memAllocFns.end(), calledFunc->getName()) != memAllocFns.end() 
+                                && std::find(heapCalls.begin(), heapCalls.end(), F) == heapCalls.end() 
+                                /* if the caller is a heap allocator we don't care*/) {
                             if (!sizeOfTyName) {
                                 llvm::errs() << "No type annotation for heap call: " << *callInst << " in function : " << callInst->getFunction()->getName() << " treating as scalar\n";
                                 callInst->addAnnotationMetadata("IntegerType");
@@ -511,6 +513,7 @@ bool HeapTypeAnalyzer::returnsUntypedMalloc(Function* potentialMallocWrapper) {
     for (inst_iterator I = inst_begin(potentialMallocWrapper), E = inst_end(potentialMallocWrapper); I != E; ++I) {
         if (ReturnInst* retInst = SVFUtil::dyn_cast<ReturnInst>(&*I)) {
             if (Instruction* retValue = SVFUtil::dyn_cast<Instruction>(retInst->getReturnValue())) {
+                if (retValue == mallockedPtr) return true;
                 llvm::AliasResult isAlias = aaResult.query(
                         llvm::MemoryLocation(mallockedPtr, llvm::LocationSize(64)), 
                         llvm::MemoryLocation(retValue, llvm::LocationSize(64)));
@@ -540,6 +543,7 @@ void HeapTypeAnalyzer::findHeapContexts (Module& M) {
                 }
                 if (returnsUntypedMalloc(caller) && callees[caller].size() < 7) {
                     oneLevelFuncs.push_back(caller);
+                    heapCalls.push_back(caller);
                 }
             }
         }
@@ -552,6 +556,7 @@ void HeapTypeAnalyzer::findHeapContexts (Module& M) {
     for (Function* memAllocFn: oneLevelFuncs) {
         for (Function* caller: callers[memAllocFn]) {
             if (caller->getInstructionCount() < 10) {
+                heapCalls.push_back(caller);
                 twoLevelFuncs.push_back(caller);
             }
         }

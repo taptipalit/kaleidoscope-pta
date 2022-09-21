@@ -77,6 +77,9 @@ PAG* PAGBuilder::build(SVFModule* svfModule)
             fit != efit; ++fit)
     {
         const SVFFunction& fun = **fit;
+        if (isPseudoExtHeapCall(fun.getLLVMFun())) {
+            continue;
+        }
         /// collect return node of function fun
         if(!SVFUtil::isExtCall(&fun))
         {
@@ -747,7 +750,7 @@ void PAGBuilder::visitCallSite(CallSite cs)
 
     if (callee)
     {
-        if (isExtCall(callee))
+        if (isExtCall(callee) || isPseudoExtHeapCall(cs))
         {
             if (ExternalPAG::hasExternalPAG(callee))
             {
@@ -1000,10 +1003,10 @@ void PAGBuilder::addComplexConsForExt(Value *D, Value *S, u32_t sz)
 void PAGBuilder::handleExtCall(CallSite cs, const SVFFunction *callee)
 {
     const Instruction* inst = cs.getInstruction();
-    if (isHeapAllocOrStaticExtCall(cs))
+    if (isHeapAllocOrStaticExtCall(cs) || isPseudoExtHeapCall(cs) )
     {
         // case 1: ret = new obj
-        if (isHeapAllocExtCallViaRet(cs) || isStaticExtCall(cs))
+        if (isHeapAllocExtCallViaRet(cs) || isStaticExtCall(cs) || isPseudoExtHeapCall(cs))
         {
             NodeID val = getValueNode(inst);
             NodeID obj = getObjectNode(inst);
