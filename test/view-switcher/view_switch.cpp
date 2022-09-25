@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <vector>
 #include <map>
+#include <unordered_set>
 
 using namespace std;
 
@@ -15,13 +16,18 @@ typedef uint64_t InvariantVal;
 std::map<InvariantID, InvariantVal> pwcInvariants;
 
 // For VGEP
-std::map<CycleID, uint64_t> vgepMap;
+std::map<CycleID, std::unordered_set<uint64_t>> vgepMap;
 
 extern bool invFlipped;
 
 INLINE
 extern "C" void vgepRecordTarget(InvariantID id, InvariantVal val) {
-    vgepMap[id] = val;
+    if (val == 0x0) {
+        // This is used to reset stack variables
+        vgepMap[id].clear();
+    } else {
+        vgepMap[id].insert(val);
+    }
 }
 
 /**
@@ -37,8 +43,8 @@ INLINE
 extern "C" uint32_t ptdTargetCheck(uint64_t* tgt, uint64_t len, uint64_t* tgts) {
     for (int i = 0; i < len; i++) {
         uint64_t id = tgts[i];
-        uint64_t ptrVal = vgepMap[id];
-        if (tgt == (uint64_t*)ptrVal) {
+        auto valSet = vgepMap[id];
+        if (valSet.find((uint64_t)tgt) != valSet.end()) {
             cout << "VGEP invariant failed\n";
             //invFlipped = true;
             return 1;
