@@ -156,7 +156,6 @@ void InvariantHandler::handlePWCInvariants() {
         // Not all pointer nodes have backing values
         // Let's get the count of the ones that do
         int ptrValCount = it->second.size();
-        llvm::errs() << "PWC ID: " << pwcID << "\n";
         GetElementPtrInst* nonLoopGep = nullptr;
         std::vector<GetElementPtrInst*> geps;
 
