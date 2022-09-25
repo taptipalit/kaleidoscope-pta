@@ -22,6 +22,7 @@ SVF_HOME=/home/tpalit/svf-kernel/
 if [ -f $file_c ]
 then
     clang -c -O0 -ggdb $file_c -emit-llvm -o $file_bc
+    llvm-dis $file_bc
 fi
 
 

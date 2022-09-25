@@ -387,6 +387,12 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
         // If a pointer is connected by a variant gep edge,
         // then set this memory object to be field insensitive,
         // unless the object is a black hole/constant.
+        llvm::Value* llvmValue = vgepCGEdge->getLLVMValue();
+        if (llvm::Instruction* inst = SVFUtil::dyn_cast<llvm::Instruction>(llvmValue)) {
+            if (inst->getParent()->getParent()->getName() == "sha256_transform") {
+                llvm::errs() << "sha256_transform: " << *inst << "\n";
+            }
+        }
         for (NodeID o : pts)
         {
             if (consCG->isBlkObjOrConstantObj(o))
@@ -395,13 +401,15 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                 continue;
             } 
             
-            if (Options::InvariantVGEP && !vgepCGEdge->isStructTy()) {
+            PAGNode* objNode = pag->getPAGNode(o);
+            if (Options::InvariantVGEP && !vgepCGEdge->isStructTy() && !SVFUtil::isa<GepObjPN>(objNode)) {
                 // First of all, we believe that variable indices
                 // when the type is a complex type, are most definitely accessing 
                 // an element in the array.
                 // GetElementPtrInst* vgep = vgepCGEdge->getLLVMValue();
 
                 // For the rest, we add the invariant
+
                 if (consCG->isStructTy(o)) {
                     // We assume these don't happen
                     // We will add the invariant later

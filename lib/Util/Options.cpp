@@ -30,6 +30,12 @@ namespace SVF
             llvm::cl::desc("Handle VGEP"));
     */
 
+    llvm::cl::opt<bool> Options::ShortCircuit(
+            "short-circuit",
+            llvm::cl::init(true),
+            llvm::cl::desc("Short circuit"));
+
+
     llvm::cl::opt<bool> Options::InvariantPWC(
             "invariant-pwc",
             llvm::cl::init(true),

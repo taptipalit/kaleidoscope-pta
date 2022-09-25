@@ -134,15 +134,19 @@ void WPAPass::collectCFI(Module& M, bool woInv) {
         histogram = &woInvHistogram;
     }
 
+
     PAG* pag = _pta->getPAG();
     for (Module::iterator MIterator = M.begin(); MIterator != M.end(); MIterator++) {
         if (Function* F = SVFUtil::dyn_cast<Function>(&*MIterator)) {
+            llvm::errs() << "Function: " << F->getName() << "\n";
             for (inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F); I != E; ++I) {
                 if (CallInst* callInst = SVFUtil::dyn_cast<CallInst>(&*I)) {
                     if (callInst->isIndirectCall()) {
                         NodeID callNodePtr = pag->getPAGNode(pag->getValueNode(callInst->getCalledOperand()))->getId(); 
                         const PointsTo& pts = _pta->getPts(callNodePtr);
                         bool hasTarget = false;
+
+                        llvm::errs() << "For a callsite in " << F->getName() << " : \n";
                         for (PointsTo::iterator piter = pts.begin(), epiter = pts.end(); piter != epiter; ++piter) {
                             NodeID ptd = *piter;
                             if (pag->hasPAGNode(ptd)) {
@@ -151,11 +155,14 @@ void WPAPass::collectCFI(Module& M, bool woInv) {
                                     if (const Function* tgtFunction = SVFUtil::dyn_cast<Function>(tgtNode->getValue())) {
                                         hasTarget = true;
                                         (*indCallMap)[callInst].insert(const_cast<Function*>(tgtFunction));
+                                        llvm::errs() << "    calls " << tgtFunction->getName() << "\n";
+                                        //funcIndCallMap[F][callInst].push_back(const_cast<Function*>(tgtFunction));
                                     }
                                 }
                             }
                         }
                         if (!hasTarget) {
+                            llvm::errs() << "   in " << F->getName() << " NO TARGET FOUND\n";
                             (*indCallProhibited).insert(callInst);
                         }
                     }
@@ -164,6 +171,8 @@ void WPAPass::collectCFI(Module& M, bool woInv) {
         }
 
     }
+
+
 
     (*histogram)[0] = indCallProhibited->size();
     
@@ -481,25 +490,29 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 
     collectCFI(*module, false);
 
-    Options::InvariantVGEP = false;
-    Options::InvariantPWC = false;
+    if (Options::ShortCircuit) {
+        collectCFI(*module, true);
+    } else {
+        Options::InvariantVGEP = false;
+        Options::InvariantPWC = false;
 
-    builder.getPAG()->resetPAG();
-    SymbolTableInfo::releaseSymbolInfo();
+        builder.getPAG()->resetPAG();
+        SymbolTableInfo::releaseSymbolInfo();
 
-    // Round 2
-    svfModule->buildSymbolTableInfo();
+        // Round 2
+        svfModule->buildSymbolTableInfo();
 
-    PAGBuilder builder2;
+        PAGBuilder builder2;
 
-    PAG* pag2 = builder2.build(svfModule);
-    _pta = new AndersenWaveDiff(pag2);
-    ptaVector.clear();
-    ptaVector.push_back(_pta);
-    _pta->analyze();
+        PAG* pag2 = builder2.build(svfModule);
+        _pta = new AndersenWaveDiff(pag2);
+        ptaVector.clear();
+        ptaVector.push_back(_pta);
+        _pta->analyze();
 
-    collectCFI(*module, true);
-    
+        collectCFI(*module, true);
+    }
+
     // At the end of collectCFI
     // we have two maps inside WPAPass populated
     // the wInvIndCallMap and the woInvIndCallMap

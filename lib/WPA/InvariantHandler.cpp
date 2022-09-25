@@ -32,12 +32,31 @@ void InvariantHandler::recordTarget(int id, Value* target) {
 
     if (shouldReset) {
         Function* func = stackVar->getParent()->getParent();
+        std::vector<CallInst*> innerCalls;
+        std::vector<ReturnInst*> returns;
         for (inst_iterator I = inst_begin(func), E = inst_end(func); I != E; ++I) {
             if (ReturnInst* ret = SVFUtil::dyn_cast<ReturnInst>(&*I)) {
-                builder->SetInsertPoint(ret); 
-                // Reset the Invariant
-                builder->CreateCall(vgepPtdRecordFn, {idConstant, Constant::getNullValue(i64Ty)});
+                returns.push_back(ret);
             }
+            if (CallInst* call = SVFUtil::dyn_cast<CallInst>(&*I)) {
+                if (call->getCalledFunction() != vgepPtdRecordFn) {
+                    innerCalls.push_back(call);
+                }
+            }
+        }
+        for (ReturnInst* ret: returns) {
+            builder->SetInsertPoint(ret); 
+            // Reset the Invariant
+            builder->CreateCall(vgepPtdRecordFn, {idConstant, Constant::getNullValue(i64Ty)});
+        }
+        for (CallInst* call: innerCalls) {
+            builder->SetInsertPoint(call);
+            // Reset the Invariant before the call
+            builder->CreateCall(vgepPtdRecordFn, {idConstant, Constant::getNullValue(i64Ty)});
+            // Restore it after the call
+            builder->SetInsertPoint(call->getNextNode()); 
+            Value* ptrVal = builder->CreateBitOrPointerCast(target, i64Ty);
+            builder->CreateCall(vgepPtdRecordFn, {idConstant, ptrVal});
         }
     }
 }
