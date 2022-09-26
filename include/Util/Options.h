@@ -18,9 +18,11 @@ class Options
 public:
     Options(void) = delete;
 
+
+    static llvm::cl::list<std::string> DebugFuncsList;
+    static llvm::cl::opt<bool> ShortCircuit;
     static llvm::cl::opt<bool> InvariantVGEP;
     static llvm::cl::opt<bool> InvariantPWC;
-    static llvm::cl::opt<bool> ShortCircuit;
 
     static const llvm::cl::opt<bool> KaliRunTestDriver;
     static llvm::cl::opt<bool> NoInvariants;

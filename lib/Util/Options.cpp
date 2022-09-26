@@ -5,11 +5,16 @@
 
 namespace SVF
 {
+
+    llvm::cl::list<std::string>
+        Options::DebugFuncsList("debug-funcs", llvm::cl::value_desc("function names to debug"),
+                llvm::cl::desc("Only debug the functions listed here"),
+                llvm::cl::CommaSeparated, llvm::cl::Hidden);
+
     llvm::cl::opt<bool> Options::InvariantVGEP(
         "invariant-vgep",
         llvm::cl::init(true),
         llvm::cl::desc("Handle invariants for the vgep"));
-
 
     /*
     const llvm::cl::opt<bool> Options::Kaleidoscope(

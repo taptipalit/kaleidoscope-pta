@@ -2,7 +2,7 @@
 #include "llvm/IR/InstIterator.h"
 
 
-void InvariantHandler::recordTarget(int id, Value* target) {
+void InvariantHandler::recordTarget(int id, Value* target, Function* instFun) {
     IRBuilder* builder;
     LLVMContext& C = mod->getContext();
 
@@ -28,7 +28,7 @@ void InvariantHandler::recordTarget(int id, Value* target) {
 
     Constant* idConstant = ConstantInt::get(i32Ty, id);
     Value* ptrVal = builder->CreateBitOrPointerCast(target, i64Ty);
-    builder->CreateCall(vgepPtdRecordFn, {idConstant, ptrVal});
+    builder->CreateCall(instFun, {idConstant, ptrVal});
 
     if (shouldReset) {
         Function* func = stackVar->getParent()->getParent();
@@ -39,7 +39,7 @@ void InvariantHandler::recordTarget(int id, Value* target) {
                 returns.push_back(ret);
             }
             if (CallInst* call = SVFUtil::dyn_cast<CallInst>(&*I)) {
-                if (call->getCalledFunction() != vgepPtdRecordFn) {
+                if (call->getCalledFunction() != instFun) {
                     innerCalls.push_back(call);
                 }
             }
@@ -47,16 +47,20 @@ void InvariantHandler::recordTarget(int id, Value* target) {
         for (ReturnInst* ret: returns) {
             builder->SetInsertPoint(ret); 
             // Reset the Invariant
-            builder->CreateCall(vgepPtdRecordFn, {idConstant, Constant::getNullValue(i64Ty)});
+            builder->CreateCall(instFun, {idConstant, Constant::getNullValue(i64Ty)});
         }
         for (CallInst* call: innerCalls) {
+            if (call->getCalledFunction() &&
+                    call->getCalledFunction()->getName().contains(".dbg")) {
+                continue;
+            }
             builder->SetInsertPoint(call);
             // Reset the Invariant before the call
-            builder->CreateCall(vgepPtdRecordFn, {idConstant, Constant::getNullValue(i64Ty)});
+            builder->CreateCall(instFun, {idConstant, Constant::getNullValue(i64Ty)});
             // Restore it after the call
             builder->SetInsertPoint(call->getNextNode()); 
             Value* ptrVal = builder->CreateBitOrPointerCast(target, i64Ty);
-            builder->CreateCall(vgepPtdRecordFn, {idConstant, ptrVal});
+            builder->CreateCall(instFun, {idConstant, ptrVal});
         }
     }
 }
@@ -77,7 +81,7 @@ void InvariantHandler::instrumentVGEPInvariant(GetElementPtrInst* gep, std::vect
             id = kaliInvariantId++;
             valueToKaliIdMap[target] = id;
             kaliIdToValueMap[id] = target;
-            recordTarget(id, target);
+            recordTarget(id, target, vgepPtdRecordFn);
         } else {
             id = valueToKaliIdMap[target];
         }

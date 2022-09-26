@@ -46,6 +46,8 @@
 #include "WPA/Steensgaard.h"
 #include "SVF-FE/PAGBuilder.h"
 #include "WPA/InvariantHandler.h"
+#include "WPA/Debugger.h"
+
 //#include "InsertFunctionSwitch.h"
 //#include "InsertExecutionSwitch.h"
 
@@ -571,8 +573,13 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
     // Handle the invariants
     if (!Options::NoInvariants) {
         InvariantHandler IHandler(svfModule, module, pag, loopInfoPass); // this one should be the original PAG
+        IHandler.init();
         IHandler.handleVGEPInvariants();
         IHandler.handlePWCInvariants();
+
+        Debugger debugger(svfModule, module, pag, loopInfoPass, _pta);
+        debugger.init();
+
     }
 
 

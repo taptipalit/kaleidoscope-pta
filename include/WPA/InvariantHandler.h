@@ -9,8 +9,20 @@
 
 #include<vector>
 
+#ifndef IHANDLER_H_
+#define IHANDLER_H_
+
+
 using namespace SVF;
 class InvariantHandler {
+    protected:
+
+        PAG* pag;
+
+        llvm::Module* mod;
+
+        SVFModule* svfMod;
+
     private:
         std::map<llvm::Value*, int> valueToKaliIdMap;
         std::map<int, llvm::Value*> kaliIdToValueMap;
@@ -20,20 +32,17 @@ class InvariantHandler {
         llvm::Function* ptdTargetCheckFn;
         llvm::Function* updatePWCFn;
         llvm::Function* checkPWCFn;
-        llvm::Module* mod;
-        SVFModule* svfMod;
 
-        PAG* pag;
         LoopInfoWrapperPass* loopInfo;
+
 
     public:
         void handleVGEPInvariants();
         void handlePWCInvariants();
         void instrumentVGEPInvariant(llvm::GetElementPtrInst*, std::vector<llvm::Value*>&);
-        void recordTarget(int, llvm::Value*);
+        void recordTarget(int, llvm::Value*, llvm::Function*);
 
         InvariantHandler(SVFModule* S, llvm::Module* M, PAG* p, LoopInfoWrapperPass* lInfo): kaliInvariantId(0), ptdTargetCheckFn(nullptr), mod(M), svfMod(S), pag(p), loopInfo(lInfo) {
-            init();
         }
 
         void initVGEPInvariants();
@@ -41,3 +50,5 @@ class InvariantHandler {
         void init();
         int computeOffsetInPWC(std::vector<llvm::GetElementPtrInst*>&, llvm::GetElementPtrInst*);
 };
+
+#endif

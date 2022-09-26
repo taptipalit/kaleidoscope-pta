@@ -27,7 +27,7 @@ fi
 
 
 /home/tpalit/svf-kernel/Debug-build/bin/wpa -invariant-pwc=true \
--invariant-vgep=true -ptd=persistent -ander $file_bc
+-invariant-vgep=true -ptd=persistent -debug-funcs=aeProcessEvent -ander $file_bc
 
 if [ $? -ne 0 ]; then
     echo "Failed to run invariant-based pointer analysis"
@@ -39,8 +39,10 @@ cp instrumented-module.bc $file_inst
 llvm-dis $file_inst -o $file_inst_ll
 opt -verify $file_inst -o $file_discard
 
-clang++ -c -ggdb -emit-llvm $SVF_HOME/test/view-switcher/view_switch.cpp -o $SVF_HOME/test/view-switcher/view_switch.bc
-llvm-link $file_inst $SVF_HOME/test/view-switcher/docfi.bc $SVF_HOME/test/view-switcher/view_switch.bc -o $file_linked
+clang++ -c -O0 -ggdb -emit-llvm $SVF_HOME/test/view-switcher/view_switch.cpp -o $SVF_HOME/test/view-switcher/view_switch.bc
+clang++ -c -O0 -ggdb -emit-llvm $SVF_HOME/test/view-switcher/debugger.cpp -o $SVF_HOME/test/view-switcher/debugger.bc
+clang++ -c -O0 -ggdb -emit-llvm $SVF_HOME/test/view-switcher/docfi.cpp -o $SVF_HOME/test/view-switcher/docfi.bc
+llvm-link $file_inst $SVF_HOME/test/view-switcher/docfi.bc $SVF_HOME/test/view-switcher/view_switch.bc $SVF_HOME/test/view-switcher/debugger.bc -o $file_linked
 
 if [ $? -ne 0 ]; then
     echo "Generated broken bitcode"
