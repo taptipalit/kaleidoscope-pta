@@ -315,8 +315,21 @@ void PointerAnalysis::dumpAllTypes()
  */
 void PointerAnalysis::dumpPts(NodeID ptr, const PointsTo& pts)
 {
+    std::unordered_set<std::string> DebugFuncNames(Options::DebugFuncsList.begin(),
+            Options::DebugFuncsList.end());
 
     const PAGNode* node = pag->getPAGNode(ptr);
+    if (!DebugFuncNames.empty()) {
+        if (node->hasValue()) {
+            const Value* pagValue = node->getValue();
+            if (const Instruction* inst = SVFUtil::dyn_cast<Instruction>(pagValue)) {
+                if (DebugFuncNames.find(inst->getFunction()->getName().str())
+                        == DebugFuncNames.end()) {
+                    return;
+                }
+            }
+        }
+    }
     /// print the points-to set of node which has the maximum pts size.
     if (SVFUtil::isa<DummyObjPN> (node))
     {

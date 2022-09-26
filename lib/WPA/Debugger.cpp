@@ -13,12 +13,13 @@ void Debugger::instrumentPointer(Instruction* inst) {
     Value* pointer = nullptr;
 
     if (LoadInst* loadInst = SVFUtil::dyn_cast<LoadInst>(inst)) {
-        pointer = loadInst->getPointerOperand();
+        pointer = loadInst;
     } else if (StoreInst* storeInst = SVFUtil::dyn_cast<StoreInst>(inst)) {
         pointer = storeInst->getPointerOperand();
-    } else if (AllocaInst* allocaInst = SVFUtil::dyn_cast<AllocaInst>(inst)) {
+    } /*else if (AllocaInst* allocaInst = SVFUtil::dyn_cast<AllocaInst>(inst)) {
         pointer = allocaInst;
     }
+    */
 
     NodeID nodeId = pag->getValueNode(inst);
     bool isRelax = false;
@@ -129,8 +130,8 @@ void Debugger::init() {
                 != DebugFuncNames.end()) {
             for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
                 Instruction* inst = &*I;
-                if (SVFUtil::isa<LoadInst>(inst) || SVFUtil::isa<StoreInst>(inst) || 
-                        SVFUtil::isa<AllocaInst>(inst)) {
+                if (SVFUtil::isa<LoadInst>(inst) /*|| SVFUtil::isa<StoreInst>(inst) || 
+                        SVFUtil::isa<AllocaInst>(inst)*/) {
                     if (inst->getType()->isPointerTy()) {
                         instList.push_back(inst);
                     }
@@ -140,20 +141,23 @@ void Debugger::init() {
     }
 
     for (Instruction* inst: instList) {
+        /*
         bool hasPointer = false;
         if (LoadInst* ldInst = SVFUtil::dyn_cast<LoadInst>(inst)) {
             if (ldInst->getType()->isPointerTy()) {
                 hasPointer = true;
             }
-        } else if (StoreInst* stInst = SVFUtil::dyn_cast<StoreInst>(inst)) {
+        }
+        */
+       /*else if (StoreInst* stInst = SVFUtil::dyn_cast<StoreInst>(inst)) {
             if (stInst->getValueOperand()->getType()->isPointerTy()) {
                 hasPointer = true;
             }
-        }
+        }*/
         
-        if (hasPointer) {
+        //if (hasPointer) {
             instrumentPointer(inst);
-        }
+        //}
     }
 //    mod->dump();
 }

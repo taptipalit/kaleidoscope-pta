@@ -4,6 +4,7 @@
 #include <map>
 #include <unordered_set>
 #include <execinfo.h>
+#include <algorithm>
 
 using namespace std;
 
@@ -30,13 +31,15 @@ static inline void printBacktrace() {
 INLINE 
 extern "C" void checkPtr(Val ptr, int len, Id* validTargets, int relax) {
     bool found = false;
+    std::vector<uint64_t> valList;
     for (int i = 0; i < len; i++) {
         Id id  = validTargets[i];
         auto valSet = valMap[id];
-        if (valSet.find((uint64_t)ptr) == valSet.end()) {
-            found = true;
-            break;
-        }
+        valList.insert(valList.end(), valSet.begin(), valSet.end());
+        
+    }
+    if (std::find(valList.begin(), valList.end(), ptr) != valList.end()) {
+        found = true;
     }
     if (!found) {
         if (!relax) {
@@ -52,5 +55,9 @@ extern "C" void checkPtr(Val ptr, int len, Id* validTargets, int relax) {
 
 INLINE
 extern "C" void recordTarget(Id id, Val val) {
-    valMap[id].insert(val);
+    if (val == 0x0) {
+        valMap[id].clear();
+    } else {
+        valMap[id].insert(val);
+    }
 }
