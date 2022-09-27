@@ -87,10 +87,11 @@ void Debugger::addFunctionDefs() {
     Type* voidType = Type::getVoidTy(mod->getContext());
     Type* longType = IntegerType::get(mod->getContext(), 64);
     Type* intType = IntegerType::get(mod->getContext(), 32);
+    Type* longPtrType = PointerType::get(longType, 0);
 
     // Install the Record Routine --> recordTarget(InvariantID* ids, int len, InvariantVal val) 
     std::vector<Type*> recordTypes;
-    recordTypes.push_back(intType);
+    recordTypes.push_back(longPtrType);
     recordTypes.push_back(longType);
     recordTypes.push_back(longType);
 

@@ -37,11 +37,29 @@ void InvariantHandler::recordTarget(std::vector<int>& ids, Value* target, Functi
     llvm::ArrayRef<Constant*> consIdArr(consIdVec);
 
     Constant* invariantIdArr = ConstantArray::get(arrTy, consIdArr);
+    GlobalVariable* invariantIdArrGvar = new GlobalVariable(*mod, 
+            /*Type=*/arrTy,
+            /*isConstant=*/true,
+            /*Linkage=*/GlobalValue::ExternalLinkage,
+            /*Initializer=*/0, // has initializer, specified below
+            /*Name=*/"cons id");
+    invariantIdArrGvar->setInitializer(invariantIdArr);
     
     Constant* cLen = ConstantInt::get(i64Ty, consIdVec.size());
  
     Value* ptrVal = builder->CreateBitOrPointerCast(target, i64Ty);
-    builder->CreateCall(instFun, {invariantIdArr, cLen, ptrVal});
+
+
+    Constant* Zero = ConstantInt::get(C, llvm::APInt(64, 0));
+    //Value* firstCons = Builder.CreateGEP(kaliIdArr->getType(), kaliIdArr, Zero);
+    llvm::ArrayRef<Value*> zeroIdxs {Zero/*, Zero*/}; // single Zero, because
+                                                      // it's not in memory
+                                                      // It's a constant
+    Value* ptrToInvArray = builder->CreateGEP(arrTy,invariantIdArrGvar, zeroIdxs);
+
+    Value* invariantIdArrPtr = builder->CreateBitOrPointerCast(ptrToInvArray,
+            i64PtrTy);
+    builder->CreateCall(instFun, {invariantIdArrPtr, cLen, ptrVal});
 
     if (shouldReset) {
         Function* func = stackVar->getParent()->getParent();
@@ -103,6 +121,7 @@ void InvariantHandler::instrumentVGEPInvariant(GetElementPtrInst* gep, std::vect
             //recordTarget(id, target, vgepPtdRecordFn);
         } else {
             id = valueToKaliIdMap[target];
+            valueInvariantIdsMap[target].push_back(id);
         }
         tgtKaliIDs.push_back(id);
     }
@@ -283,11 +302,13 @@ void InvariantHandler::initVGEPInvariants() {
     Type* longType = IntegerType::get(mod->getContext(), 64);
     Type* intType = IntegerType::get(mod->getContext(), 32);
 
+    Type* ptrToLongType = PointerType::get(longType, 0);
+
     // Install the vgepRecord Routine --> vgepRecordTarget(InvariantID* ids, int len, InvariantVal val)
     // The same invariant value can figure in many invariants
     // We can just update them all at once, instead of adding multiple function calls
     std::vector<Type*> vgepRecordTypes;
-    vgepRecordTypes.push_back(intType);
+    vgepRecordTypes.push_back(ptrToLongType);
     vgepRecordTypes.push_back(longType);
     vgepRecordTypes.push_back(longType);
 
@@ -301,7 +322,6 @@ void InvariantHandler::initVGEPInvariants() {
     // ptdTargetCheck(unsigned long* valid_tgts, long len, unsigned long* tgt);
     std::vector<Type*> ptdTargetCheckType;
 
-    Type* ptrToLongType = PointerType::get(longType, 0);
     ptdTargetCheckType.push_back(ptrToLongType);
     ptdTargetCheckType.push_back(longType);
     ptdTargetCheckType.push_back(ptrToLongType); 
