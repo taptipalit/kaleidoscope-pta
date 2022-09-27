@@ -30,6 +30,7 @@ static inline void printBacktrace() {
 
 INLINE 
 extern "C" void checkPtr(Val ptr, int len, Id* validTargets, int relax) {
+    if (ptr == 0x0) return;
     bool found = false;
     std::vector<uint64_t> valList;
     for (int i = 0; i < len; i++) {
@@ -45,7 +46,6 @@ extern "C" void checkPtr(Val ptr, int len, Id* validTargets, int relax) {
         if (!relax) {
             cerr << "[STRICT] Pointer relationship violated here:\n";
             printBacktrace();
-            exit(-1);
         } else {
             cerr << "[RELAX] Pointer relationship violated here:\n";
             printBacktrace();

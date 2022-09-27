@@ -1,0 +1,395 @@
++ file=testpointerrels
++ options=
++ file_c=testpointerrels.c
++ file_bc=testpointerrels.bc
++ file_linked=testpointerrels_linked.bc
++ file_inst=testpointerrels_inst.bc
++ file_inst_ll=testpointerrels_inst.ll
++ file_discard=testpointerrels_discard.bc
++ file_linked_inline=testpointerrels_linked_inline.bc
++ file_linked_inline_ll=testpointerrels_linked_inline.ll
++ file_exe=testpointerrels.exe
++ SVF_HOME=/home/tpalit/svf-kernel/
++ '[' -f testpointerrels.c ']'
++ clang -c -O0 -ggdb testpointerrels.c -emit-llvm -o testpointerrels.bc
++ llvm-dis testpointerrels.bc
++ /home/tpalit/svf-kernel/Debug-build/bin/wpa -invariant-pwc=true -invariant-vgep=true -ptd=persistent -print-all-pts -debug-funcs=aeSearchNearestTimer,main -ander testpointerrels.bc
+I saw a module called testpointerrels.bc!
+Running with invariants turned on
+
+*********CallGraph Stats***************
+################ (program : )###############
+-------------------------------------------------------
+CalRetPairInCycle   0
+TotalEdge           1
+MaxNodeInCycle      0
+NodeInCycle         0
+TotalCycle          0
+TotalNode           4
+#######################################################
+
+*********General Stats***************
+################ (program : )###############
+CopysNum            2
+LoadsNum            3
+MaxStructSize       3
+AddrsNum            12
+LocalVarInRecur     0
+BitCastNumber       0
+FIObjNum            0
+ConstArrayObj       0
+StoresNum           4
+ConstStructObj      0
+NonPtrObj           7
+GepsNum             3
+TotalObjects        11
+FunctionObjs        4
+TotalPTAPAGEdges    16
+BBWith3Succ         0
+CallsNum            0
+FSObjNum            10
+BBWith2Succ         0
+ReturnsNum          0
+TotalFieldObjects   1
+GlobalObjs          1
+HeapObjs            1
+StackObjs           4
+VarStructObj        1
+VarArrayObj         1
+TotalPointers       32
+TotalPAGEdges       49
+IndCallSites        0
+TotalCallSite       1
+-------------------------------------------------------
+#######################################################
+
+*********Constraint Graph Stats***************
+################ (program : )###############
+-------------------------------------------------------
+AvgIn/OutEdge       0.666667
+AvgIn/OutAddrEdge   0.37037
+AvgIn/OutLoadEdge   0.037037
+AvgIn/OutCopyEdge   0.222222
+MaxInAddrEdge       1
+MaxOutStoreEdge     1
+NumOfCGNode         51
+TotalValidNode      27
+AvgIn/OutStoreEdge  0
+TotalValidObjNode   11
+NumOfGeps           3
+NumOfCGEdge         8
+NumOfAddrs          10
+MaxOutAddrEdge      1
+NumOfLoads          1
+NumOfStores         1
+MaxOutLoadEdge      1
+NumOfCopys          3
+MaxOutCopyEdge      2
+MaxInStoreEdge      1
+MaxInLoadEdge       1
+MaxInCopyEdge       1
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : )###############
+-------------------------------------------------------
+AvgTopLvlPtsSize    1
+CopyGepTime         0
+CollapseTime        0
+AvgPtsSetSize       0.294118
+UpdateCGTime        0
+LoadStoreTime       0
+SCCMergeTime        0
+SCCDetectTime       0
+TotalTime           0.001
+NullPointer         0
+NodesInCycles       0
+TotalPWCCycleNum    0
+NumOfSCCDetect      2
+TotalCycleNum       0
+IndEdgeSolved       0
+MaxNodesInSCC       0
+IndCallSites        0
+MaxPtsSetSize       1
+DYFieldObjs         1
+DYFieldPtrs         0
+MemObjects          11
+PointsToBlkPtr      0
+Pointers            32
+PointsToConstPtr    0
+NumOfFieldExpand    0
+Iterations          2
+NumOfSFRs           0
+StoreProcessed      1
+GepProcessed        3
+LoadProcessed       1
+CopyProcessed       2
+AddrProcessed       10
+TotalObjects        12
+TotalPointers       32
+#######################################################
+----------------------------------------------
+##<Dummy Obj > id:0
+Ptr 0 		PointsTo: {empty}
+
+----------------------------------------------
+##<Dummy Obj > id:1
+Ptr 1 		PointsTo: {empty}
+
+----------------------------------------------
+
+Ptr 2 		PointsTo: {empty}
+
+----------------------------------------------
+
+Ptr 3 		PointsTo: {empty}
+
+----------------------------------------------
+##<.str> Source Loc: { Glob  }
+Ptr 4 		PointsTo: { 1 }
+
+!!Target NodeID 1	 [Dummy Obj id: 1]
+----------------------------------------------
+##<> Source Loc: { Can only get source location for instruction, argument, global var, function or constant data. }
+Ptr 5 		PointsTo: {empty}
+
+----------------------------------------------
+##<kaliMap> Source Loc: { Glob  }
+Ptr 6 		PointsTo: { 7 }
+
+!!Target NodeID 7	 [<kaliMap> >Source Loc: { Glob  }] 
+----------------------------------------------
+##<kaliMap> Source Loc: { Glob  }
+Ptr 7 		PointsTo: {empty}
+
+----------------------------------------------
+##<main> Source Loc: { in line: 9 file: testpointerrels.c }
+Ptr 8 		PointsTo: { 9 }
+
+!!Target NodeID 9	 [<main> >Source Loc: { in line: 9 file: testpointerrels.c }] 
+----------------------------------------------
+##<main> Source Loc: { in line: 9 file: testpointerrels.c }
+Ptr 9 		PointsTo: {empty}
+
+----------------------------------------------
+##<main> Source Loc: { in line: 9 file: testpointerrels.c }
+Ptr 10 		PointsTo: {empty}
+
+----------------------------------------------
+##<retval> Source Loc: {  }
+Ptr 11 		PointsTo: { 12 }
+
+!!Target NodeID 12	 [<retval> >Source Loc: {  }] 
+----------------------------------------------
+##<retval> Source Loc: {  }
+Ptr 12 		PointsTo: {empty}
+
+----------------------------------------------
+##<a> Source Loc: { ln: 10 fl: testpointerrels.c }
+Ptr 13 		PointsTo: { 14 }
+
+!!Target NodeID 14	 [<a> >Source Loc: { ln: 10 fl: testpointerrels.c }] 
+----------------------------------------------
+##<a> Source Loc: { ln: 10 fl: testpointerrels.c }
+Ptr 14 		PointsTo: {empty}
+
+----------------------------------------------
+##<obj> Source Loc: { ln: 11 fl: testpointerrels.c }
+Ptr 15 		PointsTo: { 16 }
+
+!!Target NodeID 16	 [<obj> >Source Loc: { ln: 11 fl: testpointerrels.c }] 
+----------------------------------------------
+##<obj> Source Loc: { ln: 11 fl: testpointerrels.c }
+Ptr 16 		PointsTo: {empty}
+
+----------------------------------------------
+##<d> Source Loc: { ln: 14 fl: testpointerrels.c }
+Ptr 17 		PointsTo: { 18 }
+
+!!Target NodeID 18	 [<d> >Source Loc: { ln: 14 fl: testpointerrels.c }] 
+----------------------------------------------
+##<d> Source Loc: { ln: 14 fl: testpointerrels.c }
+Ptr 18 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: {  }
+Ptr 19 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { constant data }
+Ptr 20 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 10  cl: 9  fl: testpointerrels.c }
+Ptr 21 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 10  cl: 9  fl: testpointerrels.c }
+Ptr 22 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { constant data }
+Ptr 23 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 11  cl: 16  fl: testpointerrels.c }
+Ptr 24 		PointsTo: {empty}
+
+----------------------------------------------
+##<ptr> Source Loc: { ln: 12  cl: 9  fl: testpointerrels.c }
+Ptr 25 		PointsTo: { 3016 }
+
+!!Target NodeID 3016	 [<obj> Field: 2>Source Loc: { ln: 11 fl: testpointerrels.c }] 
+----------------------------------------------
+##<> Source Loc: { ln: 12  cl: 13  fl: testpointerrels.c }
+Ptr 26 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 14  cl: 9  fl: testpointerrels.c }
+Ptr 27 		PointsTo: {empty}
+
+----------------------------------------------
+##<ptr1> Source Loc: { ln: 14  cl: 19  fl: testpointerrels.c }
+Ptr 28 		PointsTo: { 3016 }
+
+!!Target NodeID 3016	 [<obj> Field: 2>Source Loc: { ln: 11 fl: testpointerrels.c }] 
+--------------Function: main
+Function: llvm.dbg.declare
+Function: printf
+Function: switch_view
+EC Size:	 Ind. Call-sites
+0 : 0
+Total Ind. Call-sites: 0
+Total Tgts: 0
+Average CFI: -nan
+Function: main
+Function: llvm.dbg.declare
+Function: printf
+Function: switch_view
+EC Size:	 Ind. Call-sites
+0 : 0
+Total Ind. Call-sites: 0
+Total Tgts: 0
+Average CFI: -nan
+CDF:
+Testpointerrels,0, 0,0.000000
+Testpointerrels,1, 0,0.000000
+--------------------------------
+##<> Source Loc: { ln: 14  cl: 19  fl: testpointerrels.c }
+Ptr 29 		PointsTo: { 14 }
+
+!!Target NodeID 14	 [<a> >Source Loc: { ln: 10 fl: testpointerrels.c }] 
+----------------------------------------------
+##<> Source Loc: { ln: 14  cl: 13  fl: testpointerrels.c }
+Ptr 30 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 14  cl: 9  fl: testpointerrels.c }
+Ptr 31 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 15  cl: 20  fl: testpointerrels.c }
+Ptr 32 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: {  }
+Ptr 33 		PointsTo: { 1 }
+
+!!Target NodeID 1	 [Dummy Obj id: 1]
+----------------------------------------------
+##<call> Source Loc: { ln: 15  cl: 5  fl: testpointerrels.c }
+Ptr 34 		PointsTo: {empty}
+
+----------------------------------------------
+##<printf> Source Loc: {  }
+Ptr 35 		PointsTo: { 36 }
+
+!!Target NodeID 36	 [<printf> >Source Loc: {  }] 
+----------------------------------------------
+##<printf> Source Loc: {  }
+Ptr 36 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 16  cl: 5  fl: testpointerrels.c }
+Ptr 37 		PointsTo: {empty}
+
+----------------------------------------------
+##<llvm.dbg.declare> Source Loc: {  }
+Ptr 38 		PointsTo: { 39 }
+
+!!Target NodeID 39	 [<llvm.dbg.declare> >Source Loc: {  }] 
+----------------------------------------------
+##<llvm.dbg.declare> Source Loc: {  }
+Ptr 39 		PointsTo: {empty}
+
+----------------------------------------------
+##<llvm.dbg.declare> Source Loc: {  }
+Ptr 40 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { 0th arg llvm.dbg.declare  }
+Ptr 41 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { 1st arg llvm.dbg.declare  }
+Ptr 42 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { 2nd arg llvm.dbg.declare  }
+Ptr 43 		PointsTo: {empty}
+
+----------------------------------------------
+##<printf> Source Loc: {  }
+Ptr 44 		PointsTo: {empty}
+
+----------------------------------------------
+##<printf> Source Loc: {  }
+Ptr 45 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { 0th arg printf  }
+Ptr 46 		PointsTo: {empty}
+
+----------------------------------------------
+##<switch_view> Source Loc: {  }
+Ptr 47 		PointsTo: { 48 }
+
+!!Target NodeID 48	 [<switch_view> >Source Loc: {  }] 
+----------------------------------------------
+##<switch_view> Source Loc: {  }
+Ptr 48 		PointsTo: {empty}
+
+----------------------------------------------
+##<switch_view> Source Loc: {  }
+Ptr 49 		PointsTo: {empty}
+
+----------------------------------------------
+##<obj> Source Loc: { ln: 11 fl: testpointerrels.c }
+Ptr 3016 		PointsTo: { 14 }
+
+!!Target NodeID 14	 [<a> >Source Loc: { ln: 10 fl: testpointerrels.c }] 
+----------------------------------------------
++ '[' 0 -ne 0 ']'
++ cp instrumented-module.bc testpointerrels_inst.bc
++ llvm-dis testpointerrels_inst.bc -o testpointerrels_inst.ll
++ opt -verify testpointerrels_inst.bc -o testpointerrels_discard.bc
++ clang++ -c -O0 -ggdb -emit-llvm /home/tpalit/svf-kernel//test/view-switcher/view_switch.cpp -o /home/tpalit/svf-kernel//test/view-switcher/view_switch.bc
++ clang++ -c -O0 -ggdb -emit-llvm /home/tpalit/svf-kernel//test/view-switcher/debugger.cpp -o /home/tpalit/svf-kernel//test/view-switcher/debugger.bc
++ clang++ -c -O0 -ggdb -emit-llvm /home/tpalit/svf-kernel//test/view-switcher/docfi.cpp -o /home/tpalit/svf-kernel//test/view-switcher/docfi.bc
++ llvm-link testpointerrels_inst.bc /home/tpalit/svf-kernel//test/view-switcher/docfi.bc /home/tpalit/svf-kernel//test/view-switcher/view_switch.bc /home/tpalit/svf-kernel//test/view-switcher/debugger.bc -o testpointerrels_linked.bc
++ '[' 0 -ne 0 ']'
++ cp testpointerrels_linked.bc testpointerrels_linked_inline.bc
++ llvm-dis testpointerrels_linked_inline.bc -o testpointerrels_linked_inline.ll
++ clang++ -v -ggdb testpointerrels_linked_inline.bc -o testpointerrels.exe
+clang version 12.0.0 (git@github.com:taptipalit/llvm12.git ea65dbca39f4c80bcd19142d06a5759b3ec89f99)
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /home/tpalit/llvm12/debug-build/bin
+Found candidate GCC installation: /usr/lib/gcc/x86_64-linux-gnu/11
+Selected GCC installation: /usr/lib/gcc/x86_64-linux-gnu/11
+Candidate multilib: .;@m64
+Selected multilib: .;@m64
+ "/home/tpalit/llvm12/debug-build/bin/clang-12" -cc1 -triple x86_64-unknown-linux-gnu -emit-obj -mrelax-all --mrelax-relocations -disable-free -main-file-name testpointerrels_linked_inline.bc -mrelocation-model static -mframe-pointer=all -fmath-errno -fno-rounding-math -mconstructor-aliases -munwind-tables -target-cpu x86-64 -tune-cpu generic -fno-split-dwarf-inlining -debug-info-kind=limited -dwarf-version=4 -debugger-tuning=gdb -v -resource-dir /home/tpalit/llvm12/debug-build/lib/clang/12.0.0 -fdebug-compilation-dir /home/tpalit/svf-kernel/test/debugdebugger -ferror-limit 19 -fgnuc-version=4.2.1 -faddrsig -o /tmp/testpointerrels_linked_inline-ba4407.o -x ir testpointerrels_linked_inline.bc
+clang -cc1 version 12.0.0 based upon LLVM 12.0.0 default target x86_64-unknown-linux-gnu
+ "/usr/bin/ld" --eh-frame-hdr -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o testpointerrels.exe /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crt1.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/11/crtbegin.o -L/usr/lib/gcc/x86_64-linux-gnu/11 -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib64 -L/lib/x86_64-linux-gnu -L/lib/../lib64 -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib64 -L/usr/lib/x86_64-linux-gnu/../../lib64 -L/usr/lib/gcc/x86_64-linux-gnu/11/../../.. -L/home/tpalit/llvm12/debug-build/bin/../lib -L/lib -L/usr/lib /tmp/testpointerrels_linked_inline-ba4407.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/11/crtend.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o
++ '[' 0 -ne 0 ']'

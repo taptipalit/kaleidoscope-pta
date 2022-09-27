@@ -9,7 +9,6 @@ void Debugger::instrumentPointer(Instruction* inst) {
     Type* intType = IntegerType::get(mod->getContext(), 32);
     Type* ptrToLongType = PointerType::get(longType, 0);
 
-
     Value* pointer = nullptr;
 
     if (LoadInst* loadInst = SVFUtil::dyn_cast<LoadInst>(inst)) {
@@ -130,9 +129,12 @@ void Debugger::init() {
                 != DebugFuncNames.end()) {
             for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
                 Instruction* inst = &*I;
-                if (SVFUtil::isa<LoadInst>(inst) /*|| SVFUtil::isa<StoreInst>(inst) || 
-                        SVFUtil::isa<AllocaInst>(inst)*/) {
+                if (LoadInst* ldInst = SVFUtil::dyn_cast<LoadInst>(inst)) {
                     if (inst->getType()->isPointerTy()) {
+                        Value* ptr = ldInst->getPointerOperand();
+                        if (ptr->hasName() && ptr->getName().contains("argv")) {
+                            continue;
+                        }
                         instList.push_back(inst);
                     }
                 }
@@ -141,23 +143,7 @@ void Debugger::init() {
     }
 
     for (Instruction* inst: instList) {
-        /*
-        bool hasPointer = false;
-        if (LoadInst* ldInst = SVFUtil::dyn_cast<LoadInst>(inst)) {
-            if (ldInst->getType()->isPointerTy()) {
-                hasPointer = true;
-            }
-        }
-        */
-       /*else if (StoreInst* stInst = SVFUtil::dyn_cast<StoreInst>(inst)) {
-            if (stInst->getValueOperand()->getType()->isPointerTy()) {
-                hasPointer = true;
-            }
-        }*/
-        
-        //if (hasPointer) {
-            instrumentPointer(inst);
-        //}
+        instrumentPointer(inst);
     }
 //    mod->dump();
 }

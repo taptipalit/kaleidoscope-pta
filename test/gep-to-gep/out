@@ -1,0 +1,180 @@
++ file=test
++ options=
++ file_c=test.c
++ file_bc=test.bc
++ file_linked=test_linked.bc
++ file_inst=test_inst.bc
++ file_inst_ll=test_inst.ll
++ file_discard=test_discard.bc
++ file_linked_inline=test_linked_inline.bc
++ file_linked_inline_ll=test_linked_inline.ll
++ file_exe=test.exe
++ SVF_HOME=/home/tpalit/svf-kernel/
++ '[' -f test.c ']'
++ clang -c -O0 -ggdb test.c -emit-llvm -o test.bc
+test.c:17:11: warning: incompatible pointer types initializing 'char *' with an expression of type 'struct A *' [-Wincompatible-pointer-types]
+    char* ptr = &objA;
+          ^     ~~~~~
+1 warning generated.
++ llvm-dis test.bc
++ /home/tpalit/svf-kernel/Debug-build/bin/wpa -invariant-pwc=true -invariant-vgep=true -ptd=persistent -ander test.bc
+Call to function: process has type info but not a heap allocation
+I saw a module called test.bc!
+Running with invariants turned on
+
+*********CallGraph Stats***************
+################ (program : )###############
+-------------------------------------------------------
+CalRetPairInCycle   0
+TotalEdge           2
+MaxNodeInCycle      0
+NodeInCycle         0
+TotalCycle          0
+TotalNode           5
+#######################################################
+
+*********General Stats***************
+################ (program : )###############
+CopysNum            8
+LoadsNum            12
+MaxStructSize       2
+AddrsNum            19
+LocalVarInRecur     0
+BitCastNumber       1
+FIObjNum            1
+ConstArrayObj       0
+StoresNum           10
+ConstStructObj      0
+NonPtrObj           11
+GepsNum             5
+TotalObjects        16
+FunctionObjs        5
+TotalPTAPAGEdges    27
+BBWith3Succ         0
+CallsNum            2
+FSObjNum            14
+BBWith2Succ         2
+ReturnsNum          0
+TotalFieldObjects   0
+GlobalObjs          1
+HeapObjs            1
+StackObjs           8
+VarStructObj        1
+VarArrayObj         1
+TotalPointers       86
+TotalPAGEdges       145
+IndCallSites        0
+TotalCallSite       2
+-------------------------------------------------------
+#######################################################
+
+*********Constraint Graph Stats***************
+################ (program : )###############
+-------------------------------------------------------
+AvgIn/OutEdge       0.756098
+AvgIn/OutAddrEdge   0.365854
+AvgIn/OutLoadEdge   0.0487805
+AvgIn/OutCopyEdge   0.292683
+MaxInAddrEdge       1
+MaxOutStoreEdge     1
+NumOfCGNode         110
+TotalValidNode      41
+AvgIn/OutStoreEdge  0
+TotalValidObjNode   15
+NumOfGeps           5
+NumOfCGEdge         16
+NumOfAddrs          15
+MaxOutAddrEdge      1
+NumOfLoads          2
+NumOfStores         2
+MaxOutLoadEdge      1
+NumOfCopys          7
+MaxOutCopyEdge      3
+MaxInStoreEdge      1
+MaxInLoadEdge       1
+MaxInCopyEdge       1
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : )###############
+-------------------------------------------------------
+AvgTopLvlPtsSize    0.958333
+CopyGepTime         0
+CollapseTime        0
+AvgPtsSetSize       0.227273
+UpdateCGTime        0
+LoadStoreTime       0
+SCCMergeTime        0.001
+SCCDetectTime       0
+TotalTime           0.002
+PointsToConstPtr    0
+PointsToBlkPtr      0
+NullPointer         1
+NodesInCycles       0
+TotalPWCCycleNum    0
+NumOfSCCDetect      3
+TotalCycleNum       0
+IndEdgeSolved       0
+MaxNodesInSCC       0
+IndCallSites        0
+MaxPtsSetSize       1
+DYFieldObjs         0
+DYFieldPtrs         0
+MemObjects          16
+Pointers            86
+NumOfFieldExpand    0
+Iterations          3
+NumOfSFRs           0
+StoreProcessed      2
+GepProcessed        6
+LoadProcessed       2
+CopyProcessed       9
+AddrProcessed       15
+TotalObjects        16
+TotalPointers       86
+#######################################################
+Function: process
+Function: llvm.dbg.declare
+Function: main
+Function: printf
+Function: switch_view
+EC Size:	 Ind. Call-sites
+0 : 0
+Total Ind. Call-sites: 0
+Total Tgts: 0
+Average CFI: -nan
+Function: process
+Function: llvm.dbg.declare
+Function: main
+Function: printf
+Function: switch_view
+EC Size:	 Ind. Call-sites
+0 : 0
+Total Ind. Call-sites: 0
+Total Tgts: 0
+Average CFI: -nan
+CDF:
+Test,0, 0,0.000000
+Test,1, 0,0.000000
++ '[' 0 -ne 0 ']'
++ cp instrumented-module.bc test_inst.bc
++ llvm-dis test_inst.bc -o test_inst.ll
++ opt -verify test_inst.bc -o test_discard.bc
++ clang++ -c -ggdb -emit-llvm /home/tpalit/svf-kernel//test/view-switcher/view_switch.cpp -o /home/tpalit/svf-kernel//test/view-switcher/view_switch.bc
++ llvm-link test_inst.bc /home/tpalit/svf-kernel//test/view-switcher/docfi.bc /home/tpalit/svf-kernel//test/view-switcher/view_switch.bc -o test_linked.bc
++ '[' 0 -ne 0 ']'
++ cp test_linked.bc test_linked_inline.bc
++ llvm-dis test_linked_inline.bc -o test_linked_inline.ll
++ clang++ -v -ggdb test_linked_inline.bc -o test.exe
+clang version 12.0.0 (git@github.com:taptipalit/llvm12.git ea65dbca39f4c80bcd19142d06a5759b3ec89f99)
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /home/tpalit/llvm12/debug-build/bin
+Found candidate GCC installation: /usr/lib/gcc/x86_64-linux-gnu/11
+Selected GCC installation: /usr/lib/gcc/x86_64-linux-gnu/11
+Candidate multilib: .;@m64
+Selected multilib: .;@m64
+ "/home/tpalit/llvm12/debug-build/bin/clang-12" -cc1 -triple x86_64-unknown-linux-gnu -emit-obj -mrelax-all --mrelax-relocations -disable-free -main-file-name test_linked_inline.bc -mrelocation-model static -mframe-pointer=all -fmath-errno -fno-rounding-math -mconstructor-aliases -munwind-tables -target-cpu x86-64 -tune-cpu generic -fno-split-dwarf-inlining -debug-info-kind=limited -dwarf-version=4 -debugger-tuning=gdb -v -resource-dir /home/tpalit/llvm12/debug-build/lib/clang/12.0.0 -fdebug-compilation-dir /home/tpalit/svf-kernel/test/gep-to-gep -ferror-limit 19 -fgnuc-version=4.2.1 -faddrsig -o /tmp/test_linked_inline-3fdb09.o -x ir test_linked_inline.bc
+clang -cc1 version 12.0.0 based upon LLVM 12.0.0 default target x86_64-unknown-linux-gnu
+ "/usr/bin/ld" --eh-frame-hdr -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o test.exe /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crt1.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/11/crtbegin.o -L/usr/lib/gcc/x86_64-linux-gnu/11 -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib64 -L/lib/x86_64-linux-gnu -L/lib/../lib64 -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib64 -L/usr/lib/x86_64-linux-gnu/../../lib64 -L/usr/lib/gcc/x86_64-linux-gnu/11/../../.. -L/home/tpalit/llvm12/debug-build/bin/../lib -L/lib -L/usr/lib /tmp/test_linked_inline-3fdb09.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/11/crtend.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o
++ '[' 0 -ne 0 ']'

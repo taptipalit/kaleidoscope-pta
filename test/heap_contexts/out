@@ -1,0 +1,552 @@
++ file=heap
++ options=
++ file_c=heap.c
++ file_bc=heap.bc
++ file_linked=heap_linked.bc
++ file_inst=heap_inst.bc
++ file_inst_ll=heap_inst.ll
++ file_discard=heap_discard.bc
++ file_linked_inline=heap_linked_inline.bc
++ file_linked_inline_ll=heap_linked_inline.ll
++ file_exe=heap.exe
++ SVF_HOME=/home/tpalit/svf-kernel/
++ '[' -f heap.c ']'
++ clang -c -O0 -ggdb heap.c -emit-llvm -o heap.bc
+heap.c:15:15: warning: implicitly declaring library function 'malloc' with type 'void *(unsigned long)' [-Wimplicit-function-declaration]
+    void* p = malloc(size);
+              ^
+heap.c:15:15: note: include the header <stdlib.h> or explicitly provide a declaration for 'malloc'
+1 warning generated.
++ llvm-dis heap.bc
++ /home/tpalit/svf-kernel/Debug-build/bin/wpa -invariant-pwc=true -invariant-vgep=true -ptd=persistent -print-all-pts -ander heap.bc
+One Level Function name: my_malloc
+Call to function: my_malloc has type info but not a heap allocation
+Call to function: my_malloc has type info but not a heap allocation
+I saw a module called heap.bc!
+Running with invariants turned on
+
+*********CallGraph Stats***************
+################ (program : )###############
+-------------------------------------------------------
+CalRetPairInCycle   0
+TotalEdge           3
+MaxNodeInCycle      0
+NodeInCycle         0
+TotalCycle          0
+TotalNode           5
+#######################################################
+
+*********General Stats***************
+################ (program : )###############
+CopysNum            4
+LoadsNum            6
+MaxStructSize       2
+AddrsNum            17
+LocalVarInRecur     0
+BitCastNumber       2
+FIObjNum            0
+ConstArrayObj       0
+StoresNum           7
+ConstStructObj      0
+NonPtrObj           9
+GepsNum             4
+TotalObjects        20
+FunctionObjs        5
+TotalPTAPAGEdges    34
+BBWith3Succ         0
+CallsNum            0
+FSObjNum            19
+BBWith2Succ         0
+ReturnsNum          0
+TotalFieldObjects   2
+GlobalObjs          1
+HeapObjs            4
+StackObjs           9
+VarStructObj        0
+VarArrayObj         1
+TotalPointers       59
+TotalPAGEdges       76
+IndCallSites        0
+TotalCallSite       2
+-------------------------------------------------------
+#######################################################
+
+*********Constraint Graph Stats***************
+################ (program : )###############
+-------------------------------------------------------
+AvgIn/OutEdge       1
+AvgIn/OutAddrEdge   0.326087
+AvgIn/OutLoadEdge   0.130435
+AvgIn/OutCopyEdge   0.413043
+MaxInAddrEdge       1
+MaxOutStoreEdge     1
+NumOfCGNode         88
+TotalValidNode      46
+AvgIn/OutStoreEdge  0
+TotalValidObjNode   17
+NumOfGeps           4
+NumOfCGEdge         31
+NumOfAddrs          15
+MaxOutAddrEdge      1
+NumOfLoads          6
+NumOfStores         6
+MaxOutLoadEdge      2
+NumOfCopys          15
+MaxOutCopyEdge      2
+MaxInStoreEdge      1
+MaxInLoadEdge       1
+MaxInCopyEdge       1
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : )###############
+-------------------------------------------------------
+AvgTopLvlPtsSize    1
+CopyGepTime         0.002
+AvgPtsSetSize       0.375
+UpdateCGTime        0
+LoadStoreTime       0
+SCCMergeTime        0
+CollapseTime        0
+SCCDetectTime       0
+TotalTime           0.002
+NullPointer         0
+NodesInCycles       0
+TotalPWCCycleNum    0
+NumOfSCCDetect      3
+TotalCycleNum       0
+IndEdgeSolved       0
+MaxNodesInSCC       0
+IndCallSites        0
+MaxPtsSetSize       1
+DYFieldObjs         2
+DYFieldPtrs         0
+MemObjects          20
+PointsToBlkPtr      0
+Pointers            59
+PointsToConstPtr    0
+NumOfFieldExpand    0
+Iterations          3
+NumOfSFRs           0
+StoreProcessed      6
+GepProcessed        4
+LoadProcessed       6
+CopyProcessed       14
+AddrProcessed       15
+TotalObjects        22
+TotalPointers       59
+#######################################################
+----------------------------------------------
+##<Dummy Obj > id:0
+Ptr 0 		PointsTo: {empty}
+
+----------------------------------------------
+##<Dummy Obj > id:1
+Ptr 1 		PointsTo: {empty}
+
+----------------------------------------------
+
+Ptr 2 		PointsTo: {empty}
+
+----------------------------------------------
+
+Ptr 3 		PointsTo: {empty}
+
+----------------------------------------------
+##<kaliMap> Source Loc: { Glob  }
+Ptr 4 		PointsTo: { 5 }
+
+!!Target NodeID 5	 [<kaliMap> Source Loc: { Glob  }] 
+----------------------------------------------
+##<kaliMap> Source Loc: { Glob  }
+Ptr 5 		PointsTo: {empty}
+
+----------------------------------------------
+##<my_malloc> Source Loc: { in line: 14 file: heap.c }
+Ptr 6 		PointsTo: { 7 }
+
+!!Target NodeID 7	 [<my_malloc> Source Loc: { in line: 14 file: heap.c }] 
+----------------------------------------------
+##<my_malloc> Source Loc: { in line: 14 file: heap.c }
+Ptr 7 		PointsTo: {empty}
+
+----------------------------------------------
+##<my_malloc> Source Loc: { in line: 14 file: heap.c }
+Ptr 8 		PointsTo: {empty}
+
+----------------------------------------------
+##<size> Source Loc: { 0th arg my_malloc in line: 14 file: heap.c }
+Ptr 9 		PointsTo: {empty}
+
+----------------------------------------------
+##<size.addr> Source Loc: { ln: 14 fl: heap.c }
+Ptr 10 		PointsTo: {empty}
+
+----------------------------------------------
+##<size.addr> Source Loc: { ln: 14 fl: heap.c }
+Ptr 11 		PointsTo: {empty}
+
+----------------------------------------------
+##<p> Source Loc: { ln: 15 fl: heap.c }
+Ptr 12 		PointsTo: {empty}
+
+----------------------------------------------
+##<p> Source Loc: { ln: 15 fl: heap.c }
+Ptr 13 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: {  }
+Ptr 14 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 14  cl: 21  fl: heap.c }
+Ptr 15 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 15  cl: 11  fl: heap.c }
+Ptr 16 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 15  cl: 22  fl: heap.c }
+Ptr 17 		PointsTo: {empty}
+
+----------------------------------------------
+##<conv> Source Loc: { ln: 15  cl: 22  fl: heap.c }
+Ptr 18 		PointsTo: {empty}
+
+----------------------------------------------
+##<call> Source Loc: { ln: 15  cl: 15  fl: heap.c }
+Ptr 19 		PointsTo: {empty}
+
+----------------------------------------------
+##<call> Source Loc: { ln: 15  cl: 15  fl: heap.c }
+Ptr 20 		PointsTo: {empty}
+
+----------------------------------------------
+##<malloc> Source Loc: {  }
+Ptr 21 		PointsTo: { 22 }
+
+!!Target NodeID 22	 [<malloc> Source Loc: {  }] 
+----------------------------------------------
+##<malloc> Source Loc: {  }
+Ptr 22 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 15  cl: 11  fl: heap.c }
+Ptr 23 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 16  cl: 12  fl: heap.c }
+Ptr 24 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 16  cl: 5  fl: heap.c }
+Ptr 25 		PointsTo: {empty}
+
+----------------------------------------------
+##<llvm.dbg.declare> Source Loc: {  }
+Ptr 26 		PointsTo: { 27 }
+
+!!Target NodeID 27	 [<llvm.dbg.declare> Source Loc: {  }] 
+----------------------------------------------
+##<llvm.dbg.declare> Source Loc: {  }
+Ptr 27 		PointsTo: {empty}
+
+----------------------------------------------
+##<llvm.dbg.declare> Source Loc: {  }
+Ptr 28 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { 0th arg llvm.dbg.declare  }
+Ptr 29 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { 1st arg llvm.dbg.declare  }
+Ptr 30 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { 2nd arg llvm.dbg.declare  }
+Ptr 31 		PointsTo: {empty}
+
+----------------------------------------------
+##<malloc> Source Loc: {  }
+Ptr 32 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { 0th arg malloc  }
+Ptr 33 		PointsTo: {empty}
+
+----------------------------------------------
+##<main> Source Loc: { in line: 19 file: heap.c }
+Ptr 34 		PointsTo: { 35 }
+
+!!Target NodeID 35	 [<main> Source Loc: { in line: 19 file: heap.c }] 
+----------------------------------------------
+##<main> Source Loc: { in line: 19 file: heap.c }
+Ptr 35 		PointsTo: {empty}
+
+----------------------------------------------
+##<main> Source Loc: { in line: 19 file: heap.c }
+Ptr 36 		PointsTo: {empty}
+
+----------------------------------------------
+##<retval> Source Loc: {  }
+Ptr 37 		PointsTo: { 38 }
+
+!!Target NodeID 38	 [<retval> Source Loc: {  }] 
+----------------------------------------------
+##<retval> Source Loc: {  }
+Ptr 38 		PointsTo: {empty}
+
+----------------------------------------------
+##<a> Source Loc: { ln: 20 fl: heap.c }
+Ptr 39 		PointsTo: { 40 }
+
+!!Target NodeID 40	 [<a> Source Loc: { ln: 20 fl: heap.c }] 
+----------------------------------------------
+##<a> Source Loc: { ln: 20 fl: heap.c }
+Ptr 40 		PointsTo: {empty}
+
+----------------------------------------------
+##<b> Source Loc: { ln: 20 fl: heap.c }
+Ptr 41 		PointsTo: { 42 }
+
+!!Target NodeID 42	 [<b> Source Loc: { ln: 20 fl: heap.c }] 
+----------------------------------------------
+##<b> Source Loc: { ln: 20 fl: heap.c }
+Ptr 42 		PointsTo: {empty}
+
+----------------------------------------------
+##<p> Source Loc: { ln: 21 fl: heap.c }
+Ptr 43 		PointsTo: { 44 }
+
+!!Target NodeID 44	 [<p> Source Loc: { ln: 21 fl: heap.c }] 
+----------------------------------------------
+##<p> Source Loc: { ln: 21 fl: heap.c }
+Ptr 44 		PointsTo: { 40 }
+
+!!Target NodeID 40	 [<a> Source Loc: { ln: 20 fl: heap.c }] 
+----------------------------------------------
+##<q> Source Loc: { ln: 21 fl: heap.c }
+Ptr 45 		PointsTo: { 46 }
+
+!!Target NodeID 46	 [<q> Source Loc: { ln: 21 fl: heap.c }] 
+----------------------------------------------
+##<q> Source Loc: { ln: 21 fl: heap.c }
+Ptr 46 		PointsTo: { 42 }
+
+!!Target NodeID 42	 [<b> Source Loc: { ln: 20 fl: heap.c }] 
+----------------------------------------------
+##<objA> Source Loc: { ln: 22 fl: heap.c }
+Ptr 47 		PointsTo: { 48 }
+
+!!Target NodeID 48	 [<objA> Source Loc: { ln: 22 fl: heap.c }] 
+----------------------------------------------
+##<objA> Source Loc: { ln: 22 fl: heap.c }
+Ptr 48 		PointsTo: { 59 }
+
+!!Target NodeID 59	 [<call> Source Loc: { ln: 22  cl: 26  fl: heap.c }] 
+----------------------------------------------
+##<objB> Source Loc: { ln: 23 fl: heap.c }
+Ptr 49 		PointsTo: { 50 }
+
+!!Target NodeID 50	 [<objB> Source Loc: { ln: 23 fl: heap.c }] 
+----------------------------------------------
+##<objB> Source Loc: { ln: 23 fl: heap.c }
+Ptr 50 		PointsTo: { 65 }
+
+!!Target NodeID 65	 [<call1> Source Loc: { ln: 23  cl: 26  fl: heap.c }] 
+----------------------------------------------
+##<> Source Loc: {  }
+Ptr 51 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { constant data }
+Ptr 52 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 20  cl: 9  fl: heap.c }
+Ptr 53 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 20  cl: 12  fl: heap.c }
+Ptr 54 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 21  cl: 10  fl: heap.c }
+Ptr 55 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 21  cl: 14  fl: heap.c }
+Ptr 56 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 22  cl: 19  fl: heap.c }
+Ptr 57 		PointsTo: {empty}
+
+----------------------------------------------
+##<call> Source Loc: { ln: 22  cl: 26  fl: heap.c }
+Ptr 58 		PointsTo: { 59 }
+
+!!Target NodeID 59	 [<call> Source Loc: { ln: 22  cl: 26  fl: heap.c }] 
+----------------------------------------------
+##<call> Source Loc: { ln: 22  cl: 26  fl: heap.c }
+Ptr 59 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { constant data }
+Ptr 60 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 22  cl: 26  fl: heap.c }
+Ptr 61 		PointsTo: { 59 }
+
+!!Target NodeID 59	 [<call> Source Loc: { ln: 22  cl: 26  fl: heap.c }] 
+----------------------------------------------
+##<> Source Loc: { ln: 22  cl: 19  fl: heap.c }
+Ptr 62 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 23  cl: 19  fl: heap.c }
+Ptr 63 		PointsTo: {empty}
+
+----------------------------------------------
+##<call1> Source Loc: { ln: 23  cl: 26  fl: heap.c }
+Ptr 64 		PointsTo: { 65 }
+
+!!Target NodeID 65	 [<call1> Source Loc: { ln: 23  cl: 26  fl: heap.c }] 
+----------------------------------------------
+##<call1> Source Loc: { ln: 23  cl: 26  fl: heap.c }
+Ptr 65 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 23  cl: 26  fl: heap.c }
+Ptr 66 		PointsTo: { 65 }
+
+!!Target NodeID 65	 [<call1> Source Loc: { ln: 23  cl: 26  fl: heap.c }] 
+----------------------------------------------
+##<> Source Loc: { ln: 23  cl: 19  fl: heap.c }
+Ptr 67 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 25  cl: 5  fl: heap.c }
+Ptr 68 		PointsTo: { 59 }
+
+!!Target NodeID 59	 [<call> Source Loc: { ln: 22  cl: 26  fl: heap.c }] 
+----------------------------------------------
+##<ptr> Source Loc: { ln: 25  cl: 11  fl: heap.c }
+Ptr 69 		PointsTo: { 2059 }
+
+!!Target NodeID 2059	 [<call> Source Loc: { ln: 22  cl: 26  fl: heap.c }] 
+----------------------------------------------
+##<> Source Loc: { ln: 25  cl: 15  fl: heap.c }
+Ptr 70 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 26  cl: 5  fl: heap.c }
+Ptr 71 		PointsTo: { 65 }
+
+!!Target NodeID 65	 [<call1> Source Loc: { ln: 23  cl: 26  fl: heap.c }] 
+----------------------------------------------
+##<qtr> Source Loc: { ln: 26  cl: 11  fl: heap.c }
+Ptr 72 		PointsTo: { 2065 }
+
+!!Target NodeID 2065	 [<call1> Source Loc: { ln: 23  cl: 26  fl: heap.c }] 
+----------------------------------------------
+##<> Source Loc: { ln: 26  cl: 15  fl: heap.c }
+Ptr 73 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 28  cl: 9  fl: heap.c }
+Ptr 74 		PointsTo: { 59 }
+
+!!Target NodeID 59	 [<call> Source Loc: { ln: 22  cl: 26  fl: heap.c }] 
+----------------------------------------------
+##<ptr2> Source Loc: { ln: 28  cl: 15  fl: heap.c }
+Ptr 75 		PointsTo: { 2059 }
+
+!!Target NodeID 2059	 [<call> Source Loc: { ln: 22  cl: 26  fl: heap.c }] 
+----------------------------------------------
+##<> Source Loc: { ln: 28  cl: 15  fl: heap.c }
+Ptr 76 		PointsTo: { 40 }
+
+!!Target NodeID 40	 [<a> Source Loc: { ln: 20 fl: heap.c }] 
+----------------------------------------------
+##<> Source Loc: { ln: 28  cl: 7  fl: heap.c }
+Ptr 77 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 29  cl: 9  fl: heap.c }
+Ptr 78 		PointsTo: { 65 }
+
+!!Target NodeID 65	 [<call1> Source Loc: { ln: 23  cl: 26  fl: heap.c }] 
+----------------------------------------------
+##<qtr3> Source Loc: { ln: 29  cl: 15  fl: heap.c }
+Ptr 79 		PointsTo: { 2065 }
+
+!!Target NodeID 2065	 [<call1> Source Loc: { ln: 23  cl: 26  fl: heap.c }] 
+----------------------------------------------
+##<> Source Loc: { ln: 29  cl: 15  fl: heap.c }
+Ptr 80 		PointsTo: { 42 }
+
+!!Target NodeID 42	 [<b> Source Loc: { ln: 20 fl: heap.c }] 
+----------------------------------------------
+##<> Source Loc: { ln: 29  cl: 7  fl: heap.c }
+Ptr 81 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 31  cl: 5  fl: heap.c }
+Ptr 82 		PointsTo: {empty}
+
+----------------------------------------------
+##<switch_view> Source Loc: {  }
+Ptr 83 		PointsTo: { 84 }
+
+!!Target NodeID 84	 [<switch_view> Source Loc: {  }] 
+----------------------------------------------
+##<switch_view> Source Loc: {  }
+Ptr 84 		PointsTo: {empty}
+
+----------------------------------------------
+##<switch_view> Source Loc: {  }
+Ptr 85 		PointsTo: {empty}
+
+----------------------------------------------
+##<call> Source Loc: { ln: 22  cl: 26  fl: heap.c }
+Ptr 2059 		PointsTo: { 40 }
+
+!!Target NodeID Function: my_malloc
+Function: llvm.dbg.declare
+Function: malloc
+Function: main
+Function: switch_view
+EC Size:	 Ind. Call-sites
+0 : 0
+Total Ind. Call-sites: 0
+Total Tgts: 0
+Average CFI: -nan
+Function: my_malloc
+Function: llvm.dbg.declare
+Function: malloc
+Function: main
+Function: switch_view
+EC Size:	 Ind. Call-sites
+0 : 0
+Total Ind. Call-sites: 0
+Total Tgts: 0
+Average CFI: -nan
+CDF:
+Heap,0, 0,0.000000
+Heap,1, 0,0.000000
+40	 [<a> Source Loc: { ln: 20 fl: heap.c }] 
+----------------------------------------------
+##<call1> Source Loc: { ln: 23  cl: 26  fl: heap.c }
+Ptr 2065 		PointsTo: { 42 }
+
+!!Target NodeID 42	 [<b> Source Loc: { ln: 20 fl: heap.c }] 
+----------------------------------------------
++ '[' 0 -ne 0 ']'
++ cp instrumented-module.bc heap_inst.bc
++ llvm-dis heap_inst.bc -o heap_inst.ll
++ opt -verify heap_inst.bc -o heap_discard.bc
++ clang++ -c -O0 -ggdb -emit-llvm /home/tpalit/svf-kernel//test/view-switcher/view_switch.cpp -o /home/tpalit/svf-kernel//test/view-switcher/view_switch.bc

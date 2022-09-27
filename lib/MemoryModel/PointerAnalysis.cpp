@@ -373,8 +373,13 @@ void PointerAnalysis::dumpPts(NodeID ptr, const PointsTo& pts)
 		else {
 			if (!SVFModule::pagReadFromTXT()) {
 				if (node->hasValue()) {
+                    
 					outs() << "<" << pagNode->getValue()->getName() << "> ";
-					outs() << "Source Loc: "
+                    if (const GepObjPN* gepObj = SVFUtil::dyn_cast<GepObjPN>(node)) {
+                        outs() << "Field: " << gepObj->getLocationSet().getOffset();
+                    }
+                    outs() << ">";
+                    outs() << "Source Loc: "
 							<< getSourceLoc(pagNode->getValue()) << "] \n";
 				}
 			}

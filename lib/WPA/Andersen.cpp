@@ -606,11 +606,17 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
         EdgeList& edges = getSCCDetector()->getSCCEdgeList(repNodeId);
         if (getSCCDetector()->isRepPWC(repNodeId)) {
             bool treatAsPAInv = false;
+            //llvm::errs() << "Begin PWC\n";
             for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++) {
                 NodeID subNodeId = *nodeIt;
                 PAGNode* pagNode = pag->getPAGNode(subNodeId);
                 if (pagNode->hasValue()) {
                     const Value* pagVal = pagNode->getValue();
+                    /*
+                    if (const Instruction* pagInst = SVFUtil::dyn_cast<Instruction>(pagVal)) {
+                        llvm::errs() << "++++++++ " << *pagInst << " : " << pagInst->getFunction()->getName() << "\n";
+                    }
+                    */
                     if (const Instruction* inst = SVFUtil::dyn_cast<Instruction>(pagVal)) {
                         BasicBlock* bb = const_cast<BasicBlock*>(inst->getParent());
                         Function* func = bb->getParent();
@@ -625,6 +631,7 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                     }
                 }
             }
+            //llvm::errs() << "End PWC\n";
 
             if (!treatAsPAInv) {
                 for (const EdgePair& ep: edges) {
