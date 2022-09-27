@@ -2,13 +2,15 @@
 #include "llvm/IR/InstIterator.h"
 
 
-void InvariantHandler::recordTarget(int id, Value* target, Function* instFun) {
+void InvariantHandler::recordTarget(std::vector<int>& ids, Value* target, Function* instFun) {
     IRBuilder* builder;
     LLVMContext& C = mod->getContext();
 
     IntegerType* i32Ty = IntegerType::get(C, 32);
     IntegerType* i64Ty = IntegerType::get(C, 64);
     PointerType* i64PtrTy = PointerType::get(i64Ty, 0);
+    ArrayType* arrTy = ArrayType::get(i64Ty, ids.size());
+
     bool shouldReset = false;
     AllocaInst* stackVar = nullptr;
 
@@ -26,9 +28,20 @@ void InvariantHandler::recordTarget(int id, Value* target, Function* instFun) {
         assert(false && "Not handling stuff here");
     }
 
-    Constant* idConstant = ConstantInt::get(i32Ty, id);
+    
+    std::vector<Constant*> consIdVec;
+    for (int i: ids) {
+        consIdVec.push_back(ConstantInt::get(i64Ty, i));
+    }
+
+    llvm::ArrayRef<Constant*> consIdArr(consIdVec);
+
+    Constant* invariantIdArr = ConstantArray::get(arrTy, consIdArr);
+    
+    Constant* cLen = ConstantInt::get(i64Ty, consIdVec.size());
+ 
     Value* ptrVal = builder->CreateBitOrPointerCast(target, i64Ty);
-    builder->CreateCall(instFun, {idConstant, ptrVal});
+    builder->CreateCall(instFun, {invariantIdArr, cLen, ptrVal});
 
     if (shouldReset) {
         Function* func = stackVar->getParent()->getParent();
@@ -38,16 +51,18 @@ void InvariantHandler::recordTarget(int id, Value* target, Function* instFun) {
             if (ReturnInst* ret = SVFUtil::dyn_cast<ReturnInst>(&*I)) {
                 returns.push_back(ret);
             }
+            /*
             if (CallInst* call = SVFUtil::dyn_cast<CallInst>(&*I)) {
                 if (call->getCalledFunction() != instFun) {
                     innerCalls.push_back(call);
                 }
             }
+            */
         }
         for (ReturnInst* ret: returns) {
             builder->SetInsertPoint(ret); 
             // Reset the Invariant
-            builder->CreateCall(instFun, {idConstant, Constant::getNullValue(i64Ty)});
+            builder->CreateCall(instFun, {invariantIdArr, cLen, Constant::getNullValue(i64Ty)});
         }
         /*
         for (CallInst* call: innerCalls) {
@@ -70,7 +85,8 @@ void InvariantHandler::recordTarget(int id, Value* target, Function* instFun) {
 /**
  * Check that the gep can never point to the objects in target
  */
-void InvariantHandler::instrumentVGEPInvariant(GetElementPtrInst* gep, std::vector<Value*>& targets) {
+void InvariantHandler::instrumentVGEPInvariant(GetElementPtrInst* gep, std::vector<Value*>& targets,
+        std::map<Value*, std::vector<int>>& valueInvariantIdsMap) {
     LLVMContext& C = gep->getContext();
     Type* longType = IntegerType::get(mod->getContext(), 64);
     Type* intType = IntegerType::get(mod->getContext(), 32);
@@ -83,7 +99,8 @@ void InvariantHandler::instrumentVGEPInvariant(GetElementPtrInst* gep, std::vect
             id = kaliInvariantId++;
             valueToKaliIdMap[target] = id;
             kaliIdToValueMap[id] = target;
-            recordTarget(id, target, vgepPtdRecordFn);
+            valueInvariantIdsMap[target].push_back(id);
+            //recordTarget(id, target, vgepPtdRecordFn);
         } else {
             id = valueToKaliIdMap[target];
         }
@@ -133,6 +150,15 @@ void InvariantHandler::instrumentVGEPInvariant(GetElementPtrInst* gep, std::vect
 }
 
 void InvariantHandler::handleVGEPInvariants() {
+    // We first add the invariant-checks
+    //
+    // Along the way, we record the mapping of which value contributed to which invariants
+    // E.g. if a = alloca int*, is present in 20 vgep invariants with ids 10,11, ..., then
+    // we'll have a map: a --> 10, 11, ...
+    // We'll use this map to record the value of 'a' for all of these invariants
+
+    std::map<Value*, std::vector<int>> valueInvariantIdsMap;
+
     for (const GetElementPtrInst* gep: pag->getVarGeps()) {
         std::vector<Value*> targets;
         for (NodeID ptdId: pag->getVarGepPtdMap()[gep]) {
@@ -145,8 +171,19 @@ void InvariantHandler::handleVGEPInvariants() {
                 }
             }
         }
-        instrumentVGEPInvariant(const_cast<GetElementPtrInst*>(gep), targets);
+        instrumentVGEPInvariant(const_cast<GetElementPtrInst*>(gep), targets, valueInvariantIdsMap);
     }
+
+    // Now that we have instrumented the variant gep instructions themselves,
+    // we update the target values to record the values. 
+
+    std::map<Value*, std::vector<int>>::iterator it;
+    for (it = valueInvariantIdsMap.begin(); it != valueInvariantIdsMap.end(); it++) {
+        Value* value = it->first;
+        auto idsVec = it->second;
+        recordTarget(idsVec, value, vgepPtdRecordFn);
+    }
+    
 }
 
 void InvariantHandler::handlePWCInvariants() {
@@ -246,9 +283,12 @@ void InvariantHandler::initVGEPInvariants() {
     Type* longType = IntegerType::get(mod->getContext(), 64);
     Type* intType = IntegerType::get(mod->getContext(), 32);
 
-    // Install the vgepRecord Routine
+    // Install the vgepRecord Routine --> vgepRecordTarget(InvariantID* ids, int len, InvariantVal val)
+    // The same invariant value can figure in many invariants
+    // We can just update them all at once, instead of adding multiple function calls
     std::vector<Type*> vgepRecordTypes;
     vgepRecordTypes.push_back(intType);
+    vgepRecordTypes.push_back(longType);
     vgepRecordTypes.push_back(longType);
 
     llvm::ArrayRef<Type*> vgepRecordTypeArr(vgepRecordTypes);

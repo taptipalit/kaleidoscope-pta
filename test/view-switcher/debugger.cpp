@@ -54,10 +54,16 @@ extern "C" void checkPtr(Val ptr, int len, Id* validTargets, int relax) {
 }
 
 INLINE
-extern "C" void recordTarget(Id id, Val val) {
+extern "C" void recordTarget(Id* ids, int len, Val val) {
     if (val == 0x0) {
-        valMap[id].clear();
+        for (int i = 0; i < len; i++) {
+            Id id = ids[i];
+            valMap[id].clear();
+        }
     } else {
-        valMap[id].insert(val);
+        for (int i = 0; i < len; i++) {
+            Id id = ids[i];
+            valMap[id].insert(val);
+        }
     }
 }

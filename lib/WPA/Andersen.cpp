@@ -1244,6 +1244,7 @@ void Andersen::mergeNodeToRep(NodeID nodeId,NodeID newRepId, std::vector<Constra
     //llvm::errs() << "Merging node: " << nodeId << " to newRepId " << newRepId << "\n";
     ConstraintNode* node = consCG->getConstraintNode(nodeId);
     bool gepInsideScc = mergeSrcToTgt(nodeId,newRepId, criticalGepEdges);
+    llvm::errs() << "Found critical Gep inside SCC\n";
     /// We do this in mergeSccNodes
     /// 1. if find gep edges inside SCC cycle, the rep node will become a PWC node and
     /// its pts should be collapsed later.

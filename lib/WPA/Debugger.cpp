@@ -3,7 +3,7 @@
 #include <unordered_set>
 #include "Util/Options.h"
 
-void Debugger::instrumentPointer(Instruction* inst) {
+void Debugger::instrumentPointer(Instruction* inst, std::map<Value*, std::vector<int>>& valIdsMap) {
     LLVMContext& C = inst->getContext();
     Type* longType = IntegerType::get(mod->getContext(), 64);
     Type* intType = IntegerType::get(mod->getContext(), 32);
@@ -34,7 +34,8 @@ void Debugger::instrumentPointer(Instruction* inst) {
         if (ptdNode->hasValue()) {
             Value* ptdVal = const_cast<Value*>(ptdNode->getValue());
             if (ptdVal == pointer) continue;
-            recordTarget(dbgTgtID, ptdVal, recordTargetFn);
+            valIdsMap[ptdVal].push_back(dbgTgtID);
+            //recordTarget(dbgTgtID, ptdVal, recordTargetFn);
         }
         if (SVFUtil::isa<GepObjPN>(ptdNode)) {
             isRelax = true;
@@ -87,9 +88,10 @@ void Debugger::addFunctionDefs() {
     Type* longType = IntegerType::get(mod->getContext(), 64);
     Type* intType = IntegerType::get(mod->getContext(), 32);
 
-    // Install the Record Routine
+    // Install the Record Routine --> recordTarget(InvariantID* ids, int len, InvariantVal val) 
     std::vector<Type*> recordTypes;
     recordTypes.push_back(intType);
+    recordTypes.push_back(longType);
     recordTypes.push_back(longType);
 
     llvm::ArrayRef<Type*> recordTypeArr(recordTypes);
@@ -142,8 +144,17 @@ void Debugger::init() {
         }
     }
 
+    std::map<Value*, std::vector<int>> valIdsMap;
     for (Instruction* inst: instList) {
-        instrumentPointer(inst);
+        instrumentPointer(inst, valIdsMap);
     }
+
+    std::map<Value*, std::vector<int>>::iterator it;
+    for (it = valIdsMap.begin(); it != valIdsMap.end(); it++) {
+        Value* value = it->first;
+        auto idsVec = it->second;
+        recordTarget(idsVec, value, recordTargetFn);
+    }
+ 
 //    mod->dump();
 }

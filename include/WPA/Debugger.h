@@ -22,7 +22,7 @@ class Debugger: public InvariantHandler {
         }
 
         void addFunctionDefs();
-        void instrumentPointer(llvm::Instruction*);
+        void instrumentPointer(llvm::Instruction*, std::map<Value*, std::vector<int>>&);
         void init();
 };
 
