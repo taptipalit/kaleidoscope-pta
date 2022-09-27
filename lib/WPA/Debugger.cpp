@@ -3,7 +3,7 @@
 #include <unordered_set>
 #include "Util/Options.h"
 
-void Debugger::instrumentPointer(Instruction* inst, std::map<Value*, std::vector<int>>& valIdsMap) {
+void Debugger::instrumentPointer(Instruction* inst) {
     LLVMContext& C = inst->getContext();
     Type* longType = IntegerType::get(mod->getContext(), 64);
     Type* intType = IntegerType::get(mod->getContext(), 32);
@@ -34,8 +34,7 @@ void Debugger::instrumentPointer(Instruction* inst, std::map<Value*, std::vector
         if (ptdNode->hasValue()) {
             Value* ptdVal = const_cast<Value*>(ptdNode->getValue());
             if (ptdVal == pointer) continue;
-            valIdsMap[ptdVal].push_back(dbgTgtID);
-            //recordTarget(dbgTgtID, ptdVal, recordTargetFn);
+            recordTarget(dbgTgtID, ptdVal, recordTargetFn);
         }
         if (SVFUtil::isa<GepObjPN>(ptdNode)) {
             isRelax = true;
@@ -87,12 +86,10 @@ void Debugger::addFunctionDefs() {
     Type* voidType = Type::getVoidTy(mod->getContext());
     Type* longType = IntegerType::get(mod->getContext(), 64);
     Type* intType = IntegerType::get(mod->getContext(), 32);
-    Type* longPtrType = PointerType::get(longType, 0);
 
-    // Install the Record Routine --> recordTarget(InvariantID* ids, int len, InvariantVal val) 
+    // Install the Record Routine
     std::vector<Type*> recordTypes;
-    recordTypes.push_back(longPtrType);
-    recordTypes.push_back(longType);
+    recordTypes.push_back(intType);
     recordTypes.push_back(longType);
 
     llvm::ArrayRef<Type*> recordTypeArr(recordTypes);
@@ -145,17 +142,8 @@ void Debugger::init() {
         }
     }
 
-    std::map<Value*, std::vector<int>> valIdsMap;
     for (Instruction* inst: instList) {
-        instrumentPointer(inst, valIdsMap);
+        instrumentPointer(inst);
     }
-
-    std::map<Value*, std::vector<int>>::iterator it;
-    for (it = valIdsMap.begin(); it != valIdsMap.end(); it++) {
-        Value* value = it->first;
-        auto idsVec = it->second;
-        recordTarget(idsVec, value, recordTargetFn);
-    }
- 
 //    mod->dump();
 }

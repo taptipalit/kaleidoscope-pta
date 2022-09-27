@@ -21,18 +21,12 @@ std::map<CycleID, std::unordered_set<uint64_t>> vgepMap;
 extern bool invFlipped;
 
 INLINE
-extern "C" void vgepRecordTarget(InvariantID* ids, int len, InvariantVal val) {
+extern "C" void vgepRecordTarget(InvariantID id, InvariantVal val) {
     if (val == 0x0) {
         // This is used to reset stack variables
-        for (int i = 0; i < len; i++) {
-            InvariantID id = ids[i];
-            vgepMap[id].clear();
-        }
-    } else { 
-        for (int i = 0; i < len; i++) {
-            InvariantID id = ids[i];
-            vgepMap[id].insert(val);
-        }
+        vgepMap[id].clear();
+    } else {
+        vgepMap[id].insert(val);
     }
 }
 
