@@ -67,7 +67,7 @@ extern "C" void updatePWC(uint32_t pwcId, uint32_t invVal) {
 
 INLINE 
 extern "C" uint32_t checkPWC(uint32_t pwcId, uint64_t newVal, uint64_t offset) {
-    if (newVal == pwcInvariants[pwcId] + offset) {
+    if (newVal == pwcInvariants[pwcId]/* + offset*/) { // We're instrumenting the pointer before the gep and after the gep. 
         cout << "PWC invariant " << pwcId << " failed\n";
         //invFlipped = true;
         return 1;

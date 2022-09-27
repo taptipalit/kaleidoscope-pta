@@ -600,6 +600,8 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
     std::vector<ConstraintEdge*> criticalGepEdges;
     std::vector<PAGNode*> subPAGNodes;
     bool treatAsPAInv = false;
+    bool inLoop = false;
+    bool hasStructType = false;
 
 
     for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
@@ -615,7 +617,7 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
     }
 
     std::set<const llvm::Value*>* gepNodesInSCC = new std::set<const llvm::Value*>();
-    if (criticalGepEdges.size() > 1) {
+    if (criticalGepEdges.size() > 0) {
         if (Options::InvariantPWC) {
             // is a PWC
             for (PAGNode* pagNode: subPAGNodes) {
@@ -626,16 +628,23 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                         Function* func = bb->getParent();
                         // TODO handle the loop correctly   
                         if (svfLoopInfo->bbIsLoop(bb)) {
-                            treatAsPAInv = true;
-                            break;
+                            inLoop = true;
                         }
                         if (const GetElementPtrInst* gepVal = SVFUtil::dyn_cast<GetElementPtrInst>(inst)) {
+                            Type* gepPtrTy = gepVal->getPointerOperand()->getType();
+                            while (SVFUtil::isa<PointerType>(gepPtrTy)) {
+                                PointerType* pty = SVFUtil::dyn_cast<PointerType>(gepPtrTy);
+                                gepPtrTy = pty->getPointerElementType();
+                            }
+                            hasStructType = SVFUtil::isa<StructType>(gepPtrTy);
+
                             gepNodesInSCC->insert(gepVal);
                         }
                     }
 
                 }
             }
+            treatAsPAInv = inLoop && !hasStructType;
             if (!treatAsPAInv) {
                 pwcCycleId++;
                 addCycleInvariants(pwcCycleId, gepNodesInSCC);
