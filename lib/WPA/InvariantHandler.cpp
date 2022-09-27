@@ -32,7 +32,7 @@ void InvariantHandler::recordTarget(int id, Value* target, Function* instFun) {
 
     if (shouldReset) {
         Function* func = stackVar->getParent()->getParent();
-        std::vector<CallInst*> innerCalls;
+        //std::vector<CallInst*> innerCalls;
         std::vector<ReturnInst*> returns;
         for (inst_iterator I = inst_begin(func), E = inst_end(func); I != E; ++I) {
             if (ReturnInst* ret = SVFUtil::dyn_cast<ReturnInst>(&*I)) {
@@ -49,6 +49,7 @@ void InvariantHandler::recordTarget(int id, Value* target, Function* instFun) {
             // Reset the Invariant
             builder->CreateCall(instFun, {idConstant, Constant::getNullValue(i64Ty)});
         }
+        /*
         for (CallInst* call: innerCalls) {
             if (call->getCalledFunction() &&
                     call->getCalledFunction()->getName().contains(".dbg")) {
@@ -62,6 +63,7 @@ void InvariantHandler::recordTarget(int id, Value* target, Function* instFun) {
             Value* ptrVal = builder->CreateBitOrPointerCast(target, i64Ty);
             builder->CreateCall(instFun, {idConstant, ptrVal});
         }
+        */
     }
 }
 
