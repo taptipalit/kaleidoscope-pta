@@ -393,10 +393,12 @@ protected:
     /// Connect formal and actual parameters for indirect callsites
     void connectCaller2CalleeParams(CallSite cs, const SVFFunction* F, NodePairSet& cpySrcNodes);
 
+    /// Can we insert a PWC invariant
+    bool handlePWCInvariant(std::vector<ConstraintEdge*>& criticalGepEdges);
     /// Merge sub node to its rep
     virtual void mergeNodeToRep(NodeID nodeId,NodeID newRepId);
 
-    virtual bool mergeSrcToTgt(NodeID srcId,NodeID tgtId);
+    virtual bool mergeSrcToTgt(NodeID srcId,NodeID tgtId, std::vector<ConstraintEdge*>& criticalGepEdges);
 
     /// Merge sub node in a SCC cycle to their rep node
     //@{
@@ -670,7 +672,7 @@ protected:
     virtual void mergeSCC();
     // AndersenLCD specified SCC detector, need to input a nodeStack 'lcdCandidate'
     NodeStack& SCCDetect();
-    bool mergeSrcToTgt(NodeID nodeId, NodeID newRepId);
+    bool mergeSrcToTgt(NodeID nodeId, NodeID newRepId, std::vector<ConstraintEdge*>& criticalGepEdges);
 };
 
 
@@ -799,9 +801,9 @@ protected:
         AndersenLCD::handleCopyGep(node);
     }
     void mergeSCC(NodeID nodeId);
-    bool mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
+    bool mergeSrcToTgt(NodeID nodeId, NodeID newRepId, std::vector<ConstraintEdge*>& criticalGepEdges)
     {
-        return AndersenLCD::mergeSrcToTgt(nodeId, newRepId);
+        return AndersenLCD::mergeSrcToTgt(nodeId, newRepId, criticalGepEdges);
     }
 
 };

@@ -127,9 +127,8 @@ NodeStack& AndersenLCD::SCCDetect()
 /*!
  * merge nodeId to newRepId. Return true if the newRepId is a PWC node
  */
-bool AndersenLCD::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
+bool AndersenLCD::mergeSrcToTgt(NodeID nodeId, NodeID newRepId, std::vector<ConstraintEdge*>& criticalGepEdges)
 {
-
     if(nodeId==newRepId)
         return false;
 
@@ -140,7 +139,7 @@ bool AndersenLCD::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
 
     /// move the edges from node to rep, and remove the node
     ConstraintNode* node = consCG->getConstraintNode(nodeId);
-    bool gepInsideScc = consCG->moveEdgesToRepNode(node, consCG->getConstraintNode(newRepId));
+    bool gepInsideScc = consCG->moveEdgesToRepNode(node, consCG->getConstraintNode(newRepId), criticalGepEdges);
 
     /// set rep and sub relations
     updateNodeRepAndSubs(node->getId(),newRepId);

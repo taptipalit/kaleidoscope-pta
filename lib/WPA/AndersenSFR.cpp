@@ -64,7 +64,9 @@ void AndersenSFR::PWCDetect()
 /*!
  *
  */
-bool AndersenSFR::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
+bool AndersenSFR::mergeSrcToTgt(NodeID nodeId, NodeID newRepId,
+    std::vector<ConstraintEdge*>& criticalGepEdges
+        )
 {
     ConstraintNode* node = consCG->getConstraintNode(nodeId);
     if (!node->strides.empty())
@@ -72,7 +74,7 @@ bool AndersenSFR::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
         ConstraintNode* newRepNode = consCG->getConstraintNode(newRepId);
         newRepNode->strides |= node->strides;
     }
-    return AndersenSCD::mergeSrcToTgt(nodeId, newRepId);
+    return AndersenSCD::mergeSrcToTgt(nodeId, newRepId, criticalGepEdges);
 }
 
 

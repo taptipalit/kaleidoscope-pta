@@ -282,19 +282,20 @@ public:
     /// Move incoming direct edges of a sub node which is outside the SCC to its rep node
     /// Remove incoming direct edges of a sub node which is inside the SCC from its rep node
     /// Return TRUE if there's a gep edge inside this SCC (PWC).
-    bool moveInEdgesToRepNode(ConstraintNode*node, ConstraintNode* rep );
+    bool moveInEdgesToRepNode(ConstraintNode*node, ConstraintNode* rep, std::vector<ConstraintEdge*>& gepEdges);
 
     /// Move outgoing direct edges of a sub node which is outside the SCC to its rep node
     /// Remove outgoing direct edges of sub node which is inside the SCC from its rep node
     /// Return TRUE if there's a gep edge inside this SCC (PWC).
-    bool moveOutEdgesToRepNode(ConstraintNode*node, ConstraintNode* rep );
+    bool moveOutEdgesToRepNode(ConstraintNode*node, ConstraintNode* rep, std::vector<ConstraintEdge*>& gepEdges);
 
     /// Move incoming/outgoing direct edges of a sub node to its rep node
     /// Return TRUE if there's a gep edge inside this SCC (PWC).
-    inline bool moveEdgesToRepNode(ConstraintNode*node, ConstraintNode* rep )
+    inline bool moveEdgesToRepNode(ConstraintNode*node, ConstraintNode* rep,
+            std::vector<ConstraintEdge*>& criticalGepEdges)
     {
-        bool gepIn = moveInEdgesToRepNode(node, rep);
-        bool gepOut = moveOutEdgesToRepNode(node, rep);
+        bool gepIn = moveInEdgesToRepNode(node, rep, criticalGepEdges);
+        bool gepOut = moveOutEdgesToRepNode(node, rep, criticalGepEdges);
         return (gepIn || gepOut);
     }
 

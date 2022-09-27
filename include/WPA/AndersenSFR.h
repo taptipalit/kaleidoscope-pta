@@ -150,7 +150,7 @@ protected:
     void PWCDetect();
     void fieldExpand(NodeSet& initials, Size_t offset, NodeBS& strides, PointsTo& expandPts);
     bool processGepPts(PointsTo& pts, const GepCGEdge* edge);
-    bool mergeSrcToTgt(NodeID nodeId, NodeID newRepId);
+    bool mergeSrcToTgt(NodeID nodeId, NodeID newRepId, std::vector<ConstraintEdge*>& criticalGepEdges);
 
 };
 

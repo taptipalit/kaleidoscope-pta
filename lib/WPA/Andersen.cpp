@@ -597,6 +597,17 @@ void Andersen::handlePointersAsPA(std::set<const llvm::Value*>* gepsInPWC) {
  */
 void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
 {
+    for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
+    {
+        NodeID subNodeId = *nodeIt;
+
+        if (subNodeId != repNodeId)
+        {
+            mergeNodeToRep(subNodeId, repNodeId);
+        }
+    }
+
+    /*
     std::set<const llvm::Value*>* gepNodesInSCC = new std::set<const llvm::Value*>();
     // Before merging this, simply collect
     bool isHandled = false;
@@ -606,17 +617,11 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
         EdgeList& edges = getSCCDetector()->getSCCEdgeList(repNodeId);
         if (getSCCDetector()->isRepPWC(repNodeId)) {
             bool treatAsPAInv = false;
-            //llvm::errs() << "Begin PWC\n";
             for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++) {
                 NodeID subNodeId = *nodeIt;
                 PAGNode* pagNode = pag->getPAGNode(subNodeId);
                 if (pagNode->hasValue()) {
                     const Value* pagVal = pagNode->getValue();
-                    /*
-                    if (const Instruction* pagInst = SVFUtil::dyn_cast<Instruction>(pagVal)) {
-                        llvm::errs() << "++++++++ " << *pagInst << " : " << pagInst->getFunction()->getName() << "\n";
-                    }
-                    */
                     if (const Instruction* inst = SVFUtil::dyn_cast<Instruction>(pagVal)) {
                         BasicBlock* bb = const_cast<BasicBlock*>(inst->getParent());
                         Function* func = bb->getParent();
@@ -631,7 +636,6 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                     }
                 }
             }
-            //llvm::errs() << "End PWC\n";
 
             if (!treatAsPAInv) {
                 for (const EdgePair& ep: edges) {
@@ -676,6 +680,7 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
             }
         }
     }
+    */
 }
 
 /**
@@ -1162,7 +1167,7 @@ void Andersen::connectCaller2CalleeParams(CallSite cs, const SVFFunction* F, Nod
 /*!
  * merge nodeId to newRepId. Return true if the newRepId is a PWC node
  */
-bool Andersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
+bool Andersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId, std::vector<ConstraintEdge*>& criticalGepEdges)
 {
 
     if(nodeId==newRepId)
@@ -1174,7 +1179,7 @@ bool Andersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
 
     /// move the edges from node to rep, and remove the node
     ConstraintNode* node = consCG->getConstraintNode(nodeId);
-    bool gepInsideScc = consCG->moveEdgesToRepNode(node, consCG->getConstraintNode(newRepId));
+    bool gepInsideScc = consCG->moveEdgesToRepNode(node, consCG->getConstraintNode(newRepId), criticalGepEdges);
 
     /// set rep and sub relations
     updateNodeRepAndSubs(node->getId(),newRepId);
@@ -1183,20 +1188,27 @@ bool Andersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
 
     return gepInsideScc;
 }
+
+bool Andersen::handlePWCInvariant(std::vector<ConstraintEdge*>& criticalGepEdges) {
+    return false;
+}
+
+
 /*
  * Merge a node to its rep node based on SCC detection
  */
 void Andersen::mergeNodeToRep(NodeID nodeId,NodeID newRepId)
 {
 
+    std::vector<ConstraintEdge*> criticalGepEdges;
     //llvm::errs() << "Merging node: " << nodeId << " to newRepId " << newRepId << "\n";
     ConstraintNode* node = consCG->getConstraintNode(nodeId);
-    bool gepInsideScc = mergeSrcToTgt(nodeId,newRepId);
+    bool gepInsideScc = mergeSrcToTgt(nodeId,newRepId, criticalGepEdges);
     /// 1. if find gep edges inside SCC cycle, the rep node will become a PWC node and
     /// its pts should be collapsed later.
     /// 2. if the node to be merged is already a PWC node, the rep node will also become
     /// a PWC node as it will have a self-cycle gep edge.
-    if (gepInsideScc || node->isPWCNode())
+    if ((gepInsideScc || node->isPWCNode()) && !handlePWCInvariant(criticalGepEdges))
         consCG->setPWCNode(newRepId);
 }
 

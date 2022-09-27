@@ -478,7 +478,7 @@ void ConstraintGraph::removeDirectEdge(ConstraintEdge* edge)
  * Move incoming direct edges of a sub node which is outside SCC to its rep node
  * Remove incoming direct edges of a sub node which is inside SCC from its rep node
  */
-bool ConstraintGraph::moveInEdgesToRepNode(ConstraintNode* node, ConstraintNode* rep )
+bool ConstraintGraph::moveInEdgesToRepNode(ConstraintNode* node, ConstraintNode* rep, std::vector<ConstraintEdge*>& criticalGepEdges )
 {
     std::vector<ConstraintEdge*> sccEdges;
     std::vector<ConstraintEdge*> nonSccEdges;
@@ -518,6 +518,8 @@ bool ConstraintGraph::moveInEdgesToRepNode(ConstraintNode* node, ConstraintNode*
             if (!isZeroOffsettedGepCGEdge(edge))
             {
                 criticalGepInsideSCC = true;
+                criticalGepEdges.push_back(edge);
+
             }
             removeDirectEdge(edge);
         }
@@ -537,7 +539,7 @@ bool ConstraintGraph::moveInEdgesToRepNode(ConstraintNode* node, ConstraintNode*
  * Move outgoing direct edges of a sub node which is outside SCC to its rep node
  * Remove outgoing direct edges of a sub node which is inside SCC from its rep node
  */
-bool ConstraintGraph::moveOutEdgesToRepNode(ConstraintNode*node, ConstraintNode* rep )
+bool ConstraintGraph::moveOutEdgesToRepNode(ConstraintNode*node, ConstraintNode* rep, std::vector<ConstraintEdge*>& criticalGepEdges)
 {
 
     std::vector<ConstraintEdge*> sccEdges;
@@ -577,6 +579,7 @@ bool ConstraintGraph::moveOutEdgesToRepNode(ConstraintNode*node, ConstraintNode*
             if (!isZeroOffsettedGepCGEdge(edge))
             {
                 criticalGepInsideSCC = true;
+                criticalGepEdges.push_back(edge);
             }
             removeDirectEdge(edge);
         }
