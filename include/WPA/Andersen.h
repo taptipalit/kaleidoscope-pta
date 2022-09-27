@@ -393,10 +393,8 @@ protected:
     /// Connect formal and actual parameters for indirect callsites
     void connectCaller2CalleeParams(CallSite cs, const SVFFunction* F, NodePairSet& cpySrcNodes);
 
-    /// Can we insert a PWC invariant
-    bool handlePWCInvariant(std::vector<ConstraintEdge*>& criticalGepEdges);
     /// Merge sub node to its rep
-    virtual void mergeNodeToRep(NodeID nodeId,NodeID newRepId);
+    virtual void mergeNodeToRep(NodeID nodeId,NodeID newRepId, std::vector<ConstraintEdge*>& criticalGepEdges);
 
     virtual bool mergeSrcToTgt(NodeID srcId,NodeID tgtId, std::vector<ConstraintEdge*>& criticalGepEdges);
 
@@ -500,7 +498,7 @@ public:
     virtual bool processCopy(NodeID node, const ConstraintEdge* edge);
 
 protected:
-    virtual void mergeNodeToRep(NodeID nodeId,NodeID newRepId);
+    virtual void mergeNodeToRep(NodeID nodeId,NodeID newRepId, std::vector<ConstraintEdge*>& criticalGepEdges);
 
     /// process "bitcast" CopyCGEdge
     virtual void processCast(const ConstraintEdge*)

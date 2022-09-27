@@ -104,13 +104,15 @@ void AndersenHCD::mergeNodeAndPts(NodeID node, NodeID rep)
 {
     node = sccRepNode(node);
     rep = sccRepNode(rep);
+    std::vector<ConstraintEdge*> criticalGepEdges;
+
     if (!isaMergedNode(node))
     {
         if (unionPts(rep, node))
             pushIntoWorklist(rep);
         // Once a 'Node' is merged to its rep, it is collapsed,
         // only its 'NodeID' remaining in the set 'subNodes' of its rep node.
-        mergeNodeToRep(node, rep);
+        mergeNodeToRep(node, rep, criticalGepEdges);
         setMergedNode(node);
     }
 }

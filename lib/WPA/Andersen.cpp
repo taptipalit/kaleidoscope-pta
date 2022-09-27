@@ -402,7 +402,7 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
             } 
             
             PAGNode* objNode = pag->getPAGNode(o);
-            if (Options::InvariantVGEP && !vgepCGEdge->isStructTy() && !SVFUtil::isa<GepObjPN>(objNode)) {
+            if (Options::InvariantVGEP && !vgepCGEdge->isStructTy() /*&& !SVFUtil::isa<GepObjPN>(objNode)*/) {
                 // First of all, we believe that variable indices
                 // when the type is a complex type, are most definitely accessing 
                 // an element in the array.
@@ -597,13 +597,54 @@ void Andersen::handlePointersAsPA(std::set<const llvm::Value*>* gepsInPWC) {
  */
 void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
 {
+    std::vector<ConstraintEdge*> criticalGepEdges;
+    std::vector<PAGNode*> subPAGNodes;
+    bool treatAsPAInv = false;
+
+
     for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
     {
         NodeID subNodeId = *nodeIt;
+        PAGNode* pagNode = pag->getPAGNode(subNodeId);
+        subPAGNodes.push_back(pagNode);
 
         if (subNodeId != repNodeId)
         {
-            mergeNodeToRep(subNodeId, repNodeId);
+            mergeNodeToRep(subNodeId, repNodeId, criticalGepEdges);
+        }
+    }
+
+    std::set<const llvm::Value*>* gepNodesInSCC = new std::set<const llvm::Value*>();
+    if (criticalGepEdges.size() > 1) {
+        if (Options::InvariantPWC) {
+            // is a PWC
+            for (PAGNode* pagNode: subPAGNodes) {
+                if (pagNode->hasValue()) {
+                    const Value* pagVal = pagNode->getValue();
+                    if (const Instruction* inst = SVFUtil::dyn_cast<Instruction>(pagVal)) {
+                        BasicBlock* bb = const_cast<BasicBlock*>(inst->getParent());
+                        Function* func = bb->getParent();
+                        // TODO handle the loop correctly   
+                        if (svfLoopInfo->bbIsLoop(bb)) {
+                            treatAsPAInv = true;
+                            break;
+                        }
+                        if (const GetElementPtrInst* gepVal = SVFUtil::dyn_cast<GetElementPtrInst>(inst)) {
+                            gepNodesInSCC->insert(gepVal);
+                        }
+                    }
+
+                }
+            }
+            if (!treatAsPAInv) {
+                pwcCycleId++;
+                addCycleInvariants(pwcCycleId, gepNodesInSCC);
+            } else {
+                // We assume these can never point to structs, so no need to do a field sensitive analysis
+                handlePointersAsPA(gepNodesInSCC);
+            }
+        } else {
+            consCG->setPWCNode(repNodeId);
         }
     }
 
@@ -726,6 +767,7 @@ bool Andersen::collapseField(NodeID nodeId)
     NodeID baseId = consCG->getFIObjNode(nodeId);
     NodeID baseRepNodeId = consCG->sccRepNode(baseId);
     NodeBS & allFields = consCG->getAllFieldsObjNode(baseId);
+    std::vector<ConstraintEdge*> criticalGepEdges;
     for (NodeBS::iterator fieldIt = allFields.begin(), fieldEit = allFields.end(); fieldIt != fieldEit; fieldIt++)
     {
         NodeID fieldId = *fieldIt;
@@ -745,7 +787,10 @@ bool Andersen::collapseField(NodeID nodeId)
             // merge field node into base node, including edges and pts.
             NodeID fieldRepNodeId = consCG->sccRepNode(fieldId);
             if (fieldRepNodeId != baseRepNodeId)
-                mergeNodeToRep(fieldRepNodeId, baseRepNodeId);
+                mergeNodeToRep(fieldRepNodeId, baseRepNodeId, criticalGepEdges);
+            /// TODO: I don't think we care about criticalGepEdges here.
+            /// We're any way turning the object into field sensitive
+            /// This isn't a PWC situation
 
             // collect each gep node whose base node has been set as field-insensitive
             redundantGepNodes.set(fieldId);
@@ -1189,27 +1234,25 @@ bool Andersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId, std::vector<Constra
     return gepInsideScc;
 }
 
-bool Andersen::handlePWCInvariant(std::vector<ConstraintEdge*>& criticalGepEdges) {
-    return false;
-}
-
 
 /*
  * Merge a node to its rep node based on SCC detection
  */
-void Andersen::mergeNodeToRep(NodeID nodeId,NodeID newRepId)
+void Andersen::mergeNodeToRep(NodeID nodeId,NodeID newRepId, std::vector<ConstraintEdge*>& criticalGepEdges)
 {
 
-    std::vector<ConstraintEdge*> criticalGepEdges;
     //llvm::errs() << "Merging node: " << nodeId << " to newRepId " << newRepId << "\n";
     ConstraintNode* node = consCG->getConstraintNode(nodeId);
     bool gepInsideScc = mergeSrcToTgt(nodeId,newRepId, criticalGepEdges);
+    /// We do this in mergeSccNodes
     /// 1. if find gep edges inside SCC cycle, the rep node will become a PWC node and
     /// its pts should be collapsed later.
     /// 2. if the node to be merged is already a PWC node, the rep node will also become
     /// a PWC node as it will have a self-cycle gep edge.
-    if ((gepInsideScc || node->isPWCNode()) && !handlePWCInvariant(criticalGepEdges))
+    /*
+    if (gepInsideScc || node->isPWCNode())
         consCG->setPWCNode(newRepId);
+        */
 }
 
 /*

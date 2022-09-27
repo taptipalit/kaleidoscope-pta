@@ -209,7 +209,7 @@ bool AndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge* edge)
 /*
  * Merge a node to its rep node
  */
-void AndersenWaveDiff::mergeNodeToRep(NodeID nodeId,NodeID newRepId)
+void AndersenWaveDiff::mergeNodeToRep(NodeID nodeId,NodeID newRepId, std::vector<ConstraintEdge*>& criticalGepEdges)
 {
     if(nodeId==newRepId)
         return;
@@ -217,5 +217,5 @@ void AndersenWaveDiff::mergeNodeToRep(NodeID nodeId,NodeID newRepId)
     /// update rep's propagated points-to set
     updatePropaPts(newRepId, nodeId);
 
-    Andersen::mergeNodeToRep(nodeId, newRepId);
+    Andersen::mergeNodeToRep(nodeId, newRepId, criticalGepEdges);
 }

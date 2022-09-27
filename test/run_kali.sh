@@ -27,8 +27,9 @@ fi
 
 
 /home/tpalit/svf-kernel/Debug-build/bin/wpa -invariant-pwc=true \
--invariant-vgep=true -ptd=persistent -print-all-pts \
--debug-funcs=initServer -ander $file_bc #aeSearchNearestTimer,
+-invariant-vgep=true -short-circuit=true -ptd=persistent \
+-ander $file_bc #aeSearchNearestTimer,
+#-print-all-pts -debug-funcs=initServer 
 
 if [ $? -ne 0 ]; then
     echo "Failed to run invariant-based pointer analysis"
