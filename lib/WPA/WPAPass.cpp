@@ -119,7 +119,7 @@ CallInst* WPAPass::findCorrespondingCallInClone(CallInst* indCall, llvm::Module*
 }
 */
 
-void WPAPass::collectCFI(Module& M, bool woInv) {
+void WPAPass::collectCFI(SVFModule* svfModule, Module& M, bool woInv) {
     
     std::map<llvm::CallInst*, std::set<Function*>>* indCallMap;
     std::set<llvm::CallInst*>* indCallProhibited;
@@ -138,6 +138,7 @@ void WPAPass::collectCFI(Module& M, bool woInv) {
 
 
     PAG* pag = _pta->getPAG();
+    linkVariadics(svfModule, pag);
     for (Module::iterator MIterator = M.begin(); MIterator != M.end(); MIterator++) {
         if (Function* F = SVFUtil::dyn_cast<Function>(&*MIterator)) {
             llvm::errs() << "Function: " << F->getName() << "\n";
@@ -161,6 +162,14 @@ void WPAPass::collectCFI(Module& M, bool woInv) {
                                         //funcIndCallMap[F][callInst].push_back(const_cast<Function*>(tgtFunction));
                                     }
                                 }
+                            }
+                        }
+                        for (Function* function: fixupSet) {
+                            (*indCallMap)[callInst].insert(function);
+                            llvm::errs() << "    calls " << function->getName() << "\n";
+                            hasTarget = true;
+                            if (std::find(indCallProhibited->begin(), indCallProhibited->end(), callInst) != indCallProhibited->end()) {
+                                indCallProhibited->erase(callInst);
                             }
                         }
                         if (!hasTarget) {
@@ -453,6 +462,42 @@ void WPAPass::addCFIFunctions(llvm::Module* module) {
     checkCFI = Function::Create(checkCFIFnTy, Function::ExternalLinkage, "checkCFI", module);
 }
 
+void WPAPass::linkVariadics(SVFModule* svfModule, PAG* pag) {
+    SVFModule::iterator it = svfModule->begin();
+    for (; it != svfModule->end(); it++) {
+        const SVFFunction* fun = *it;
+        if (fun->isVarArg()) {
+            NodeID varargNode = pag->getVarargNode(fun);
+            const PointsTo& pts = _pta->getPts(varargNode);
+            for (PointsTo::iterator piter = pts.begin(), epiter = pts.end(); piter != epiter; ++piter) {
+                NodeID ptd = *piter;
+                if (pag->hasPAGNode(ptd)) {
+                    PAGNode* tgtNode = pag->getPAGNode(ptd);
+                    if (tgtNode->hasValue()) {
+                        if (const Function* func = SVFUtil::dyn_cast<Function>(tgtNode->getValue())) {
+                            llvm::errs() << "Fixing up with function: " << func->getName() << "\n";
+                            fixupSet.insert(const_cast<Function*>(func));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    /*
+    for (auto it: wInvIndCallMap) {
+        for (Function* fixUp: fixupVec) {
+            wInvIndCallMap[it.first].insert(fixUp);
+        }
+    }
+
+    for (auto it: woInvIndCallMap) {
+        for (Function* fixUp: fixupVec) {
+            woInvIndCallMap[it.first].insert(fixUp);
+        }
+    }
+    */
+}
 
 /*!
  * Create pointer analysis according to a specified kind and then analyze the module.
@@ -490,10 +535,10 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
     ptaVector.push_back(_pta);
     _pta->analyze();
 
-    collectCFI(*module, false);
+    collectCFI(svfModule, *module, false);
 
     if (Options::ShortCircuit) {
-        collectCFI(*module, true);
+        collectCFI(svfModule, *module, true);
     } else {
         Options::InvariantVGEP = false;
         Options::InvariantPWC = false;
@@ -512,8 +557,9 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
         ptaVector.push_back(_pta);
         _pta->analyze();
 
-        collectCFI(*module, true);
+        collectCFI(svfModule, *module, true);
     }
+
 
     // At the end of collectCFI
     // we have two maps inside WPAPass populated

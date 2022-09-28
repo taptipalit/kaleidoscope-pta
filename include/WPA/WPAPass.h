@@ -97,6 +97,7 @@ public:
     virtual void printCDF(llvm::Module*);
     */
 
+    virtual void linkVariadics(SVFModule*, PAG*);
     /// Interface expose to users of our pointer analysis, given Location infos
     virtual inline AliasResult alias(const MemoryLocation  &LocA, const MemoryLocation  &LocB)
     {
@@ -142,7 +143,7 @@ public:
     virtual void invariantInstrumentationDriver(llvm::Module&);
 
     //virtual llvm::CallInst* findCorrespondingCallInClone(llvm::CallInst*, llvm::Module*);
-    virtual void collectCFI(llvm::Module&, bool);
+    virtual void collectCFI(SVFModule*, llvm::Module&, bool);
     virtual void instrumentCFICheck(llvm::CallInst*);
     virtual void addCFIFunctions(llvm::Module* module);
     virtual void initializeCFITargets(llvm::Module* module);
@@ -173,6 +174,10 @@ private:
 
     int indCSId;
     LoopInfoConsolidatorPass* svfLoopInfo;
+
+
+    std::set<Function*> fixupSet;
+
 };
 
 } // End namespace SVF
