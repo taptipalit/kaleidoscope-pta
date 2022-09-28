@@ -72,6 +72,9 @@ void AndersenStat::collectCycleInfo(ConstraintGraph* consCG)
         for (NodeBS::iterator it = subNodes.begin(), eit = subNodes.end(); it != eit; ++it)
         {
             NodeID nodeId = *it;
+            if (!pta->getPAG()->hasPAGNode(nodeId)) {
+                continue;
+            }
             PAGNode* pagNode = pta->getPAG()->getPAGNode(nodeId);
             if (SVFUtil::isa<ObjPN>(pagNode) && pta->isFieldInsensitive(nodeId))
             {
@@ -144,6 +147,7 @@ void AndersenStat::constraintGraphStat()
         if(nodeIt->second->getInEdges().empty() && nodeIt->second->getOutEdges().empty())
             continue;
         cgNodeNumber++;
+        if (!pta->getPAG()->hasPAGNode(nodeIt->first)) continue;
         if(SVFUtil::isa<ObjPN>(pta->getPAG()->getPAGNode(nodeIt->first)))
             objNodeNumber++;
 
