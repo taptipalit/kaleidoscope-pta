@@ -326,7 +326,7 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypes(llvm::Module& module) {
                             llvm::errs() << "Call to function: " << callInst->getCalledFunction()->getName() << " has type info but not a heap allocation\n";
                         }
                     } else {
-                        llvm::errs() << "Instruction: " << *inst << " has type info but not a heap allocation\n";
+                        llvm::errs() << "Instruction: " << " in function: " << inst->getFunction()->getName() << " : " << *inst << " has type info but not a heap allocation\n";
                     }
                 }
             }

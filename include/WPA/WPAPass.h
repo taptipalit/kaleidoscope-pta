@@ -148,6 +148,8 @@ public:
     virtual void addCFIFunctions(llvm::Module* module);
     virtual void initializeCFITargets(llvm::Module* module);
 
+    virtual bool matchFunctionType(Function*, CallInst*);
+
 private:
     /// Create pointer analysis according to specified kind and analyze the module.
     void runPointerAnalysis(SVFModule* svfModule, u32_t kind);

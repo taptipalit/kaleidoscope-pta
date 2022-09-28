@@ -402,12 +402,14 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
             } 
             
             PAGNode* objNode = pag->getPAGNode(o);
+            /*
             if (vgepCGEdge->isStructTy()) {
                 llvm::errs() << "VGEP constraint edge is of struct type: " << *(vgepCGEdge->getLLVMValue());
                 if (Instruction* inst = SVFUtil::dyn_cast<Instruction>(vgepCGEdge->getLLVMValue())) {
                     llvm::errs () << " --> " << inst->getFunction()->getName() << "\n";
                 }
             }
+            */
             if (Options::InvariantVGEP && !vgepCGEdge->isStructTy() /*&& !SVFUtil::isa<GepObjPN>(objNode)*/) {
                 // First of all, we believe that variable indices
                 // when the type is a complex type, are most definitely accessing 

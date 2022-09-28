@@ -165,6 +165,7 @@ void WPAPass::collectCFI(SVFModule* svfModule, Module& M, bool woInv) {
                             }
                         }
                         for (Function* function: fixupSet) {
+                            if (!matchFunctionType(function, callInst)) continue;
                             (*indCallMap)[callInst].insert(function);
                             llvm::errs() << "    calls " << function->getName() << "\n";
                             hasTarget = true;
@@ -182,8 +183,6 @@ void WPAPass::collectCFI(SVFModule* svfModule, Module& M, bool woInv) {
         }
 
     }
-
-
 
     (*histogram)[0] = indCallProhibited->size();
     
@@ -475,7 +474,6 @@ void WPAPass::linkVariadics(SVFModule* svfModule, PAG* pag) {
                     PAGNode* tgtNode = pag->getPAGNode(ptd);
                     if (tgtNode->hasValue()) {
                         if (const Function* func = SVFUtil::dyn_cast<Function>(tgtNode->getValue())) {
-                            llvm::errs() << "Fixing up with function: " << func->getName() << "\n";
                             fixupSet.insert(const_cast<Function*>(func));
                         }
                     }
@@ -484,6 +482,9 @@ void WPAPass::linkVariadics(SVFModule* svfModule, PAG* pag) {
         }
     }
     
+    for (Function* fixup: fixupSet) {
+        llvm::errs() << "Fix up with function: " << fixup->getName() << "\n";
+    }
     /*
     for (auto it: wInvIndCallMap) {
         for (Function* fixUp: fixupVec) {
@@ -497,6 +498,15 @@ void WPAPass::linkVariadics(SVFModule* svfModule, PAG* pag) {
         }
     }
     */
+}
+
+bool WPAPass::matchFunctionType(Function* func, CallInst* call) {
+    FunctionType* ft1 = func->getFunctionType();
+    FunctionType* ft2 = call->getFunctionType();
+
+    if (ft1->getNumParams() != ft2->getNumParams()) return false;
+    //if (ft1->getReturnType() != ft1->getReturnType()) return false;
+    return true;
 }
 
 /*!
