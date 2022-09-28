@@ -3,17 +3,17 @@
 int main(void) {
     int a = 10;
     int b = 300;
-    int *p;
-    int *q;
+    int *p, *q;
 
     p = &a;
-    q = &b;
+    p = &b;
+    q = &a;
 
     int k = *p;
 
-    *q = 400;
+    //*q = 400;
 
-    printf("%d %d\n", k, b);
+    printf("%d %d\n", k, *q);
 }
 /*
 int main(void) {

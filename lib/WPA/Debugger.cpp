@@ -29,12 +29,20 @@ void Debugger::instrumentPointer(Instruction* inst) {
         NodeID ptd = *piter;
         PAGNode* ptdNode = pag->getPAGNode(ptd);
 
-        dbgTgtID++;
-        dbgTgtIDs.push_back(dbgTgtID);
+        
         if (ptdNode->hasValue()) {
             Value* ptdVal = const_cast<Value*>(ptdNode->getValue());
             if (ptdVal == pointer) continue;
-            recordTarget(dbgTgtID, ptdVal, recordTargetFn);
+
+            auto it = recorded.find(ptdVal);
+            if (it == recorded.end()) {
+                dbgTgtID++;
+                recorded[ptdVal] = dbgTgtID;
+                recordTarget(dbgTgtID, ptdVal, recordTargetFn);
+            } else {
+                dbgTgtID = it->second;
+            }
+            dbgTgtIDs.push_back(dbgTgtID);
         }
         if (SVFUtil::isa<GepObjPN>(ptdNode)) {
             isRelax = true;

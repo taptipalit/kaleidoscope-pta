@@ -15,6 +15,8 @@ class Debugger: public InvariantHandler {
         llvm::Function* ptdTargetCheckFn;
         llvm::Function* recordTargetFn;
 
+        std::map<Value*, int> recorded;
+
     public:
         Debugger(SVFModule* S, llvm::Module* M, PAG* p, LoopInfoWrapperPass* lInfo,
                 PointerAnalysis* pta): 
