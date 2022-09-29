@@ -402,14 +402,7 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
             } 
             
             PAGNode* objNode = pag->getPAGNode(o);
-            /*
-            if (vgepCGEdge->isStructTy()) {
-                llvm::errs() << "VGEP constraint edge is of struct type: " << *(vgepCGEdge->getLLVMValue());
-                if (Instruction* inst = SVFUtil::dyn_cast<Instruction>(vgepCGEdge->getLLVMValue())) {
-                    llvm::errs () << " --> " << inst->getFunction()->getName() << "\n";
-                }
-            }
-            */
+            
             if (Options::InvariantVGEP && !vgepCGEdge->isStructTy() /*&& !SVFUtil::isa<GepObjPN>(objNode)*/) {
                 // First of all, we believe that variable indices
                 // when the type is a complex type, are most definitely accessing 
@@ -423,18 +416,11 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                     // We will add the invariant later
                     pag->addPtdForVarGep(vgepCGEdge->getLLVMValue(), o);
                     PAGNode* node = pag->getPAGNode(o);
-                    /*
-                    if (node && node->hasValue()) {
-                        const llvm::Value* val = node->getValue();
-                        llvm::errs() << "adding vgep invariant: " << *val << "\n";
-                    }
-                    */
                     continue;
                 } else {
                     LocationSet ls(0);
                     NodeID fieldSrcPtdNode = consCG->getGepObjNode(o, ls);
                     tmpDstPts.set(fieldSrcPtdNode);
-                    continue;
                 }
             } else {
 
