@@ -87,6 +87,8 @@ public:
         CPP_EFT_A1R,      //load arg1
         EFT_CXA_BEGIN_CATCH,  //__cxa_begin_catch
         CPP_EFT_DYNAMIC_CAST, // dynamic_cast
+        EFT_EPOLL_CTL_3,   // The event arg of EPOLL_CTL
+        EFT_EPOLL_WAIT_2,  // The event arg of EPOLL_WAIT
         EFT_OTHER         //not found in the list
     };
 private:

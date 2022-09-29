@@ -121,6 +121,12 @@ PAG* PAGBuilder::build(SVFModule* svfModule)
         }
     }
 
+    for (Value* eventCTLObj: pag->getEpollCTLEventObjs()) {
+        for (Value* eventWaitObj: pag->getEpollWAITEventObjs()) {
+            addEpollComplexCons(eventWaitObj, eventCTLObj);
+        }
+    }
+
     sanityCheck();
 
     pag->initialiseCandidatePointers();
@@ -630,7 +636,12 @@ void PAGBuilder::visitGetElementPtrInst(GetElementPtrInst &inst)
             vgepEdge->setStructType(false);
         }
 
-    }}
+    }/* else {
+        NormalGepPE* normalGep = SVFUtil::dyn_cast<NormalGepPE>(gepEdge);
+        llvm::errs() << "Normal Gep: " << inst << " ls offset: " << normalGep->getOffset() << "\n";
+
+    }*/
+}
 
 /*
  * Visit cast instructions
@@ -948,6 +959,52 @@ void PAGBuilder::handleDirectCall(CallSite cs, const SVFFunction *F)
 const Type *PAGBuilder::getBaseTypeAndFlattenedFields(Value *V, std::vector<LocationSet> &fields)
 {
     return SymbolTableInfo::SymbolInfo()->getBaseTypeAndFlattenedFields(V, fields);
+}
+
+void PAGBuilder::addEpollComplexCons(Value* D, Value* S) {
+    assert(D && S);
+	llvm::Module *module = SVF::LLVMModuleSet::getLLVMModuleSet()->getMainLLVMModule();
+
+    NodeID vnD= getValueNode(D), vnS= getValueNode(S);
+    if(!vnD || !vnS)
+        return;
+
+    int sz = 2; // 2 fields
+
+    // Get the type
+    StructType* epollEventTy = nullptr;
+
+    for (auto* S: module->getIdentifiedStructTypes()) {
+        if (S->getName() == "struct.epoll_event") {
+            epollEventTy = S;
+            break;
+        }
+    }
+
+    Type* dtype, *stype;
+    dtype = stype = epollEventTy;
+
+    assert(epollEventTy && "epoll event type should be found");
+
+    if (SVFUtil::isa<Function>(S)) {
+        LocationSet ls(1);
+        NodeID dField = getGepValNode(D,ls,dtype,1);
+        NodeID funcValId = pag->getValueNode(S);
+        addStoreEdge(funcValId, dField);
+
+    } else {
+        //For each field (i), add (Ti = *S + i) and (*D + i = Ti).
+        for (u32_t index = 0; index < sz; index++) {
+            LocationSet ls1(index);
+            LocationSet ls2(index);
+
+            NodeID dField = getGepValNode(D,ls1,dtype,index);
+            NodeID sField = getGepValNode(S,ls2,stype,index);
+            NodeID dummy = pag->addDummyValNode();
+            addLoadEdge(sField,dummy);
+            addStoreEdge(dummy,dField);
+        }
+    }
 }
 
 /*!
@@ -1335,6 +1392,26 @@ void PAGBuilder::handleExtCall(CallSite cs, const SVFFunction *callee)
                 break;
             }
             //default:
+            case ExtAPI::EFT_EPOLL_CTL_3: {
+                // Store the arg
+                Value* eventArg = cs.getArgument(3);
+                pag->getEpollCTLEventObjs().push_back(eventArg);
+                // Get the first argument of struct epoll_event { uint32_t events; epoll_data_t data};
+                // Check if we're dealing with a ptr in epoll_data_t
+                StructType* epollEventTy = SVFUtil::dyn_cast<StructType>(eventArg->getType()->getPointerElementType());
+                assert(epollEventTy && "Epoll event must be a struct");
+                StructType* epollDataTy = SVFUtil::dyn_cast<StructType>(epollEventTy->getElementType(1));
+                break;
+            }
+            case ExtAPI::EFT_EPOLL_WAIT_2: {
+                Value* eventArg = cs.getArgument(1);
+                pag->getEpollWAITEventObjs().push_back(eventArg);
+
+                StructType* epollEventTy = SVFUtil::dyn_cast<StructType>(eventArg->getType()->getPointerElementType());
+                assert(epollEventTy && "Epoll event must be a struct");
+                StructType* epollDataTy = SVFUtil::dyn_cast<StructType>(epollEventTy->getElementType(1));
+                break;
+            }
             case ExtAPI::EFT_OTHER:
             {
                 if(SVFUtil::isa<PointerType>(inst->getType()))
@@ -1511,6 +1588,7 @@ void PAGBuilder::setCurrentBBAndValueForPAGEdge(PAGEdge* edge)
     {
         const Function* srcFun = edge->getSrcNode()->getFunction();
         const Function* dstFun = edge->getDstNode()->getFunction();
+/*
         if(srcFun!=nullptr && !SVFUtil::isa<RetPE>(edge) && !SVFUtil::isa<Function>(edge->getSrcNode()->getValue())) {
             assert(srcFun==curInst->getFunction() && "SrcNode of the PAGEdge not in the same function?");
         }
@@ -1521,6 +1599,7 @@ void PAGBuilder::setCurrentBBAndValueForPAGEdge(PAGEdge* edge)
         /// We assume every GepValPN and its GepPE are unique across whole program
         if (!(SVFUtil::isa<GepPE>(edge) && SVFUtil::isa<GepValPN>(edge->getDstNode())))
             assert(curBB && "instruction does not have a basic block??");
+*/
 
         icfgNode = pag->getICFG()->getBlockICFGNode(curInst);
     }

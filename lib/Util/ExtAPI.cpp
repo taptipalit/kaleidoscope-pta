@@ -855,8 +855,11 @@ static const ei_pair ei_pairs[]=
     {"_ZStlsIcSt11char_traitsIcESaIcEERSt13basic_ostreamIT_T0_ES7_RKSbIS4_S5_T1_E", ExtAPI::CPP_EFT_A1R}, // c++98
     {"_ZStlsIcSt11char_traitsIcESaIcEERSt13basic_ostreamIT_T0_ES7_RKNSt7__cxx1112basic_stringIS4_S5_T1_EE", ExtAPI::CPP_EFT_A1R}, // c++11
 
-    //This must be the last entry.
     {"__dynamic_cast", ExtAPI::CPP_EFT_DYNAMIC_CAST},
+    {"epoll_ctl", ExtAPI::EFT_EPOLL_CTL_3},
+    {"epoll_wait", ExtAPI::EFT_EPOLL_WAIT_2},
+
+    //This must be the last entry.
     {0, ExtAPI::EFT_NOOP}
 };
 

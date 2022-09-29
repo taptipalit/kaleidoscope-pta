@@ -114,6 +114,11 @@ private:
     /// Valid pointers for pointer analysis resolution connected by PAG edges (constraints)
     /// this set of candidate pointers can change during pointer resolution (e.g. adding new object nodes)
     OrderedNodeSet candidatePointers;
+
+    std::vector<llvm::Value*> epollCTLEventObjs;
+    std::vector<llvm::Value*> epollWAITEventObjs;
+
+
     NodeID nodeNumAfterPAGBuild; // initial node number after building PAG, excluding later added nodes, e.g., gepobj nodes
     ICFG* icfg; // ICFG
     CallSiteSet callSiteSet; /// all the callsites of a program
@@ -149,6 +154,14 @@ public:
     inline ICFG* getICFG()
     {
         return icfg;
+    }
+
+    std::vector<llvm::Value*>& getEpollCTLEventObjs() {
+        return epollCTLEventObjs;
+    }
+
+    std::vector<llvm::Value*>& getEpollWAITEventObjs() {
+        return epollWAITEventObjs;
     }
 
     /// Return valid pointers

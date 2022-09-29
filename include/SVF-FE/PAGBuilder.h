@@ -148,6 +148,7 @@ public:
     //@{
     virtual void handleExtCall(CallSite cs, const SVFFunction *F);
     const Type *getBaseTypeAndFlattenedFields(Value* v, std::vector<LocationSet> &fields);
+    void addEpollComplexCons(Value* D, Value* S);
     void addComplexConsForExt(Value *D, Value *S,u32_t sz = 0);
     //@}
 
