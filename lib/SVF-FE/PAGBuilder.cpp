@@ -630,10 +630,14 @@ void PAGBuilder::visitGetElementPtrInst(GetElementPtrInst &inst)
             gepTy = gepTy->getPointerElementType();
         }
 
-        if (SVFUtil::isa<StructType>(gepTy)) {
-            vgepEdge->setStructType(true);
+        if (SVFUtil::isa<StructType>(gepTy) && !constGep) {
+            vgepEdge->setSubType(VariantGepPE::TL_STRUCT);
         } else {
-            vgepEdge->setStructType(false);
+            if (constGep) {
+                vgepEdge->setSubType(VariantGepPE::DERIVED);
+            } else {
+                vgepEdge->setSubType(VariantGepPE::CHAR);
+            }
         }
 
     }/* else {

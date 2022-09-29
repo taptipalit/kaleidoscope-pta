@@ -353,8 +353,15 @@ private:
     VariantGepCGEdge(const VariantGepCGEdge &);  ///< place holder
     void operator=(const VariantGepCGEdge &); ///< place holder
 
-    bool isStructTyFlag;
 public:
+    enum VarGepSubType { 
+        TL_STRUCT, // top-level struct. The `struct* ptr; ptr+i;` types
+        DERIVED, // derived from a VarGep, but has constant offset
+        CHAR, // char* ptr; ptr + i;
+    };
+    VarGepSubType subType;
+
+
     /// Methods for support type inquiry through isa, cast, and dyn_cast:
     //@{
     static inline bool classof(const VariantGepCGEdge *)
@@ -376,12 +383,25 @@ public:
     //@}
 
     /// Constructor
-    VariantGepCGEdge(ConstraintNode* s, ConstraintNode* d, EdgeID id, bool flag)
-        : GepCGEdge(s,d,VariantGep,id), isStructTyFlag(flag)
-    {}
+    VariantGepCGEdge(ConstraintNode* s, ConstraintNode* d, EdgeID id, VariantGepPE::VarGepSubType subTy)
+        : GepCGEdge(s,d,VariantGep,id)
+    {
+        if (subTy == VariantGepPE::TL_STRUCT) {
+            this->subType = TL_STRUCT;
+        } else if (subTy == VariantGepPE::DERIVED) {
+            this->subType = DERIVED;
+        } else {
+            this->subType = CHAR;
+        }
+    }
 
+    virtual inline void setSubType(VarGepSubType ty) {
+        subType = ty;
+    }
+    inline VarGepSubType getSubType() const{
+        return subType;
+    }
 
-    bool isStructTy() const { return isStructTyFlag; }
 };
 
 } // End namespace SVF

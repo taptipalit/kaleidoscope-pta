@@ -129,7 +129,7 @@ void ConstraintGraph::buildCG()
                 vgeps.end(); iter != eiter; ++iter)
     {
         VariantGepPE* edge = SVFUtil::cast<VariantGepPE>(*iter);
-        ConstraintEdge* consEdge = addVariantGepCGEdge(edge->getSrcID(),edge->getDstID(), edge->isStructTy());
+        ConstraintEdge* consEdge = addVariantGepCGEdge(edge->getSrcID(),edge->getDstID(), edge->getSubType());
         if (consEdge) {
             consEdge->setLLVMValue(edge->getValue());
         }
@@ -245,14 +245,14 @@ NormalGepCGEdge*  ConstraintGraph::addNormalGepCGEdge(NodeID src, NodeID dst, co
 /*!
  * Add variant gep edge
  */
-VariantGepCGEdge* ConstraintGraph::addVariantGepCGEdge(NodeID src, NodeID dst, bool flag)
+VariantGepCGEdge* ConstraintGraph::addVariantGepCGEdge(NodeID src, NodeID dst, VariantGepPE::VarGepSubType subType)
 {
     ConstraintNode* srcNode = getConstraintNode(src);
     ConstraintNode* dstNode = getConstraintNode(dst);
     if(hasEdge(srcNode,dstNode,ConstraintEdge::VariantGep))
         return nullptr;
 
-    VariantGepCGEdge* edge = new VariantGepCGEdge(srcNode, dstNode, edgeIndex++, flag);
+    VariantGepCGEdge* edge = new VariantGepCGEdge(srcNode, dstNode, edgeIndex++, subType);
     bool added = directEdgeSet.insert(edge).second;
     assert(added && "not added??");
     srcNode->addOutgoingGepEdge(edge);
@@ -350,7 +350,14 @@ void ConstraintGraph::reTargetDstOfEdge(ConstraintEdge* edge, ConstraintNode* ne
     {
 
         removeDirectEdge(gep);
-        ConstraintEdge* newEdge = addVariantGepCGEdge(srcId,newDstNodeID, gep->isStructTy());
+        ConstraintEdge* newEdge = nullptr;
+        if (gep->getSubType() == VariantGepCGEdge::VarGepSubType::TL_STRUCT) {
+            newEdge = addVariantGepCGEdge(srcId,newDstNodeID, VariantGepPE::VarGepSubType::TL_STRUCT);
+        } else if (gep->getSubType() == VariantGepCGEdge::VarGepSubType::DERIVED) {
+            newEdge = addVariantGepCGEdge(srcId,newDstNodeID, VariantGepPE::VarGepSubType::DERIVED);
+        } else if (gep->getSubType() == VariantGepCGEdge::VarGepSubType::CHAR) {
+            newEdge = addVariantGepCGEdge(srcId,newDstNodeID, VariantGepPE::VarGepSubType::CHAR);
+        }
         if (newEdge) {
             newEdge->setLLVMValue(oldValue);
         }
@@ -411,7 +418,16 @@ void ConstraintGraph::reTargetSrcOfEdge(ConstraintEdge* edge, ConstraintNode* ne
     else if(VariantGepCGEdge* gep = SVFUtil::dyn_cast<VariantGepCGEdge>(edge))
     {
         removeDirectEdge(gep);
-        ConstraintEdge* newEdge = addVariantGepCGEdge(newSrcNodeID,dstId, gep->isStructTy());
+        ConstraintEdge* newEdge = nullptr;
+        if (gep->getSubType() == VariantGepCGEdge::VarGepSubType::TL_STRUCT) {
+            newEdge = addVariantGepCGEdge(newSrcNodeID, dstId, VariantGepPE::VarGepSubType::TL_STRUCT);
+        } else if (gep->getSubType() == VariantGepCGEdge::VarGepSubType::DERIVED) {
+            newEdge = addVariantGepCGEdge(newSrcNodeID, dstId, VariantGepPE::VarGepSubType::DERIVED);
+        } else if (gep->getSubType() == VariantGepCGEdge::VarGepSubType::CHAR) {
+            newEdge = addVariantGepCGEdge(newSrcNodeID, dstId, VariantGepPE::VarGepSubType::CHAR);
+        }
+ 
+//        ConstraintEdge* newEdge = addVariantGepCGEdge(newSrcNodeID,dstId, gep->isStructTy());
         if (newEdge) {
             newEdge->setLLVMValue(oldValue);
         }

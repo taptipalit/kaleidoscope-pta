@@ -525,9 +525,16 @@ private:
     VariantGepPE(); ///< place holder
     VariantGepPE(const VariantGepPE&); ///< place holder
     void operator=(const VariantGepPE&); ///< place holder
-    bool isStructTyFlag;
+    //bool isStructTyFlag;
 
 public:
+    enum VarGepSubType { 
+        TL_STRUCT, // top-level struct. The `struct* ptr; ptr+i;` types
+        DERIVED, // derived from a VarGep, but has constant offset
+        CHAR, // char* ptr; ptr + i;
+    };
+    VarGepSubType subType;
+
     /// Methods for support type inquiry through isa, cast, and dyn_cast:
     //@{
     static inline bool classof(const VariantGepPE *)
@@ -554,13 +561,24 @@ public:
 
     virtual const std::string toString() const;
 
+    virtual inline void setSubType(VarGepSubType ty) {
+        subType = ty;
+    }
+
+    /*
     virtual inline void setStructType(bool flag) {
         this->isStructTyFlag = flag;
     }
+    */
 
+    inline VarGepSubType getSubType() const{
+        return subType;
+    }
+    /*
     inline bool isStructTy() {
         return isStructTyFlag;
     }
+    */
 };
 
 

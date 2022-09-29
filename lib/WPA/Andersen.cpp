@@ -388,11 +388,14 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
         // then set this memory object to be field insensitive,
         // unless the object is a black hole/constant.
         llvm::Value* llvmValue = vgepCGEdge->getLLVMValue();
+        GetElementPtrInst* gep = SVFUtil::dyn_cast<GetElementPtrInst>(llvmValue);
+        /*
         if (llvm::Instruction* inst = SVFUtil::dyn_cast<llvm::Instruction>(llvmValue)) {
             if (inst->getParent()->getParent()->getName() == "sha256_transform") {
                 llvm::errs() << "sha256_transform: " << *inst << "\n";
             }
         }
+        */
         for (NodeID o : pts)
         {
             if (consCG->isBlkObjOrConstantObj(o))
@@ -403,24 +406,39 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
             
             PAGNode* objNode = pag->getPAGNode(o);
             
-            if (Options::InvariantVGEP && !vgepCGEdge->isStructTy() /*&& !SVFUtil::isa<GepObjPN>(objNode)*/) {
-                // First of all, we believe that variable indices
-                // when the type is a complex type, are most definitely accessing 
-                // an element in the array.
-                // GetElementPtrInst* vgep = vgepCGEdge->getLLVMValue();
-
-                // For the rest, we add the invariant
-
-                if (consCG->isStructTy(o)) {
-                    // We assume these don't happen
-                    // We will add the invariant later
-                    pag->addPtdForVarGep(vgepCGEdge->getLLVMValue(), o);
-                    PAGNode* node = pag->getPAGNode(o);
-                    continue;
-                } else {
-                    LocationSet ls(0);
-                    NodeID fieldSrcPtdNode = consCG->getGepObjNode(o, ls);
-                    tmpDstPts.set(fieldSrcPtdNode);
+            if (Options::InvariantVGEP) { //!SVFUtil::isa<GepObjPN>(objNode)
+                // If it's a pointer of type struct* A ptr; ptr + i;
+                //    Point to the first element
+                //    Interestingly, same for char*
+                if (vgepCGEdge->getSubType() == VariantGepCGEdge::TL_STRUCT
+                        || vgepCGEdge->getSubType() == VariantGepCGEdge::CHAR) {
+                    // If the object is a struct type, then we'll add an invariant
+                    if (consCG->isStructTy(o)) {
+                        // We assume these don't happen
+                        pag->addPtdForVarGep(vgepCGEdge->getLLVMValue(), o);
+                        PAGNode* node = pag->getPAGNode(o);
+                        continue;
+                    } else {
+                        // Else, point to the first object
+                        LocationSet ls(0);
+                        NodeID fieldSrcPtdNode = consCG->getGepObjNode(o, ls);
+                        tmpDstPts.set(fieldSrcPtdNode);
+                    }
+                } else /*(vgepCGEdge->getSubType() == VariantGepCGEdge::DERIVED)*/ {
+                    if (consCG->isStructTy(o)) {
+                        // We assume these don't happen
+                        pag->addPtdForVarGep(vgepCGEdge->getLLVMValue(), o);
+                        PAGNode* node = pag->getPAGNode(o);
+                        continue;
+                    } else {
+                        // Else, accumulate the offsets
+                        llvm::APInt offset(64, 0);
+                        gep->accumulateConstantOffset(gep->getFunction()->getParent()->getDataLayout(),
+                                offset);
+                        LocationSet ls(offset.getSExtValue()); // or send 0 if it fails
+                        NodeID fieldSrcPtdNode = consCG->getGepObjNode(o, ls);
+                        tmpDstPts.set(fieldSrcPtdNode);
+                    }
                 }
             } else {
 
