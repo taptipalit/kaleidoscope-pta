@@ -313,6 +313,62 @@ void AndersenStat::performStat()
     u32_t totalFieldPtsSize = 0; // treat each field as distinct
     u32_t maxFieldPtsSize = 0;
 
+    if (Options::DumpCFIStat) {
+        SVFModule* svfModule = pag->getModule();
+        std::map<llvm::CallInst*, std::set<Function*>> indCallMap;
+        std::map<int, int> histogram;
+
+        for (auto it = svfModule->llvmFunBegin(), eit = svfModule->llvmFunEnd(); it != eit; it++) {
+            Function* F = *it;
+            llvm::errs() << "Function: " << F->getName() << "\n";
+            for (inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F); I != E; ++I) {
+                if (CallInst* callInst = SVFUtil::dyn_cast<CallInst>(&*I)) {
+                    if (callInst->isIndirectCall()) {
+                        NodeID callNodePtr = pag->getPAGNode(pag->getValueNode(callInst->getCalledOperand()))->getId(); 
+                        const PointsTo& pts = pta->getPts(callNodePtr);
+                        bool hasTarget = false;
+
+                        llvm::errs() << "For a callsite in " << F->getName() << " : \n";
+                        for (PointsTo::iterator piter = pts.begin(), epiter = pts.end(); piter != epiter; ++piter) {
+                            NodeID ptd = *piter;
+                            if (pag->hasPAGNode(ptd)) {
+                                PAGNode* tgtNode = pag->getPAGNode(ptd);
+                                if (tgtNode->hasValue()) {
+                                    if (const Function* tgtFunction = SVFUtil::dyn_cast<Function>(tgtNode->getValue())) {
+                                        hasTarget = true;
+                                        indCallMap[callInst].insert(const_cast<Function*>(tgtFunction));
+                                        llvm::errs() << "    calls " << tgtFunction->getName() << "\n";
+                                    }
+                                }
+                            }
+                        }
+                        if (!hasTarget) {
+                            llvm::errs() << "   in " << F->getName() << " NO TARGET FOUND\n";
+                        }
+                    }
+                }
+            }
+        }
+
+        for (auto it: indCallMap) {
+            CallInst* cInst = it.first;
+            int sz = it.second.size();
+            histogram[sz]++;
+        }
+
+        llvm::errs() << "EC Size:\t Ind. Call-sites\n";
+        int totalTgts = 0;
+        int totalIndCallSites = 0;
+        for (auto it: histogram) {
+            llvm::errs() << it.first << " : " << it.second << "\n";
+            totalIndCallSites += it.second;
+            totalTgts += it.first*it.second;
+        }
+        llvm::errs() << "Total Ind. Call-sites: " << totalIndCallSites << "\n";
+        llvm::errs() << "Total Tgts: " << totalTgts << "\n";
+        std::cerr << "Average CFI: " << std::fixed << (float)totalTgts / (float)totalIndCallSites << "\n";
+    }
+
     for (PAG::iterator iter = pta->getPAG()->begin(), eiter = pta->getPAG()->end();
             iter != eiter; ++iter)
     {

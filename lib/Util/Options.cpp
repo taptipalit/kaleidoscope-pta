@@ -11,6 +11,16 @@ namespace SVF
                 llvm::cl::desc("Only debug the functions listed here"),
                 llvm::cl::CommaSeparated, llvm::cl::Hidden);
 
+    llvm::cl::opt<bool> Options::ShortCircuit(
+            "short-circuit",
+            llvm::cl::init(true),
+            llvm::cl::desc("Short circuit"));
+
+    llvm::cl::opt<bool> Options::DumpCFIStat(
+            "dump-cfi-stat",
+            llvm::cl::init(true),
+            llvm::cl::desc("Dump CFI Stat"));
+
     llvm::cl::opt<bool> Options::InvariantVGEP(
         "invariant-vgep",
         llvm::cl::init(true),
@@ -34,11 +44,6 @@ namespace SVF
             llvm::cl::init(true),
             llvm::cl::desc("Handle VGEP"));
     */
-
-    llvm::cl::opt<bool> Options::ShortCircuit(
-            "short-circuit",
-            llvm::cl::init(true),
-            llvm::cl::desc("Short circuit"));
 
 
     llvm::cl::opt<bool> Options::InvariantPWC(
