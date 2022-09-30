@@ -1262,10 +1262,10 @@ void Andersen::mergeNodeToRep(NodeID nodeId,NodeID newRepId, std::vector<Constra
     /// its pts should be collapsed later.
     /// 2. if the node to be merged is already a PWC node, the rep node will also become
     /// a PWC node as it will have a self-cycle gep edge.
-    /*
-    if (gepInsideScc || node->isPWCNode())
-        consCG->setPWCNode(newRepId);
-        */
+    if (!Options::InvariantPWC && !Options::InvariantVGEP) {
+        if (gepInsideScc || node->isPWCNode())
+            consCG->setPWCNode(newRepId);
+    }
 }
 
 /*
