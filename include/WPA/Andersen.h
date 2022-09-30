@@ -304,6 +304,8 @@ public:
         return diffOpt;
     }
 
+    bool canApplyPAInvariant(VariantGepCGEdge*, NodeID);
+
 protected:
 
     CallSite2DummyValPN callsite2DummyValPN;        ///< Map an instruction to a dummy obj which created at an indirect callsite, which invokes a heap allocator

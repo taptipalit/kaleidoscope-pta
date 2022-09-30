@@ -374,6 +374,13 @@ bool Andersen::processGep(NodeID, const GepCGEdge* edge)
     return processGepPts(srcPts, edge);
 }
 
+bool Andersen::canApplyPAInvariant(VariantGepCGEdge* vgepCGEdge, NodeID obj) {
+    if (vgepCGEdge->isStructTy() && consCG->isArrayTy(obj)) {
+        return false;
+    } else {
+        return true;
+    }
+}
 /*!
  * Compute points-to for gep edges
  */
@@ -388,11 +395,13 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
         // then set this memory object to be field insensitive,
         // unless the object is a black hole/constant.
         llvm::Value* llvmValue = vgepCGEdge->getLLVMValue();
+        /*
         if (llvm::Instruction* inst = SVFUtil::dyn_cast<llvm::Instruction>(llvmValue)) {
             if (inst->getParent()->getParent()->getName() == "sha256_transform") {
                 llvm::errs() << "sha256_transform: " << *inst << "\n";
             }
         }
+        */
         for (NodeID o : pts)
         {
             if (consCG->isBlkObjOrConstantObj(o))

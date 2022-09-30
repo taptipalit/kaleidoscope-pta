@@ -551,6 +551,7 @@ void HeapTypeAnalyzer::findHeapContexts (Module& M) {
 
     for (Function* f: oneLevelFuncs) {
         llvm::errs() << "One Level Function name: " << f->getName() << "\n";
+        memAllocFns.push_back(f->getName().str());
     }
 
     for (Function* memAllocFn: oneLevelFuncs) {
@@ -564,8 +565,33 @@ void HeapTypeAnalyzer::findHeapContexts (Module& M) {
 
     for (Function* f: twoLevelFuncs) {
         llvm::errs() << "Two Level Function name: " << f->getName() << "\n";
+        memAllocFns.push_back(f->getName().str());
     }
 
+    std::vector<std::string> allocFns {
+        "ngx_alloc",
+        "ngx_array_create",
+        "ngx_calloc",
+            "ngx_palloc",
+            "ngx_palloc_small",
+            "ngx_pcalloc",
+            "ngx_pnalloc",
+            "ngx_resolver_alloc",
+            "ngx_resolver_calloc",
+            "ngx_slab_alloc",
+            "ngx_slab_calloc_locked"
+    };
+
+    for (Function& f: M.getFunctionList()) {
+        if (std::find(allocFns.begin(), allocFns.end(), f.getName().str()) != allocFns.end()) {
+            heapCalls.push_back(&f);
+        }
+    }
+
+    for (Function* f: heapCalls) {
+        llvm::errs() << " Heap call function: " << f->getName() << "\n";
+        memAllocFns.push_back(f->getName().str());
+    }
 }
 
 bool
