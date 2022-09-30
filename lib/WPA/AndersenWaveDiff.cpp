@@ -115,7 +115,10 @@ void AndersenWaveDiff::postProcessNode(NodeID nodeId)
     for (ConstraintNode::const_iterator it = node->outgoingLoadsBegin(), eit = node->outgoingLoadsEnd();
             it != eit; ++it)
     {
-        if (handleLoad(nodeId, *it))
+        // Why doesn't it do a pushIntoworklist? Probably because it's a wave diff and
+        // only solves the tree once? And has a separate node addition and solving phase
+        // But for copy edges it does the push-into worklist thing..
+        if (handleLoad(nodeId, *it)) 
             reanalyze = true;
     }
     // handle store

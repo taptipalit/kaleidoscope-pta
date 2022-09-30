@@ -104,6 +104,9 @@ public:
     static const char* AveragePointsToSetSize;		///< Average points-to size of all variables
     static const char* AverageTopLevPointsToSetSize; ///< Average points-to size of top-level variables
     static const char* MaxPointsToSetSize;			///< Max points-to size
+    static const char* AveragePointsToSetSizeFields;
+    static const char* MaxPointsToSetSizeFields;
+
 
     static const char* NumOfIterations;	///< Number of iterations during resolution
 

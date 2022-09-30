@@ -91,6 +91,9 @@ const char* PTAStat:: AveragePointsToSetSize = "AvgPtsSetSize";		///< Average Po
 const char* PTAStat:: AverageTopLevPointsToSetSize = "AvgTopLvlPtsSize";		///< Average Points-to set size of top level pointers
 const char* PTAStat:: MaxPointsToSetSize = "MaxPtsSetSize";		///< Max Points-to set size
 
+const char* PTAStat:: AveragePointsToSetSizeFields = "AvgPtsSizeFields";
+const char* PTAStat:: MaxPointsToSetSizeFields = "MaxPtsSizeFields";
+
 const char* PTAStat:: NumOfIterations = "Iterations";	///< Number of iterations during resolution
 
 const char* PTAStat:: NumOfIndirectCallSites = "IndCallSites";	///< Number of indirect callsites

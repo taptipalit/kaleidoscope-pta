@@ -412,7 +412,17 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
             
             PAGNode* objNode = pag->getPAGNode(o);
             
-            if (Options::InvariantVGEP && !vgepCGEdge->isStructTy() /*&& !SVFUtil::isa<GepObjPN>(objNode)*/) {
+            /*
+            if (Options::InvariantVGEP && vgepCGEdge->isStructTy()) {
+               PAGNode* node = pag->getPAGNode(o);
+               if (node->hasValue()) {
+                   const Value* pagValue = node->getValue();
+                   if (SVFUtil::isa<Function>(pagValue)) continue;
+                   llvm::errs() << "A struct pointer turned object: " << *pagValue << " insensitive. Type = " << consCG->isStructTy(o) << "\n";
+               }
+            }
+            */
+            if (Options::InvariantVGEP  /*&& !SVFUtil::isa<GepObjPN>(objNode)*/) {
                 // First of all, we believe that variable indices
                 // when the type is a complex type, are most definitely accessing 
                 // an element in the array.
@@ -500,6 +510,11 @@ inline void Andersen::collapseFields()
     while (consCG->hasNodesToBeCollapsed())
     {
         NodeID node = consCG->getNextCollapseNode();
+        if (consCG->isStructTy(node)) {
+            llvm::errs() << "Collapsing struct type object\n";
+        } else if (consCG->isArrayTy(node)) {
+            llvm::errs() << "Collapsing array type object\n";
+        }
         // collapseField() may change the points-to set of the nodes which have been processed
         // before, in this case, we may need to re-do the analysis.
         if (collapseField(node))
@@ -607,10 +622,22 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
     bool hasStructType = false;
 
 
+    /*
+    if (subNodes.count() > 1) {
+        llvm::errs() << "Cycle:\n";
+    }
+    */
     for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
     {
         NodeID subNodeId = *nodeIt;
         PAGNode* pagNode = pag->getPAGNode(subNodeId);
+        /*
+        if (subNodes.count() > 1) {
+            if (pagNode->hasValue()) {
+                llvm::errs() << "Node: " << *(pagNode->getValue()) << "\n";
+            }
+        }
+        */
         subPAGNodes.push_back(pagNode);
 
         if (subNodeId != repNodeId)
@@ -660,80 +687,7 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
         }
     }
 
-    /*
-    std::set<const llvm::Value*>* gepNodesInSCC = new std::set<const llvm::Value*>();
-    // Before merging this, simply collect
-    bool isHandled = false;
-    std::vector<ConstraintEdge*> edgesInPWC;
-    if (Options::InvariantPWC) {
-        // Get the edges in this SCC
-        EdgeList& edges = getSCCDetector()->getSCCEdgeList(repNodeId);
-        if (getSCCDetector()->isRepPWC(repNodeId)) {
-            bool treatAsPAInv = false;
-            for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++) {
-                NodeID subNodeId = *nodeIt;
-                PAGNode* pagNode = pag->getPAGNode(subNodeId);
-                if (pagNode->hasValue()) {
-                    const Value* pagVal = pagNode->getValue();
-                    if (const Instruction* inst = SVFUtil::dyn_cast<Instruction>(pagVal)) {
-                        BasicBlock* bb = const_cast<BasicBlock*>(inst->getParent());
-                        Function* func = bb->getParent();
-                        // TODO handle the loop correctly   
-                        if (svfLoopInfo->bbIsLoop(bb)) {
-                            treatAsPAInv = true;
-                            break;
-                        }
-                    }
-                    if (const GetElementPtrInst* gepVal = SVFUtil::dyn_cast<GetElementPtrInst>(pagVal)) {
-                        gepNodesInSCC->insert(gepVal);
-                    }
-                }
-            }
-
-            if (!treatAsPAInv) {
-                for (const EdgePair& ep: edges) {
-                    ConstraintNode* src = consCG->getConstraintNode(ep.first);
-                    ConstraintNode* dst = consCG->getConstraintNode(ep.second);
-                    // Find the instruction that should be trapped 
-                    // that caused this edge
-                    if (consCG->hasEdge(src, dst, ConstraintEdge::NormalGep)) {
-                        edgesInPWC.push_back(consCG->getEdge(src, dst, ConstraintEdge::NormalGep));
-                    } else if (consCG->hasEdge(src, dst, ConstraintEdge::Copy)) {
-                        edgesInPWC.push_back(consCG->getEdge(src, dst, ConstraintEdge::Copy));
-                    }
-                }
-                pwcCycleId++;
-                addCycleInvariants(pwcCycleId, gepNodesInSCC);
-            } else {
-                handlePointersAsPA(gepNodesInSCC);
-            }
-            consCG->resetPWCNode(repNodeId);
-            edges.clear(); // We have processed them
-            isHandled = true;
-        }
-    } 
-    if (!isHandled) {
-        for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
-        {
-            NodeID subNodeId = *nodeIt;
-
-            if (subNodeId != repNodeId)
-            {
-                mergeNodeToRep(subNodeId, repNodeId);
-            }
-        }
-    } else {
-        for (int i = 0; i < 1; i++) {
-            for (ConstraintEdge* pwcEdge: edgesInPWC) {
-                if (CopyCGEdge* copyCGEdge = SVFUtil::dyn_cast<CopyCGEdge>(pwcEdge)) {
-                    processCopy(copyCGEdge->getSrcID(), copyCGEdge);
-                } else if (GepCGEdge* gepCGEdge = SVFUtil::dyn_cast<GepCGEdge>(pwcEdge)) {
-                    processGep(gepCGEdge->getSrcID(), gepCGEdge);
-                }
-            }
-        }
-    }
-    */
+    delete(gepNodesInSCC);
 }
 
 /**

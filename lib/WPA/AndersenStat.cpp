@@ -308,6 +308,11 @@ void AndersenStat::performStat()
     u32_t totalTopLevPointers = 0;
     u32_t totalPtsSize = 0;
     u32_t totalTopLevPtsSize = 0;
+
+
+    u32_t totalFieldPtsSize = 0; // treat each field as distinct
+    u32_t maxFieldPtsSize = 0;
+
     for (PAG::iterator iter = pta->getPAG()->begin(), eiter = pta->getPAG()->end();
             iter != eiter; ++iter)
     {
@@ -320,6 +325,7 @@ void AndersenStat::performStat()
         //u32_t size = pts.count();
         totalPointers++;
         totalPtsSize+=size;
+        totalFieldPtsSize+= pts.count();
 
         if(pta->getPAG()->isValidTopLevelPtr(pta->getPAG()->getPAGNode(node)))
         {
@@ -329,6 +335,9 @@ void AndersenStat::performStat()
 
         if(size > _MaxPtsSize )
             _MaxPtsSize = size;
+
+        if (pts.count() > maxFieldPtsSize) 
+            maxFieldPtsSize = pts.count();
     }
 
 
@@ -364,7 +373,12 @@ void AndersenStat::performStat()
     PTNumStatMap[NumOfGepFieldObjects] = pag->getFieldObjNodeNum();
 
     timeStatMap[AveragePointsToSetSize] = (double)totalPtsSize/totalPointers;;
+    timeStatMap[AveragePointsToSetSizeFields] = (double)totalFieldPtsSize/totalPointers;;
+
     timeStatMap[AverageTopLevPointsToSetSize] = (double)totalTopLevPtsSize/totalTopLevPointers;;
+
+    timeStatMap[MaxPointsToSetSizeFields] = (double)maxFieldPtsSize;
+
 
     PTNumStatMap[MaxPointsToSetSize] = _MaxPtsSize;
 
