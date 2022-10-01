@@ -286,38 +286,40 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypes(llvm::Module& module) {
                 CallInst* callInst = SVFUtil::dyn_cast<CallInst>(inst);
                 if (callInst) {
                     Function* calledFunc = callInst->getCalledFunction();
-                    if (calledFunc) {
-                        if (std::find(memAllocFns.begin(), memAllocFns.end(), calledFunc->getName()) != memAllocFns.end() 
-                                && std::find(heapCalls.begin(), heapCalls.end(), F) == heapCalls.end() 
-                                /* if the caller is a heap allocator we don't care*/) {
-                            if (!sizeOfTyName) {
+                    if (!sizeOfTyName) {
+                        Function* calledFunc = callInst->getCalledFunction();
+                        if (calledFunc) {
+                            if (std::find(memAllocFns.begin(), memAllocFns.end(), calledFunc->getName()) != memAllocFns.end() 
+                                    && std::find(heapCalls.begin(), heapCalls.end(), F) == heapCalls.end() 
+                                    /* if the caller is a heap allocator we don't care*/) {
                                 llvm::errs() << "No type annotation for heap call: " << *callInst << " in function : " << callInst->getFunction()->getName() << " treating as scalar\n";
                                 callInst->addAnnotationMetadata("IntegerType");
                                 handled = true;
-                                continue;
                             }
-
-                            HeapTy ty = getSizeOfTy(module, Ctx, sizeOfTyName, sizeOfTyArgNum, mulFactor);
-                            switch(ty) {
-                                case ScalarTy:
-                                    callInst->addAnnotationMetadata("IntegerType");
-                                    break;
-                                case StructTy:
-                                    callInst->addAnnotationMetadata("StructType");
-                                    break;
-                                case ArrayTy:
-                                    callInst->addAnnotationMetadata("ArrayType"); 
-                                    break;
-                                default:
-                                    assert(false && "Shouldn't reach here");
-                            }
-                            handled = true;
-                            //}
-
                         }
+
+                        continue;
                     }
+
+                    HeapTy ty = getSizeOfTy(module, Ctx, sizeOfTyName, sizeOfTyArgNum, mulFactor);
+                    switch(ty) {
+                        case ScalarTy:
+                            callInst->addAnnotationMetadata("IntegerType");
+                            break;
+                        case StructTy:
+                            callInst->addAnnotationMetadata("StructType");
+                            break;
+                        case ArrayTy:
+                            callInst->addAnnotationMetadata("ArrayType"); 
+                            break;
+                        default:
+                            assert(false && "Shouldn't reach here");
+                    }
+                    handled = true;
                 }
-                // If not, check if this has the metadata that we're missing 
+                /*
+
+                // We just leave the metadata in place for future resolution of indirect heap calls
                 if (sizeOfTyName && !handled) {
                     if (callInst && callInst->getCalledFunction()) {
                         if (callInst->getCalledFunction()->isIntrinsic()) {
@@ -329,6 +331,7 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypes(llvm::Module& module) {
                         llvm::errs() << "Instruction: " << " in function: " << inst->getFunction()->getName() << " : " << *inst << " has type info but not a heap allocation\n";
                     }
                 }
+                */
             }
         }
     }

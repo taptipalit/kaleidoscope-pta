@@ -1059,7 +1059,9 @@ void Andersen::heapAllocatorViaIndCall(CallSite cs, NodePairSet &cpySrcNodes)
     RetBlockNode* retBlockNode = pag->getICFG()->getRetBlockNode(cs.getInstruction());
     const PAGNode* cs_return = pag->getCallSiteRet(retBlockNode);
     NodeID srcret;
+    // It matches it with the call-site
     CallSite2DummyValPN::const_iterator it = callsite2DummyValPN.find(cs);
+
     if(it != callsite2DummyValPN.end())
     {
         srcret = sccRepNode(it->second);
@@ -1073,6 +1075,20 @@ void Andersen::heapAllocatorViaIndCall(CallSite cs, NodePairSet &cpySrcNodes)
         consCG->addConstraintNode(new ConstraintNode(valNode),valNode);
         consCG->addConstraintNode(new ConstraintNode(objNode),objNode);
         srcret = valNode;
+        // Get the Call type
+        CallBase* callBase = cs.getInstruction();
+        CallInst* heapCall = SVFUtil::dyn_cast<CallInst>(callBase);
+
+        assert(heapCall && "Must be an instruction");
+        if (heapCall->hasMetadata("annotation")) {
+            MDNode* mdNode = heapCall->getMetadata("annotation");
+            MDString* tyAnnotStr = (MDString*)mdNode->getOperand(0).get();
+            if (tyAnnotStr->getString() == "ArrayType") {
+                consCG->addArrayIndHeapCall(objNode);
+            } else if (tyAnnotStr->getString() == "StructType") {
+                consCG->addStructIndHeapCall(objNode);
+            }
+        }
     }
 
     NodeID dstrec = sccRepNode(cs_return->getId());

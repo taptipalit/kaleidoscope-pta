@@ -332,13 +332,35 @@ public:
     }
 
     inline bool isStructTy(NodeID id) {
-        const MemObj* mem = pag->getBaseObj(id);
-        return mem->isStruct();
+        PAGNode* objNode = pag->getPAGNode(id);
+        // Heap calls via indirect callsites need this
+        if (!SVFUtil::isa<DummyObjPN>(objNode)) {
+            const MemObj* mem = pag->getBaseObj(id);
+            return mem->isStruct();
+        } else {
+            return structIndHeapCalls.test(id);
+        }
     }
 
     inline bool isArrayTy(NodeID id) {
-        const MemObj* mem = pag->getBaseObj(id);
-        return mem->isArray();
+        PAGNode* objNode = pag->getPAGNode(id);
+        if (!SVFUtil::isa<DummyObjPN>(objNode)) {
+            const MemObj* mem = pag->getBaseObj(id);
+            return mem->isArray();
+        } else {
+            return arrayIndHeapCalls.test(id);
+        }
+    }
+
+    NodeBS structIndHeapCalls;
+    NodeBS arrayIndHeapCalls;
+
+    inline void addStructIndHeapCall(NodeID id) {
+        structIndHeapCalls.set(id);
+    }
+
+    inline void addArrayIndHeapCall(NodeID id) {
+        arrayIndHeapCalls.set(id);
     }
 
     inline bool isSingleFieldObj(NodeID id) const
