@@ -369,6 +369,9 @@ void AndersenStat::performStat()
         std::cerr << "Average CFI: " << std::fixed << (float)totalTgts / (float)totalIndCallSites << "\n";
     }
 
+    NodeID maxPtsNodeID = -1;
+    int maxFields = 0;
+    NodeID maxFieldsNodeID = 0;
     for (PAG::iterator iter = pta->getPAG()->begin(), eiter = pta->getPAG()->end();
             iter != eiter; ++iter)
     {
@@ -392,8 +395,36 @@ void AndersenStat::performStat()
         if(size > _MaxPtsSize )
             _MaxPtsSize = size;
 
-        if (pts.count() > maxFieldPtsSize) 
+        if (pts.count() > maxFieldPtsSize) {
             maxFieldPtsSize = pts.count();
+            maxPtsNodeID = node;
+        }
+        if (pag->hasPAGNode(node)) {
+            PAGNode* pagNode = pag->getPAGNode(node);
+            if (SVFUtil::isa<ObjPN>(pagNode)) {
+                NodeBS& fieldSize = consCG->getAllFieldsObjNode(node);
+                if (fieldSize.count() > maxFields) {
+                    maxFields = fieldSize.count();
+                    maxFieldsNodeID = node;
+                }
+            }
+        }
+    }
+
+    PAGNode* maxPtsNode = pag->getPAGNode(maxPtsNodeID);
+    if (maxPtsNode->hasValue()) {
+        llvm::errs() << "Max pts node: " << *(maxPtsNode->getValue()) << " " << (maxPtsNode->getFunction()? maxPtsNode->getFunction()->getName() : "") << "\n";
+    } else {
+        llvm::errs() << "Max pts node: " << *maxPtsNode << "\n";
+    }
+
+    if (maxFieldsNodeID > 0 && pag->hasPAGNode(maxFieldsNodeID)) {
+        PAGNode* maxFieldsNode = pag->getPAGNode(maxFieldsNodeID);
+        if (maxFieldsNode->hasValue()) {
+            llvm::errs() << "Max fields node: " << *(maxFieldsNode->getValue()) << " ... max fields: " << maxFields << "\n";
+        } else {
+            llvm::errs() << "Max fields node: " << *maxFieldsNode << " ... max fields: " << maxFields << "\n";
+        }
     }
 
 

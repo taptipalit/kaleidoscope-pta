@@ -72,27 +72,6 @@ void HeapTypeAnalyzer::handleVersions(Module& module) {
                     }
                 }
             }
-                /*
-            bool isMemAlloc = false;
-            for (std::string memAllocFn: memAllocFns) {
-                if (F->getName().startswith(memAllocFn)) {
-                    isMemAlloc = true;
-                    break;
-                }
-            }
-            if (isMemAlloc) {
-                memAllocFns.push_back(F->getName().str());
-            }
-            bool isLA0 = false;
-            for (std::string L_A0_Fn: L_A0_Fns) {
-                if (F->getName().startswith(L_A0_Fn)) {
-                    isLA0 = true;
-                }
-            }
-            if (isLA0) {
-                L_A0_Fns.push_back(F->getName().str());
-            }
-            */
         }
     }
  
@@ -107,8 +86,23 @@ void HeapTypeAnalyzer::removePoolAllocatorBody(Module& module) {
             if (std::find(L_A0_Fns.begin(), L_A0_Fns.end(), F->getName()) != L_A0_Fns.end()) {
                 F->deleteBody();
             }
+            /*
+            if (F->getName().startswith("Curl_dyn")
+                    || F->getName().startswith("Curl_str")
+                    || F->getName().startswith("curl_str")
+                    || F->getName().startswith("Curl_llist")
+                    || F->getName().startswith("Curl_infof")
+                    || F->getName().startswith("Curl_failf")
+                    || F->getName().startswith("curl_easy_getinfo")
+                    || F->getName().startswith("curl_slist")
+                    || F->getName().startswith("tool_setopt")
+                    || F->getName().startswith("curl_msnprintf")) {
+                F->deleteBody();
+            }
+            */
         }
     }
+
 }
 
 CallInst* HeapTypeAnalyzer::findCInstFA(Value* val) {
@@ -486,6 +480,41 @@ void HeapTypeAnalyzer::buildCallGraphs (Module & module) {
             }
         }
     }
+    
+    std::map<Function*, int> funcToCallerSizeMap;
+
+    for (auto it: callers) {
+        Function* calledFunc = it.first;
+        bool hasStructTyArg = false;
+        for (int i = 0; i< calledFunc->arg_size(); i++) {
+            Argument* arg = calledFunc->getArg(i);
+            Type* argTy = arg->getType();
+            while (PointerType* argPtrTy = SVFUtil::dyn_cast<PointerType>(argTy)) {
+                argTy = argPtrTy->getPointerElementType();
+            }
+            if (SVFUtil::isa<StructType>(argTy)) {
+                hasStructTyArg = true;
+            }
+        }
+        if (hasStructTyArg) 
+            funcToCallerSizeMap[calledFunc] = it.second.size();
+    }
+
+    for (auto it: funcToCallerSizeMap) {
+        Function* calledFunc = it.first;
+        if (calledFunc->isDeclaration()) continue;
+        callerDistMap[it.second].push_back(calledFunc);
+    }
+
+    for (auto it: callerDistMap) {
+        int callerCount = it.first;
+        llvm::errs() << callerCount << " callers: ";
+        for (Function* func: it.second) {
+            llvm::errs() << func->getName() << ", ";
+        }
+        llvm::errs() << "\n";
+    }
+    
 }
 
 bool HeapTypeAnalyzer::returnsUntypedMalloc(Function* potentialMallocWrapper) {
@@ -582,7 +611,10 @@ void HeapTypeAnalyzer::findHeapContexts (Module& M) {
             "ngx_resolver_alloc",
             "ngx_resolver_calloc",
             "ngx_slab_alloc",
-            "ngx_slab_calloc_locked"
+            "ngx_slab_calloc_locked"//,
+            "ngx_palloc_large",
+            "ngx_calloc",
+            "ngx_create_pool"
     };
 
     for (Function& f: M.getFunctionList()) {
@@ -601,7 +633,7 @@ bool
 HeapTypeAnalyzer::runOnModule (Module & module) {
     findHeapContexts(module);
     handleVersions(module);
-    removePoolAllocatorBody(module);
+//    removePoolAllocatorBody(module);
     deriveHeapAllocationTypes(module);
     
     std::error_code EC;

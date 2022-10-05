@@ -422,7 +422,7 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                }
             }
             */
-            if (Options::InvariantVGEP  /*&& !SVFUtil::isa<GepObjPN>(objNode)*/) {
+            if (Options::InvariantVGEP && canApplyPAInvariant(const_cast<VariantGepCGEdge*>(vgepCGEdge), o)/*!vgepCGEdge->isStructTy() && !SVFUtil::isa<GepObjPN>(objNode)*/) {
                 // First of all, we believe that variable indices
                 // when the type is a complex type, are most definitely accessing 
                 // an element in the array.
@@ -622,11 +622,41 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
     bool hasStructType = false;
 
 
-    /*
-    if (subNodes.count() > 1) {
-        llvm::errs() << "Cycle:\n";
+    // Check if there's going to be a PWC
+    // If yes, then don't collapse
+    bool isPWC = false;
+    if (Options::InvariantPWC) {
+        if (subNodes.count() > 5000) {
+            isPWC = true;
+        } else {
+            for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++) {
+                NodeID subNodeId = *nodeIt;
+                ConstraintNode* subNode = consCG->getConstraintNode(subNodeId);
+                for (ConstraintNode::const_iterator it = subNode->InEdgeBegin(), eit = subNode->InEdgeEnd(); it != eit; ++it) {
+                    ConstraintEdge* subInEdge = *it;
+                    if (sccRepNode(subInEdge->getSrcID()) == repNodeId) {
+                        if (SVFUtil::isa<GepCGEdge>(subInEdge)) {
+                            isPWC = !consCG->isZeroOffsettedGepCGEdge(subInEdge);
+                            if (isPWC) break;
+                        }
+                    }
+                }
+                if (isPWC) break; // no need to check more
+                for (ConstraintNode::const_iterator it = subNode->OutEdgeBegin(), eit = subNode->OutEdgeEnd(); it != eit;
+                        ++it)
+                {
+                    ConstraintEdge* subOutEdge = *it;
+                    if(sccRepNode(subOutEdge->getDstID()) == repNodeId) {
+                        if (SVFUtil::isa<GepCGEdge>(subOutEdge)) {
+                            isPWC = !consCG->isZeroOffsettedGepCGEdge(subOutEdge);
+                            if (isPWC) break;
+                        }
+                    }
+                }
+            }
+        }
     }
-    */
+
     for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
     {
         NodeID subNodeId = *nodeIt;
@@ -640,9 +670,18 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
         */
         subPAGNodes.push_back(pagNode);
 
-        if (subNodeId != repNodeId)
-        {
-            mergeNodeToRep(subNodeId, repNodeId, criticalGepEdges);
+        if (!Options::InvariantPWC) {
+            if (subNodeId != repNodeId)
+            {
+                mergeNodeToRep(subNodeId, repNodeId, criticalGepEdges);
+            }
+        } else {
+            if (!isPWC) {
+                if (subNodeId != repNodeId)
+                {
+                    mergeNodeToRep(subNodeId, repNodeId, criticalGepEdges);
+                }
+            }
         }
     }
 

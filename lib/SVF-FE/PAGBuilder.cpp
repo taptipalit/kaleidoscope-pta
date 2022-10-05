@@ -77,9 +77,11 @@ PAG* PAGBuilder::build(SVFModule* svfModule)
             fit != efit; ++fit)
     {
         const SVFFunction& fun = **fit;
+        const Function* llvmFun = fun.getLLVMFun();
         if (isPseudoExtHeapCall(fun.getLLVMFun())) {
             continue;
         }
+        
         /// collect return node of function fun
         if(!SVFUtil::isExtCall(&fun))
         {
