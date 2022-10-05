@@ -36,6 +36,8 @@ private:
     std::map<Function*, std::vector<Function*>> callers;
     std::map<Function*, std::vector<Function*>> callees;
 
+    std::map<int, std::vector<Function*>, std::greater<int>> callerDistMap;
+
     std::vector<Function*> heapCalls;
 
 public:
