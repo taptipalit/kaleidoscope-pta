@@ -135,6 +135,7 @@ PAG* PAGBuilder::build(SVFModule* svfModule)
 
     pag->setNodeNumAfterPAGBuild(pag->getTotalNodeNum());
 
+    // Print number of vargeps
     return pag;
 }
 

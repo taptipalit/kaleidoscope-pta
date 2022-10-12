@@ -1,65 +1,87 @@
-+ file=testpointerrels
++ file=test
 + options=
-+ file_c=testpointerrels.c
-+ file_bc=testpointerrels.bc
-+ file_linked=testpointerrels_linked.bc
-+ file_inst=testpointerrels_inst.bc
-+ file_inst_ll=testpointerrels_inst.ll
-+ file_discard=testpointerrels_discard.bc
-+ file_linked_inline=testpointerrels_linked_inline.bc
-+ file_linked_inline_ll=testpointerrels_linked_inline.ll
-+ file_exe=testpointerrels.exe
++ file_c=test.c
++ file_bc=test.bc
++ file_linked=test_linked.bc
++ file_inst=test_inst.bc
++ file_inst_ll=test_inst.ll
++ file_discard=test_discard.bc
++ file_linked_inline=test_linked_inline.bc
++ file_linked_inline_ll=test_linked_inline.ll
++ file_exe=test.exe
 + SVF_HOME=/home/tpalit/svf-kernel/
-+ '[' -f testpointerrels.c ']'
-+ clang -c -O0 -ggdb testpointerrels.c -emit-llvm -o testpointerrels.bc
-+ llvm-dis testpointerrels.bc
-+ /home/tpalit/svf-kernel/Debug-build/bin/wpa -invariant-pwc=true -invariant-vgep=true -ptd=persistent -print-all-pts -debug-funcs=aeSearchNearestTimer,main -ander testpointerrels.bc
-I saw a module called testpointerrels.bc!
++ '[' -f test.c ']'
++ clang -c -O0 -ggdb test.c -emit-llvm -o test.bc
+test.c:4:12: warning: implicitly declaring library function 'malloc' with type 'void *(unsigned long)' [-Wimplicit-function-declaration]
+    return malloc(sz);
+           ^
+test.c:4:12: note: include the header <stdlib.h> or explicitly provide a declaration for 'malloc'
+1 warning generated.
++ llvm-dis test.bc
++ /home/tpalit/svf-kernel/Debug-build/bin/wpa -invariant-pwc=true -invariant-vgep=true -short-circuit=true -stat-limit=1 -debug-funcs=ngx_init_cycle,main -print-all-pts -ptd=persistent -ander test.bc
+One Level Function name: my_malloc
+ Heap call function: my_malloc
+No type annotation for heap call:   %call = call i8* @my_malloc(i32 1024), !dbg !24 in function : main treating as scalar
+I saw a module called test.bc!
 Running with invariants turned on
+Function: my_malloc
+Function: llvm.dbg.declare
+Function: malloc
+Function: main
+Function: printf
+Function: switch_view
+EC Size:	 Ind. Call-sites
+Total Ind. Call-sites: 0
+Total Tgts: 0
+Average CFI: -nan
+Max pts node: declare void @switch_view()
+ switch_view
+Max fields node: declare void @switch_view()
+ ... max fields: 1
 
 *********CallGraph Stats***************
 ################ (program : )###############
 -------------------------------------------------------
 CalRetPairInCycle   0
-TotalEdge           1
+TotalEdge           3
 MaxNodeInCycle      0
 NodeInCycle         0
 TotalCycle          0
-TotalNode           4
+TotalNode           6
 #######################################################
 
 *********General Stats***************
 ################ (program : )###############
 CopysNum            2
-LoadsNum            3
-MaxStructSize       3
-AddrsNum            12
-LocalVarInRecur     0
-BitCastNumber       0
+LoadsNum            6
+MaxStructSize       0
+AddrsNum            20
 FIObjNum            0
 ConstArrayObj       0
-StoresNum           4
-ConstStructObj      0
-NonPtrObj           7
-GepsNum             3
-TotalObjects        11
-FunctionObjs        4
-TotalPTAPAGEdges    16
+FSObjNum            18
+HeapObjs            3
 BBWith3Succ         0
+StoresNum           8
+TotalPointers       57
+TotalPAGEdges       75
+TotalCallSite       2
+ConstStructObj      0
+NonPtrObj           12
+GepsNum             1
+TotalObjects        19
+FunctionObjs        6
 CallsNum            0
-FSObjNum            10
-BBWith2Succ         0
 ReturnsNum          0
-TotalFieldObjects   1
-GlobalObjs          1
-HeapObjs            1
-StackObjs           4
-VarStructObj        1
-VarArrayObj         1
-TotalPointers       32
-TotalPAGEdges       49
+TotalFieldObjects   0
+GlobalObjs          2
+StackObjs           7
+VarStructObj        0
+TotalPTAPAGEdges    24
+VarArrayObj         2
 IndCallSites        0
-TotalCallSite       1
+LocalVarInRecur     0
+BitCastNumber       0
+BBWith2Succ         0
 -------------------------------------------------------
 #######################################################
 
@@ -67,25 +89,25 @@ TotalCallSite       1
 ################ (program : )###############
 -------------------------------------------------------
 AvgIn/OutEdge       0.666667
-AvgIn/OutAddrEdge   0.37037
-AvgIn/OutLoadEdge   0.037037
-AvgIn/OutCopyEdge   0.222222
+AvgIn/OutAddrEdge   0.416667
+AvgIn/OutLoadEdge   0.0833333
+AvgIn/OutCopyEdge   0.0555556
 MaxInAddrEdge       1
-MaxOutStoreEdge     1
-NumOfCGNode         51
-TotalValidNode      27
+MaxOutStoreEdge     2
+NumOfCGNode         85
+TotalValidNode      36
 AvgIn/OutStoreEdge  0
-TotalValidObjNode   11
-NumOfGeps           3
-NumOfCGEdge         8
-NumOfAddrs          10
+TotalValidObjNode   15
+NumOfGeps           1
+NumOfCGEdge         9
+NumOfAddrs          15
 MaxOutAddrEdge      1
-NumOfLoads          1
-NumOfStores         1
+NumOfLoads          3
+NumOfStores         4
 MaxOutLoadEdge      1
-NumOfCopys          3
-MaxOutCopyEdge      2
-MaxInStoreEdge      1
+NumOfCopys          1
+MaxOutCopyEdge      1
+MaxInStoreEdge      2
 MaxInLoadEdge       1
 MaxInCopyEdge       1
 #######################################################
@@ -93,40 +115,297 @@ MaxInCopyEdge       1
 *********Andersen Pointer Analysis Stats***************
 ################ (program : )###############
 -------------------------------------------------------
-AvgTopLvlPtsSize    1
+MaxPtsSizeFields    1
+AvgPtsSizeFields    0.176471
+AvgTopLvlPtsSize    0.789474
 CopyGepTime         0
 CollapseTime        0
-AvgPtsSetSize       0.294118
+AvgPtsSetSize       0.176471
+UpdateCGTime        0
+LoadStoreTime       0
+SCCMergeTime        0
+SCCDetectTime       0
+TotalTime           0
+TotalPWCCycleNum    0
+NumOfSCCDetect      0
+Iterations          1
+MaxPtsSetSize       1
+NullPointer         3
+DYFieldObjs         0
+DYFieldPtrs         0
+PointsToBlkPtr      0
+MemObjects          19
+Pointers            57
+NumOfFieldExpand    0
+TotalCycleNum       0
+IndEdgeSolved       0
+NumOfSFRs           0
+MaxNodesInSCC       0
+IndCallSites        0
+StoreProcessed      0
+GepProcessed        0
+PointsToConstPtr    0
+NodesInCycles       0
+LoadProcessed       0
+CopyProcessed       0
+AddrProcessed       15
+TotalObjects        19
+TotalPointers       57
+#######################################################
+Function: my_malloc
+Function: llvm.dbg.declare
+Function: malloc
+Function: main
+Function: printf
+Function: switch_view
+EC Size:	 Ind. Call-sites
+Total Ind. Call-sites: 0
+Total Tgts: 0
+Average CFI: -nan
+Max pts node: declare void @switch_view()
+ switch_view
+Max fields node: declare void @switch_view()
+ ... max fields: 1
+
+*********CallGraph Stats***************
+################ (program : )###############
+-------------------------------------------------------
+TotalEdge           3
+MaxNodeInCycle      0
+NodeInCycle         0
+TotalCycle          0
+CalRetPairInCycle   0
+TotalNode           6
+#######################################################
+
+*********General Stats***************
+################ (program : )###############
+BBWith2Succ         0
+BitCastNumber       0
+LocalVarInRecur     0
+TotalCallSite       2
+IndCallSites        0
+ConstArrayObj       0
+ConstStructObj      0
+VarStructObj        0
+StackObjs           7
+HeapObjs            3
+ReturnsNum          0
+CallsNum            0
+NonPtrObj           12
+GepsNum             1
+CopysNum            2
+BBWith3Succ         0
+StoresNum           8
+LoadsNum            6
+AddrsNum            20
+FSObjNum            18
+FIObjNum            0
+VarArrayObj         2
+TotalPTAPAGEdges    24
+MaxStructSize       0
+GlobalObjs          2
+TotalFieldObjects   0
+FunctionObjs        6
+TotalObjects        19
+TotalPAGEdges       75
+TotalPointers       57
+-------------------------------------------------------
+#######################################################
+
+*********Constraint Graph Stats***************
+################ (program : )###############
+-------------------------------------------------------
+AvgIn/OutEdge       0.861111
+AvgIn/OutAddrEdge   0.416667
+AvgIn/OutLoadEdge   0.0833333
+AvgIn/OutCopyEdge   0.25
+MaxInAddrEdge       1
+MaxOutStoreEdge     2
+MaxInStoreEdge      2
+MaxInLoadEdge       1
+MaxInCopyEdge       2
+NumOfStores         4
+MaxOutAddrEdge      1
+NumOfLoads          3
+NumOfGeps           1
+MaxOutLoadEdge      1
+MaxOutCopyEdge      2
+NumOfCopys          8
+NumOfAddrs          15
+NumOfCGEdge         16
+AvgIn/OutStoreEdge  0
+TotalValidObjNode   15
+TotalValidNode      36
+NumOfCGNode         85
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : )###############
+-------------------------------------------------------
+MaxPtsSizeFields    1
+AvgPtsSizeFields    0.188235
+AvgTopLvlPtsSize    0.842105
+CopyGepTime         0
+CollapseTime        0
+AvgPtsSetSize       0.188235
 UpdateCGTime        0
 LoadStoreTime       0
 SCCMergeTime        0
 SCCDetectTime       0
 TotalTime           0.001
-NullPointer         0
-NodesInCycles       0
 TotalPWCCycleNum    0
-NumOfSCCDetect      2
+NumOfSCCDetect      1
+Iterations          2
+MaxPtsSetSize       1
+NullPointer         3
+DYFieldObjs         0
+DYFieldPtrs         0
+PointsToBlkPtr      0
+MemObjects          19
+Pointers            57
+NumOfFieldExpand    0
 TotalCycleNum       0
 IndEdgeSolved       0
+NumOfSFRs           0
 MaxNodesInSCC       0
 IndCallSites        0
-MaxPtsSetSize       1
-DYFieldObjs         1
-DYFieldPtrs         0
-MemObjects          11
-PointsToBlkPtr      0
-Pointers            32
+StoreProcessed      4
+GepProcessed        1
 PointsToConstPtr    0
-NumOfFieldExpand    0
+NodesInCycles       0
+LoadProcessed       3
+CopyProcessed       0
+AddrProcessed       15
+TotalObjects        19
+TotalPointers       57
+#######################################################
+Function: my_malloc
+Function: llvm.dbg.declare
+Function: malloc
+Function: main
+Function: printf
+Function: switch_view
+EC Size:	 Ind. Call-sites
+Total Ind. Call-sites: 0
+Total Tgts: 0
+Average CFI: -nan
+Max pts node:   %p = alloca i32*, align 8 main
+Max fields node: declare void @switch_view()
+ ... max fields: 1
+
+*********CallGraph Stats***************
+################ (program : )###############
+-------------------------------------------------------
+TotalEdge           3
+MaxNodeInCycle      0
+NodeInCycle         0
+TotalCycle          0
+CalRetPairInCycle   0
+TotalNode           6
+#######################################################
+
+*********General Stats***************
+################ (program : )###############
+BBWith2Succ         0
+BitCastNumber       0
+LocalVarInRecur     0
+TotalCallSite       2
+IndCallSites        0
+ConstArrayObj       0
+ConstStructObj      0
+VarStructObj        0
+StackObjs           7
+HeapObjs            3
+ReturnsNum          0
+CallsNum            0
+NonPtrObj           12
+GepsNum             1
+CopysNum            2
+BBWith3Succ         0
+StoresNum           8
+LoadsNum            6
+AddrsNum            20
+FSObjNum            18
+FIObjNum            0
+VarArrayObj         2
+TotalPTAPAGEdges    24
+MaxStructSize       0
+GlobalObjs          2
+TotalFieldObjects   0
+FunctionObjs        6
+TotalObjects        19
+TotalPAGEdges       75
+TotalPointers       57
+-------------------------------------------------------
+#######################################################
+
+*********Constraint Graph Stats***************
+################ (program : )###############
+-------------------------------------------------------
+AvgIn/OutEdge       0.861111
+AvgIn/OutAddrEdge   0.416667
+AvgIn/OutLoadEdge   0.0833333
+AvgIn/OutCopyEdge   0.25
+MaxInAddrEdge       1
+MaxOutStoreEdge     2
+MaxInStoreEdge      2
+MaxInLoadEdge       1
+MaxInCopyEdge       2
+NumOfStores         4
+MaxOutAddrEdge      1
+NumOfLoads          3
+NumOfGeps           1
+MaxOutLoadEdge      1
+MaxOutCopyEdge      2
+NumOfCopys          8
+NumOfAddrs          15
+NumOfCGEdge         16
+AvgIn/OutStoreEdge  0
+TotalValidObjNode   15
+TotalValidNode      36
+NumOfCGNode         85
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : )###############
+-------------------------------------------------------
+MaxPtsSizeFields    2
+AvgPtsSizeFields    0.282353
+AvgTopLvlPtsSize    1.05263
+CopyGepTime         0
+CollapseTime        0
+AvgPtsSetSize       0.282353
+UpdateCGTime        0
+LoadStoreTime       0
+SCCMergeTime        0
+SCCDetectTime       0
+TotalTime           0.002
+TotalPWCCycleNum    0
+NumOfSCCDetect      2
 Iterations          2
+MaxPtsSetSize       2
+NullPointer         0
+DYFieldObjs         0
+DYFieldPtrs         0
+PointsToBlkPtr      0
+MemObjects          19
+Pointers            57
+NumOfFieldExpand    0
+TotalCycleNum       0
+IndEdgeSolved       0
 NumOfSFRs           0
-StoreProcessed      1
-GepProcessed        3
-LoadProcessed       1
-CopyProcessed       2
-AddrProcessed       10
-TotalObjects        12
-TotalPointers       32
+MaxNodesInSCC       0
+IndCallSites        0
+StoreProcessed      4
+GepProcessed        1
+PointsToConstPtr    0
+NodesInCycles       0
+LoadProcessed       3
+CopyProcessed       7
+AddrProcessed       15
+TotalObjects        19
+TotalPointers       57
 #######################################################
 ----------------------------------------------
 ##<Dummy Obj > id:0
@@ -146,115 +425,245 @@ Ptr 3 		PointsTo: {empty}
 
 ----------------------------------------------
 ##<.str> Source Loc: { Glob  }
-Ptr 4 		PointsTo: { 1 }
+Ptr 4 		PointsTo: { 6 }
 
-!!Target NodeID 1	 [Dummy Obj id: 1]
+!!Target NodeID 6	 [<.str> >Source Loc: { Glob  }] 
 ----------------------------------------------
 ##<> Source Loc: { Can only get source location for instruction, argument, global var, function or constant data. }
 Ptr 5 		PointsTo: {empty}
 
 ----------------------------------------------
+##<.str> Source Loc: { Glob  }
+Ptr 6 		PointsTo: {empty}
+
+----------------------------------------------
 ##<kaliMap> Source Loc: { Glob  }
-Ptr 6 		PointsTo: { 7 }
+Ptr 7 		PointsTo: { 8 }
 
-!!Target NodeID 7	 [<kaliMap> >Source Loc: { Glob  }] 
+!!Target NodeID 8	 [<kaliMap> >Source Loc: { Glob  }] 
 ----------------------------------------------
 ##<kaliMap> Source Loc: { Glob  }
-Ptr 7 		PointsTo: {empty}
+Ptr 8 		PointsTo: {empty}
 
 ----------------------------------------------
-##<main> Source Loc: { in line: 9 file: testpointerrels.c }
-Ptr 8 		PointsTo: { 9 }
+##<my_malloc> Source Loc: { in line: 3 file: test.c }
+Ptr 9 		PointsTo: { 10 }
 
-!!Target NodeID 9	 [<main> >Source Loc: { in line: 9 file: testpointerrels.c }] 
+!!Target NodeID 10	 [<my_malloc> >Source Loc: { in line: 3 file: test.c }] 
 ----------------------------------------------
-##<main> Source Loc: { in line: 9 file: testpointerrels.c }
-Ptr 9 		PointsTo: {empty}
-
-----------------------------------------------
-##<main> Source Loc: { in line: 9 file: testpointerrels.c }
+##<my_malloc> Source Loc: { in line: 3 file: test.c }
 Ptr 10 		PointsTo: {empty}
 
 ----------------------------------------------
-##<retval> Source Loc: {  }
-Ptr 11 		PointsTo: { 12 }
+##<my_malloc> Source Loc: { in line: 3 file: test.c }
+Ptr 11 		PointsTo: {empty}
 
-!!Target NodeID 12	 [<retval> >Source Loc: {  }] 
 ----------------------------------------------
-##<retval> Source Loc: {  }
+##<sz> Source Loc: { 0th arg my_malloc in line: 3 file: test.c }
 Ptr 12 		PointsTo: {empty}
 
 ----------------------------------------------
-##<a> Source Loc: { ln: 10 fl: testpointerrels.c }
-Ptr 13 		PointsTo: { 14 }
-
-!!Target NodeID 14	 [<a> >Source Loc: { ln: 10 fl: testpointerrels.c }] 
 ----------------------------------------------
-##<a> Source Loc: { ln: 10 fl: testpointerrels.c }
-Ptr 14 		PointsTo: {empty}
-
 ----------------------------------------------
-##<obj> Source Loc: { ln: 11 fl: testpointerrels.c }
-Ptr 15 		PointsTo: { 16 }
-
-!!Target NodeID 16	 [<obj> >Source Loc: { ln: 11 fl: testpointerrels.c }] 
 ----------------------------------------------
-##<obj> Source Loc: { ln: 11 fl: testpointerrels.c }
-Ptr 16 		PointsTo: {empty}
-
 ----------------------------------------------
-##<d> Source Loc: { ln: 14 fl: testpointerrels.c }
-Ptr 17 		PointsTo: { 18 }
-
-!!Target NodeID 18	 [<d> >Source Loc: { ln: 14 fl: testpointerrels.c }] 
 ----------------------------------------------
-##<d> Source Loc: { ln: 14 fl: testpointerrels.c }
-Ptr 18 		PointsTo: {empty}
-
 ----------------------------------------------
-##<> Source Loc: {  }
-Ptr 19 		PointsTo: {empty}
-
 ----------------------------------------------
-##<> Source Loc: { constant data }
-Ptr 20 		PointsTo: {empty}
-
 ----------------------------------------------
-##<> Source Loc: { ln: 10  cl: 9  fl: testpointerrels.c }
-Ptr 21 		PointsTo: {empty}
+##<malloc> Source Loc: {  }
+Ptr 21 		PointsTo: { 22 }
 
+!!Target NodeID 22	 [<malloc> >Source Loc: {  }] 
 ----------------------------------------------
-##<> Source Loc: { ln: 10  cl: 9  fl: testpointerrels.c }
+##<malloc> Source Loc: {  }
 Ptr 22 		PointsTo: {empty}
 
 ----------------------------------------------
-##<> Source Loc: { constant data }
-Ptr 23 		PointsTo: {empty}
+----------------------------------------------
+##<llvm.dbg.declare> Source Loc: {  }
+Ptr 24 		PointsTo: { 25 }
+
+!!Target NodeID 25	 [<llvm.dbg.declare> >Source Loc: {  }] 
+----------------------------------------------
+##<llvm.dbg.declare> Source Loc: {  }
+Ptr 25 		PointsTo: {empty}
 
 ----------------------------------------------
-##<> Source Loc: { ln: 11  cl: 16  fl: testpointerrels.c }
-Ptr 24 		PointsTo: {empty}
-
-----------------------------------------------
-##<ptr> Source Loc: { ln: 12  cl: 9  fl: testpointerrels.c }
-Ptr 25 		PointsTo: { 3016 }
-
-!!Target NodeID 3016	 [<obj> Field: 2>Source Loc: { ln: 11 fl: testpointerrels.c }] 
-----------------------------------------------
-##<> Source Loc: { ln: 12  cl: 13  fl: testpointerrels.c }
+##<llvm.dbg.declare> Source Loc: {  }
 Ptr 26 		PointsTo: {empty}
 
 ----------------------------------------------
-##<> Source Loc: { ln: 14  cl: 9  fl: testpointerrels.c }
+##<> Source Loc: { 0th arg llvm.dbg.declare  }
 Ptr 27 		PointsTo: {empty}
 
 ----------------------------------------------
-##<ptr1> Source Loc: { ln: 14  cl: 19  fl: testpointerrels.c }
-Ptr 28 		PointsTo: { 3016 }
+##<> Source Loc: { 1st arg llvm.dbg.declare  }
+Ptr 28 		PointsTo: {empty}
 
-!!Target NodeID 3016	 [<obj> Field: 2>Source Loc: { ln: 11 fl: testpointerrels.c }] 
---------------Function: main
+----------------------------------------------
+##<> Source Loc: { 2nd arg llvm.dbg.declare  }
+Ptr 29 		PointsTo: {empty}
+
+----------------------------------------------
+##<malloc> Source Loc: {  }
+Ptr 30 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { 0th arg malloc  }
+Ptr 31 		PointsTo: {empty}
+
+----------------------------------------------
+##<main> Source Loc: { in line: 7 file: test.c }
+Ptr 32 		PointsTo: { 33 }
+
+!!Target NodeID 33	 [<main> >Source Loc: { in line: 7 file: test.c }] 
+----------------------------------------------
+##<main> Source Loc: { in line: 7 file: test.c }
+Ptr 33 		PointsTo: {empty}
+
+----------------------------------------------
+##<main> Source Loc: { in line: 7 file: test.c }
+Ptr 34 		PointsTo: {empty}
+
+----------------------------------------------
+##<a> Source Loc: { ln: 8 fl: test.c }
+Ptr 35 		PointsTo: { 36 }
+
+!!Target NodeID 36	 [<a> >Source Loc: { ln: 8 fl: test.c }] 
+----------------------------------------------
+##<a> Source Loc: { ln: 8 fl: test.c }
+Ptr 36 		PointsTo: {empty}
+
+----------------------------------------------
+##<b> Source Loc: { ln: 9 fl: test.c }
+Ptr 37 		PointsTo: { 38 }
+
+!!Target NodeID 38	 [<b> >Source Loc: { ln: 9 fl: test.c }] 
+----------------------------------------------
+##<b> Source Loc: { ln: 9 fl: test.c }
+Ptr 38 		PointsTo: {empty}
+
+----------------------------------------------
+##<p> Source Loc: { ln: 10 fl: test.c }
+Ptr 39 		PointsTo: { 40 }
+
+!!Target NodeID 40	 [<p> >Source Loc: { ln: 10 fl: test.c }] 
+----------------------------------------------
+##<p> Source Loc: { ln: 10 fl: test.c }
+Ptr 40 		PointsTo: { 36 38 }
+
+!!Target NodeID 36	 [<a> >Source Loc: { ln: 8 fl: test.c }] 
+!!Target NodeID 38	 [<b> >Source Loc: { ln: 9 fl: test.c }] 
+----------------------------------------------
+##<q> Source Loc: { ln: 10 fl: test.c }
+Ptr 41 		PointsTo: { 42 }
+
+!!Target NodeID 42	 [<q> >Source Loc: { ln: 10 fl: test.c }] 
+----------------------------------------------
+##<q> Source Loc: { ln: 10 fl: test.c }
+Ptr 42 		PointsTo: { 36 }
+
+!!Target NodeID 36	 [<a> >Source Loc: { ln: 8 fl: test.c }] 
+----------------------------------------------
+##<buffer> Source Loc: { ln: 12 fl: test.c }
+Ptr 43 		PointsTo: { 44 }
+
+!!Target NodeID 44	 [<buffer> >Source Loc: { ln: 12 fl: test.c }] 
+----------------------------------------------
+##<buffer> Source Loc: { ln: 12 fl: test.c }
+Ptr 44 		PointsTo: { 57 }
+
+!!Target NodeID 57	 [<call> >Source Loc: { ln: 12  cl: 20  fl: test.c }] 
+----------------------------------------------
+##<k> Source Loc: { ln: 18 fl: test.c }
+Ptr 45 		PointsTo: { 46 }
+
+!!Target NodeID 46	 [<k> >Source Loc: { ln: 18 fl: test.c }] 
+----------------------------------------------
+##<k> Source Loc: { ln: 18 fl: test.c }
+Ptr 46 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 8  cl: 9  fl: test.c }
+Ptr 47 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 8  cl: 9  fl: test.c }
+Ptr 48 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { constant data }
+Ptr 49 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 9  cl: 9  fl: test.c }
+Ptr 50 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 9  cl: 9  fl: test.c }
+Ptr 51 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { constant data }
+Ptr 52 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 10  cl: 10  fl: test.c }
+Ptr 53 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 10  cl: 14  fl: test.c }
+Ptr 54 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 12  cl: 11  fl: test.c }
+Ptr 55 		PointsTo: {empty}
+
+----------------------------------------------
+##<call> Source Loc: { ln: 12  cl: 20  fl: test.c }
+Ptr 56 		PointsTo: { 57 }
+
+!!Target NodeID 57	 [<call> >Source Loc: { ln: 12  cl: 20  fl: test.c }] 
+----------------------------------------------
+##<call> Source Loc: { ln: 12  cl: 20  fl: test.c }
+Ptr 57 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { constant data }
+Ptr 58 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 12  cl: 11  fl: test.c }
+Ptr 59 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 13  cl: 6  fl: test.c }
+Ptr 60 		PointsTo: { 57 }
+
+!!Target NodeID 57	 [<call> >Source Loc: { ln: 12  cl: 20  fl: test.c }] 
+----------------------------------------------
+##<> Source Loc: { ln: 13  cl: 13  fl: test.c }
+Ptr 61 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { constant data }
+Ptr 62 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 14  cl: 7  fl: test.c }
+Ptr 63 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 15  cl: 7  fl: test.c }
+Ptr 64 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 16  cl: 7  fl: test.c }
+Ptr 65 		PointsTo: {emptFunction: my_malloc
 Function: llvm.dbg.declare
+Function: malloc
+Function: main
 Function: printf
 Function: switch_view
 EC Size:	 Ind. Call-sites
@@ -262,8 +671,10 @@ EC Size:	 Ind. Call-sites
 Total Ind. Call-sites: 0
 Total Tgts: 0
 Average CFI: -nan
-Function: main
+Function: my_malloc
 Function: llvm.dbg.declare
+Function: malloc
+Function: main
 Function: printf
 Function: switch_view
 EC Size:	 Ind. Call-sites
@@ -272,115 +683,105 @@ Total Ind. Call-sites: 0
 Total Tgts: 0
 Average CFI: -nan
 CDF:
-Testpointerrels,0, 0,0.000000
-Testpointerrels,1, 0,0.000000
---------------------------------
-##<> Source Loc: { ln: 14  cl: 19  fl: testpointerrels.c }
-Ptr 29 		PointsTo: { 14 }
-
-!!Target NodeID 14	 [<a> >Source Loc: { ln: 10 fl: testpointerrels.c }] 
-----------------------------------------------
-##<> Source Loc: { ln: 14  cl: 13  fl: testpointerrels.c }
-Ptr 30 		PointsTo: {empty}
+Test,0, 0,0.000000
+Test,1, 0,0.000000
+y}
 
 ----------------------------------------------
-##<> Source Loc: { ln: 14  cl: 9  fl: testpointerrels.c }
-Ptr 31 		PointsTo: {empty}
+##<> Source Loc: { ln: 18  cl: 9  fl: test.c }
+Ptr 66 		PointsTo: {empty}
 
 ----------------------------------------------
-##<> Source Loc: { ln: 15  cl: 20  fl: testpointerrels.c }
-Ptr 32 		PointsTo: {empty}
+##<> Source Loc: { ln: 18  cl: 14  fl: test.c }
+Ptr 67 		PointsTo: { 36 38 }
+
+!!Target NodeID 36	 [<a> >Source Loc: { ln: 8 fl: test.c }] 
+!!Target NodeID 38	 [<b> >Source Loc: { ln: 9 fl: test.c }] 
+----------------------------------------------
+##<> Source Loc: { ln: 18  cl: 13  fl: test.c }
+Ptr 68 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 18  cl: 9  fl: test.c }
+Ptr 69 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 22  cl: 23  fl: test.c }
+Ptr 70 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 22  cl: 27  fl: test.c }
+Ptr 71 		PointsTo: { 36 }
+
+!!Target NodeID 36	 [<a> >Source Loc: { ln: 8 fl: test.c }] 
+----------------------------------------------
+##<> Source Loc: { ln: 22  cl: 26  fl: test.c }
+Ptr 72 		PointsTo: {empty}
 
 ----------------------------------------------
 ##<> Source Loc: {  }
-Ptr 33 		PointsTo: { 1 }
+Ptr 73 		PointsTo: { 6 }
 
-!!Target NodeID 1	 [Dummy Obj id: 1]
+!!Target NodeID 6	 [<.str> >Source Loc: { Glob  }] 
 ----------------------------------------------
-##<call> Source Loc: { ln: 15  cl: 5  fl: testpointerrels.c }
-Ptr 34 		PointsTo: {empty}
-
-----------------------------------------------
-##<printf> Source Loc: {  }
-Ptr 35 		PointsTo: { 36 }
-
-!!Target NodeID 36	 [<printf> >Source Loc: {  }] 
-----------------------------------------------
-##<printf> Source Loc: {  }
-Ptr 36 		PointsTo: {empty}
-
-----------------------------------------------
-##<> Source Loc: { ln: 16  cl: 5  fl: testpointerrels.c }
-Ptr 37 		PointsTo: {empty}
-
-----------------------------------------------
-##<llvm.dbg.declare> Source Loc: {  }
-Ptr 38 		PointsTo: { 39 }
-
-!!Target NodeID 39	 [<llvm.dbg.declare> >Source Loc: {  }] 
-----------------------------------------------
-##<llvm.dbg.declare> Source Loc: {  }
-Ptr 39 		PointsTo: {empty}
-
-----------------------------------------------
-##<llvm.dbg.declare> Source Loc: {  }
-Ptr 40 		PointsTo: {empty}
-
-----------------------------------------------
-##<> Source Loc: { 0th arg llvm.dbg.declare  }
-Ptr 41 		PointsTo: {empty}
-
-----------------------------------------------
-##<> Source Loc: { 1st arg llvm.dbg.declare  }
-Ptr 42 		PointsTo: {empty}
-
-----------------------------------------------
-##<> Source Loc: { 2nd arg llvm.dbg.declare  }
-Ptr 43 		PointsTo: {empty}
+##<call1> Source Loc: { ln: 22  cl: 5  fl: test.c }
+Ptr 74 		PointsTo: {empty}
 
 ----------------------------------------------
 ##<printf> Source Loc: {  }
-Ptr 44 		PointsTo: {empty}
+Ptr 75 		PointsTo: { 76 }
+
+!!Target NodeID 76	 [<printf> >Source Loc: {  }] 
+----------------------------------------------
+##<printf> Source Loc: {  }
+Ptr 76 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { ln: 23  cl: 1  fl: test.c }
+Ptr 77 		PointsTo: {empty}
+
+----------------------------------------------
+##<> Source Loc: { constant data }
+Ptr 78 		PointsTo: {empty}
 
 ----------------------------------------------
 ##<printf> Source Loc: {  }
-Ptr 45 		PointsTo: {empty}
+Ptr 79 		PointsTo: {empty}
+
+----------------------------------------------
+##<printf> Source Loc: {  }
+Ptr 80 		PointsTo: {empty}
 
 ----------------------------------------------
 ##<> Source Loc: { 0th arg printf  }
-Ptr 46 		PointsTo: {empty}
+Ptr 81 		PointsTo: {empty}
 
 ----------------------------------------------
 ##<switch_view> Source Loc: {  }
-Ptr 47 		PointsTo: { 48 }
+Ptr 82 		PointsTo: { 83 }
 
-!!Target NodeID 48	 [<switch_view> >Source Loc: {  }] 
+!!Target NodeID 83	 [<switch_view> >Source Loc: {  }] 
 ----------------------------------------------
 ##<switch_view> Source Loc: {  }
-Ptr 48 		PointsTo: {empty}
+Ptr 83 		PointsTo: {empty}
 
 ----------------------------------------------
 ##<switch_view> Source Loc: {  }
-Ptr 49 		PointsTo: {empty}
+Ptr 84 		PointsTo: {empty}
 
-----------------------------------------------
-##<obj> Source Loc: { ln: 11 fl: testpointerrels.c }
-Ptr 3016 		PointsTo: { 14 }
-
-!!Target NodeID 14	 [<a> >Source Loc: { ln: 10 fl: testpointerrels.c }] 
 ----------------------------------------------
 + '[' 0 -ne 0 ']'
-+ cp instrumented-module.bc testpointerrels_inst.bc
-+ llvm-dis testpointerrels_inst.bc -o testpointerrels_inst.ll
-+ opt -verify testpointerrels_inst.bc -o testpointerrels_discard.bc
++ cp instrumented-module.bc test_inst.bc
++ llvm-dis test_inst.bc -o test_inst.ll
++ opt -verify test_inst.bc -o test_discard.bc
 + clang++ -c -O0 -ggdb -emit-llvm /home/tpalit/svf-kernel//test/view-switcher/view_switch.cpp -o /home/tpalit/svf-kernel//test/view-switcher/view_switch.bc
 + clang++ -c -O0 -ggdb -emit-llvm /home/tpalit/svf-kernel//test/view-switcher/debugger.cpp -o /home/tpalit/svf-kernel//test/view-switcher/debugger.bc
 + clang++ -c -O0 -ggdb -emit-llvm /home/tpalit/svf-kernel//test/view-switcher/docfi.cpp -o /home/tpalit/svf-kernel//test/view-switcher/docfi.bc
-+ llvm-link testpointerrels_inst.bc /home/tpalit/svf-kernel//test/view-switcher/docfi.bc /home/tpalit/svf-kernel//test/view-switcher/view_switch.bc /home/tpalit/svf-kernel//test/view-switcher/debugger.bc -o testpointerrels_linked.bc
++ llvm-link test_inst.bc /home/tpalit/svf-kernel//test/view-switcher/docfi.bc /home/tpalit/svf-kernel//test/view-switcher/view_switch.bc /home/tpalit/svf-kernel//test/view-switcher/debugger.bc -o test_linked.bc
 + '[' 0 -ne 0 ']'
-+ cp testpointerrels_linked.bc testpointerrels_linked_inline.bc
-+ llvm-dis testpointerrels_linked_inline.bc -o testpointerrels_linked_inline.ll
-+ clang++ -v -ggdb testpointerrels_linked_inline.bc -o testpointerrels.exe
++ cp test_linked.bc test_linked_inline.bc
++ llvm-dis test_linked_inline.bc -o test_linked_inline.ll
++ clang++ -v -ggdb test_linked_inline.bc -o test.exe
 clang version 12.0.0 (git@github.com:taptipalit/llvm12.git ea65dbca39f4c80bcd19142d06a5759b3ec89f99)
 Target: x86_64-unknown-linux-gnu
 Thread model: posix
@@ -389,7 +790,7 @@ Found candidate GCC installation: /usr/lib/gcc/x86_64-linux-gnu/11
 Selected GCC installation: /usr/lib/gcc/x86_64-linux-gnu/11
 Candidate multilib: .;@m64
 Selected multilib: .;@m64
- "/home/tpalit/llvm12/debug-build/bin/clang-12" -cc1 -triple x86_64-unknown-linux-gnu -emit-obj -mrelax-all --mrelax-relocations -disable-free -main-file-name testpointerrels_linked_inline.bc -mrelocation-model static -mframe-pointer=all -fmath-errno -fno-rounding-math -mconstructor-aliases -munwind-tables -target-cpu x86-64 -tune-cpu generic -fno-split-dwarf-inlining -debug-info-kind=limited -dwarf-version=4 -debugger-tuning=gdb -v -resource-dir /home/tpalit/llvm12/debug-build/lib/clang/12.0.0 -fdebug-compilation-dir /home/tpalit/svf-kernel/test/debugdebugger -ferror-limit 19 -fgnuc-version=4.2.1 -faddrsig -o /tmp/testpointerrels_linked_inline-ba4407.o -x ir testpointerrels_linked_inline.bc
+ "/home/tpalit/llvm12/debug-build/bin/clang-12" -cc1 -triple x86_64-unknown-linux-gnu -emit-obj -mrelax-all --mrelax-relocations -disable-free -main-file-name test_linked_inline.bc -mrelocation-model static -mframe-pointer=all -fmath-errno -fno-rounding-math -mconstructor-aliases -munwind-tables -target-cpu x86-64 -tune-cpu generic -fno-split-dwarf-inlining -debug-info-kind=limited -dwarf-version=4 -debugger-tuning=gdb -v -resource-dir /home/tpalit/llvm12/debug-build/lib/clang/12.0.0 -fdebug-compilation-dir /home/tpalit/svf-kernel/test/debugdebugger -ferror-limit 19 -fgnuc-version=4.2.1 -faddrsig -o /tmp/test_linked_inline-c578fa.o -x ir test_linked_inline.bc
 clang -cc1 version 12.0.0 based upon LLVM 12.0.0 default target x86_64-unknown-linux-gnu
- "/usr/bin/ld" --eh-frame-hdr -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o testpointerrels.exe /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crt1.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/11/crtbegin.o -L/usr/lib/gcc/x86_64-linux-gnu/11 -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib64 -L/lib/x86_64-linux-gnu -L/lib/../lib64 -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib64 -L/usr/lib/x86_64-linux-gnu/../../lib64 -L/usr/lib/gcc/x86_64-linux-gnu/11/../../.. -L/home/tpalit/llvm12/debug-build/bin/../lib -L/lib -L/usr/lib /tmp/testpointerrels_linked_inline-ba4407.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/11/crtend.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o
+ "/usr/bin/ld" --eh-frame-hdr -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o test.exe /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crt1.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/11/crtbegin.o -L/usr/lib/gcc/x86_64-linux-gnu/11 -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/11/../../../../lib64 -L/lib/x86_64-linux-gnu -L/lib/../lib64 -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib64 -L/usr/lib/x86_64-linux-gnu/../../lib64 -L/usr/lib/gcc/x86_64-linux-gnu/11/../../.. -L/home/tpalit/llvm12/debug-build/bin/../lib -L/lib -L/usr/lib /tmp/test_linked_inline-c578fa.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/11/crtend.o /usr/lib/gcc/x86_64-linux-gnu/11/../../../x86_64-linux-gnu/crtn.o
 + '[' 0 -ne 0 ']'

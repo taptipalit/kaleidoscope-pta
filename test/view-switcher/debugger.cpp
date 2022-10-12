@@ -11,8 +11,8 @@ using namespace std;
 typedef uint64_t Id;
 typedef uint64_t Val;
 
-//#define INLINE __attribute__((always_inline))
-#define INLINE
+#define INLINE __attribute__((always_inline))
+//#define INLINE
 
 // For VGEP
 std::map<Id, std::unordered_set<uint64_t>> valMap;

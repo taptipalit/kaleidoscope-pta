@@ -1,10 +1,16 @@
 #include <stdio.h>
 
+void* my_malloc(int sz) {
+    return malloc(sz);
+}
+
 int main(void) {
     int a = 10;
     int b = 300;
     int *p, *q;
 
+    char* buffer = my_malloc(1024);
+    *buffer = 'a';
     p = &a;
     p = &b;
     q = &a;

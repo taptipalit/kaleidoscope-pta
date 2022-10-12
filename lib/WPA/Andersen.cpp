@@ -112,6 +112,7 @@ void AndersenBase::analyze()
         do
         {
             numOfIteration++;
+//            if (numOfIteration > 4) break;
             if (0 == numOfIteration % iterationForPrintStat)
                 printStat();
 
