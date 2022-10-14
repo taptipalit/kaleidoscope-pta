@@ -628,7 +628,8 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
     bool isPWC = false;
     if (Options::InvariantPWC) {
         if (subNodes.count() > 5000) {
-            isPWC = true;
+            llvm::errs() << "Found large cycle\n";
+            //isPWC = true;
         } else {
             for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++) {
                 NodeID subNodeId = *nodeIt;

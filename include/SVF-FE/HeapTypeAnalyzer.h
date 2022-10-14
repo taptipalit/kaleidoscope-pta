@@ -40,6 +40,11 @@ private:
 
     std::vector<Function*> heapCalls;
 
+    Function* malloc; // the malloc function
+    Function* scalarMalloc;
+    Function* structMalloc;
+    Function* arrayMalloc; // the heap separator functions
+
 public:
     static char ID;
 
@@ -91,6 +96,8 @@ public:
 
     bool deepClone(llvm::Function*, llvm::Function*&, std::vector<std::string>&, 
             llvm::Type*, llvm::Type*);
+
+    void initHeapSeparatorFunctions(Module&);
 
     HeapTypeAnalyzer::HeapTy getSizeOfTy(llvm::Module&, llvm::LLVMContext&, llvm::MDNode*, llvm::MDNode*, llvm::MDNode*);
     void removePoolAllocatorBody(llvm::Module&);

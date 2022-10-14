@@ -4,7 +4,6 @@
 #include <map>
 #include <algorithm>
 
-
 using namespace std;
 
 typedef uint32_t CallSiteID;
@@ -33,36 +32,9 @@ extern "C" void checkCFI(CallSiteID callsite, uint64_t tgt) {
     }
     
     if (!tgtFound) {
-//        cerr << "CFI error\n";
-//        exit(-1);
+        cerr << "CFI error\n";
+        exit(-1);
     }
 }
 
-/*
-extern "C" void initWithNoInvariant(void) {
-    invFlipped = true;
-}
-*/
 
-/*
-extern "C" void checkCFI(unsigned long* arr, int len_arr, unsigned long* tgt) {
-    int found = 0;
-    for (int i = 0; i < len_arr; i++) {
-        if (tgt == *arr) {
-            found = 1;
-            break;
-        } else {
-            arr++;
-        }
-    }
-    if (!found) {
-        fprintf(stderr, "CFI error\n");
-        exit (-1);
-    }
-}
-
-extern "C" void blockCFI() {
-    fprintf(stderr, "CFI error. This callsite shouldn't be triggered at all\n");
-    exit (-1);
-}
-*/

@@ -80,6 +80,7 @@ void InvariantHandler::instrumentVGEPInvariant(GetElementPtrInst* gep, std::vect
 
     std::vector<int> tgtKaliIDs;
     for (Value* target: targets) {
+        if (SVFUtil::isa<CallInst>(target)) continue; // TODO handle split heap
         int id = -1;
         if (valueToKaliIdMap.find(target) == valueToKaliIdMap.end()) {
             id = kaliInvariantId++;

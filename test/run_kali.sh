@@ -52,8 +52,8 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-#opt -always-inline $file_linked -o $file_linked_inline
-cp $file_linked $file_linked_inline
+opt -always-inline $file_linked -o $file_linked_inline
+#cp $file_linked $file_linked_inline
 
 llvm-dis $file_linked_inline -o $file_linked_inline_ll
 

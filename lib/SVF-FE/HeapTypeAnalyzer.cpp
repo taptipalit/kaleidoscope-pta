@@ -288,6 +288,9 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypes(llvm::Module& module) {
                                     /* if the caller is a heap allocator we don't care*/) {
                                 llvm::errs() << "No type annotation for heap call: " << *callInst << " in function : " << callInst->getFunction()->getName() << " treating as scalar\n";
                                 callInst->addAnnotationMetadata("IntegerType");
+                                if (callInst->getCalledFunction() == malloc) {
+                                    callInst->setCalledFunction(scalarMalloc);
+                                }
                                 handled = true;
                             }
                         }
@@ -299,12 +302,21 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypes(llvm::Module& module) {
                     switch(ty) {
                         case ScalarTy:
                             callInst->addAnnotationMetadata("IntegerType");
+                            if (callInst->getCalledFunction() == malloc) {
+                                callInst->setCalledFunction(scalarMalloc);
+                            }
                             break;
                         case StructTy:
                             callInst->addAnnotationMetadata("StructType");
+                            if (callInst->getCalledFunction() == malloc) {
+                                callInst->setCalledFunction(structMalloc);
+                            }
                             break;
                         case ArrayTy:
                             callInst->addAnnotationMetadata("ArrayType"); 
+                            if (callInst->getCalledFunction() == malloc) {
+                                callInst->setCalledFunction(arrayMalloc);
+                            }
                             break;
                         default:
                             assert(false && "Shouldn't reach here");
@@ -629,8 +641,18 @@ void HeapTypeAnalyzer::findHeapContexts (Module& M) {
     }
 }
 
+void HeapTypeAnalyzer::initHeapSeparatorFunctions(Module& module) {
+    malloc = module.getFunction("malloc");
+    FunctionType* mallocFnTy = malloc->getFunctionType();
+    scalarMalloc = SVFUtil::dyn_cast<Function>(module.getOrInsertFunction("scalarMalloc", mallocFnTy).getCallee());
+    structMalloc = SVFUtil::dyn_cast<Function>(module.getOrInsertFunction("structMalloc", mallocFnTy).getCallee());
+    arrayMalloc = SVFUtil::dyn_cast<Function>(module.getOrInsertFunction("arrayMalloc", mallocFnTy).getCallee());
+}
+
 bool
 HeapTypeAnalyzer::runOnModule (Module & module) {
+
+    initHeapSeparatorFunctions(module);
     findHeapContexts(module);
     handleVersions(module);
 //    removePoolAllocatorBody(module);

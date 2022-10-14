@@ -17,7 +17,6 @@ typedef uint64_t Val;
 // For VGEP
 std::map<Id, std::unordered_set<uint64_t>> valMap;
 
-
 static inline void printBacktrace() {
     void *stackBuffer[64]; 
     int numAddresses = backtrace((void**) &stackBuffer, 64); 
