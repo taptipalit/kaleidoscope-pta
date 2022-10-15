@@ -304,7 +304,7 @@ public:
         return diffOpt;
     }
 
-    bool canApplyPAInvariant(VariantGepCGEdge*, NodeID);
+    bool canApplyPAInvariant(const VariantGepCGEdge*, NodeID);
 
 protected:
 

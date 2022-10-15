@@ -375,17 +375,12 @@ bool Andersen::processGep(NodeID, const GepCGEdge* edge)
     return processGepPts(srcPts, edge);
 }
 
-bool Andersen::canApplyPAInvariant(VariantGepCGEdge* vgepCGEdge, NodeID obj) {
-    assert(false && "unimplemented");
-    return false;
-    /*
-     * Revisit this in light of changed memory model.
+bool Andersen::canApplyPAInvariant(const VariantGepCGEdge* vgepCGEdge, NodeID obj) {
     if (vgepCGEdge->isStructTy() && consCG->isArrayTy(obj)) {
         return false;
     } else {
         return true;
     }
-    */
 }
 /*!
  * Compute points-to for gep edges
@@ -412,7 +407,7 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
             
             PAGNode* objNode = pag->getPAGNode(o);
             
-            if (Options::InvariantVGEP && !vgepCGEdge->isStructTy()) {
+            if (Options::InvariantVGEP && canApplyPAInvariant(vgepCGEdge, o)) {
                 // First of all, we believe that variable indices
                 // when the type is a complex type, are most definitely accessing 
                 // an element in the array.

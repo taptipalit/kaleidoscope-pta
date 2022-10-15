@@ -662,6 +662,27 @@ void ConstraintGraph::print()
 
 }
 
+bool ConstraintGraph::hasArrayTyAnnotation(NodeID o) {
+    PAGNode* objNode = pag->getPAGNode(o);
+    if (arrayIndHeapCalls.test(o)) return true; // for objects allocated at indirect callsites
+    if (isArrayTy(o)) return true; // for globals and stacks
+
+    // For heap calls
+    if (objNode->hasValue()) {
+        const Value* objVal = objNode->getValue();
+        if (const CallInst* heapCall = SVFUtil::dyn_cast<CallInst>(objVal)) {
+            if (heapCall->hasMetadata("annotation")) {
+                MDNode* mdNode = heapCall->getMetadata("annotation");
+                MDString* tyAnnotStr = (MDString*)mdNode->getOperand(0).get();
+                if (tyAnnotStr->getString() == "ArrayType") {
+                    return true;
+                }
+            }
+        }
+
+    } 
+    return false;
+}
 bool ConstraintGraph::hasStructTyAnnotation(NodeID o) {
     PAGNode* objNode = pag->getPAGNode(o);
     if (structIndHeapCalls.test(o)) return true; // for objects allocated at indirect callsites
