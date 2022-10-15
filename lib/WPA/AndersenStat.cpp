@@ -320,7 +320,7 @@ void AndersenStat::performStat()
 
         for (auto it = svfModule->llvmFunBegin(), eit = svfModule->llvmFunEnd(); it != eit; it++) {
             Function* F = *it;
-            llvm::outs() << "Function: " << F->getName() << "\n";
+            llvm::errs() << "Function: " << F->getName() << "\n";
             for (inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F); I != E; ++I) {
                 if (CallInst* callInst = SVFUtil::dyn_cast<CallInst>(&*I)) {
                     if (callInst->isIndirectCall()) {
@@ -328,7 +328,7 @@ void AndersenStat::performStat()
                         const PointsTo& pts = pta->getPts(callNodePtr);
                         bool hasTarget = false;
 
-                        llvm::outs() << "For a callsite in " << F->getName() << " : \n";
+                        llvm::errs() << "For a callsite in " << F->getName() << " : \n";
                         for (PointsTo::iterator piter = pts.begin(), epiter = pts.end(); piter != epiter; ++piter) {
                             NodeID ptd = *piter;
                             if (pag->hasPAGNode(ptd)) {
@@ -337,13 +337,13 @@ void AndersenStat::performStat()
                                     if (const Function* tgtFunction = SVFUtil::dyn_cast<Function>(tgtNode->getValue())) {
                                         hasTarget = true;
                                         indCallMap[callInst].insert(const_cast<Function*>(tgtFunction));
-                                        llvm::outs() << "    calls " << tgtFunction->getName() << "\n";
+                                        llvm::errs() << "    calls " << tgtFunction->getName() << "\n";
                                     }
                                 }
                             }
                         }
                         if (!hasTarget) {
-                            llvm::outs() << "   in " << F->getName() << " NO TARGET FOUND\n";
+                            llvm::errs() << "   in " << F->getName() << " NO TARGET FOUND\n";
                         }
                     }
                 }
@@ -356,17 +356,17 @@ void AndersenStat::performStat()
             histogram[sz]++;
         }
 
-        llvm::outs() << "EC Size:\t Ind. Call-sites\n";
+        llvm::errs() << "EC Size:\t Ind. Call-sites\n";
         int totalTgts = 0;
         int totalIndCallSites = 0;
         for (auto it: histogram) {
-            llvm::outs() << it.first << " : " << it.second << "\n";
+            llvm::errs() << it.first << " : " << it.second << "\n";
             totalIndCallSites += it.second;
             totalTgts += it.first*it.second;
         }
-        llvm::outs() << "Total Ind. Call-sites: " << totalIndCallSites << "\n";
-        llvm::outs() << "Total Tgts: " << totalTgts << "\n";
-        llvm::outs() << "Average CFI: " << std::to_string( (float)totalTgts / (float)totalIndCallSites) << "\n";
+        llvm::errs() << "Total Ind. Call-sites: " << totalIndCallSites << "\n";
+        llvm::errs() << "Total Tgts: " << totalTgts << "\n";
+        llvm::errs() << "Average CFI: " << std::to_string( (float)totalTgts / (float)totalIndCallSites) << "\n";
     }
 
     NodeID maxPtsNodeID = -1;
@@ -414,19 +414,19 @@ void AndersenStat::performStat()
     PAGNode* maxPtsNode = pag->getPAGNode(maxPtsNodeID);
     if (maxPtsNode->hasValue()) {
         if (const Function* maxPtsFunc = SVFUtil::dyn_cast<Function>(maxPtsNode->getValue())) {
-            llvm::outs() << "Max pts node: " << maxPtsFunc->getName() << "\n";
+            llvm::errs() << "Max pts node: " << maxPtsFunc->getName() << "\n";
         }
-        llvm::outs() << "Max pts node: " << *(maxPtsNode->getValue()) << " " << (maxPtsNode->getFunction()? maxPtsNode->getFunction()->getName() : "") << "\n";
+        llvm::errs() << "Max pts node: " << *(maxPtsNode->getValue()) << " " << (maxPtsNode->getFunction()? maxPtsNode->getFunction()->getName() : "") << "\n";
     } else {
-        llvm::outs() << "Max pts node: " << *maxPtsNode << "\n";
+        llvm::errs() << "Max pts node: " << *maxPtsNode << "\n";
     }
 
     if (maxFieldsNodeID > 0 && pag->hasPAGNode(maxFieldsNodeID)) {
         PAGNode* maxFieldsNode = pag->getPAGNode(maxFieldsNodeID);
         if (maxFieldsNode->hasValue()) {
-            llvm::outs() << "Max fields node: " << *(maxFieldsNode->getValue()) << " ... max fields: " << maxFields << "\n";
+            llvm::errs() << "Max fields node: " << *(maxFieldsNode->getValue()) << " ... max fields: " << maxFields << "\n";
         } else {
-            llvm::outs() << "Max fields node: " << *maxFieldsNode << " ... max fields: " << maxFields << "\n";
+            llvm::errs() << "Max fields node: " << *maxFieldsNode << " ... max fields: " << maxFields << "\n";
         }
     }
 

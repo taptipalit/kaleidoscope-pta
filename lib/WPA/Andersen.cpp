@@ -104,7 +104,7 @@ void AndersenBase::analyze()
     if(!readResultsFromFile)
     {
         // Start solving constraints
-        DBOUT(DGENERAL, outs() << SVFUtil::pasMsg("Start Solving Constraints\n"));
+        DBOUT(DGENERAL, errs() << SVFUtil::pasMsg("Start Solving Constraints\n"));
 
         bool limitTimerSet = SVFUtil::startAnalysisLimitTimer(Options::AnderTimeLimit);
 
@@ -124,18 +124,18 @@ void AndersenBase::analyze()
                 reanalyze = true;
 
             /*
-            llvm::outs() << "Did one iteration\n";
-            llvm::outs() << "Blacklisted edges and edges in constraint graph:\n";
+            llvm::errs() << "Did one iteration\n";
+            llvm::errs() << "Blacklisted edges and edges in constraint graph:\n";
             for (auto& tup: consCG->getBlackListEdges()) {
                 NodeID src = std::get<0>(tup);
                 NodeID dst = std::get<1>(tup);
-                llvm::outs() << "blacklist edge details: " << src << " : " << dst << "\n";
+                llvm::errs() << "blacklist edge details: " << src << " : " << dst << "\n";
                 if (consCG->hasConstraintNode(src) && consCG->hasConstraintNode(dst)) {
                     ConstraintNode* srcNode = consCG->getConstraintNode(src);
                     ConstraintNode* dstNode = consCG->getConstraintNode(dst);
-                    llvm::outs() << "constraint node found\n";
+                    llvm::errs() << "constraint node found\n";
                     if (consCG->hasEdge(srcNode, dstNode, ConstraintEdge::Copy)) {
-                        llvm::outs() << "----> blacklisted edge " << src << " " << dst << " reappeared!!!\n";
+                        llvm::errs() << "----> blacklisted edge " << src << " " << dst << " reappeared!!!\n";
                     }
                 }
             }
@@ -146,7 +146,7 @@ void AndersenBase::analyze()
         // Analysis is finished, reset the alarm if we set it.
         SVFUtil::stopAnalysisLimitTimer(limitTimerSet);
 
-        DBOUT(DGENERAL, outs() << SVFUtil::pasMsg("Finish Solving Constraints\n"));
+        DBOUT(DGENERAL, errs() << SVFUtil::pasMsg("Finish Solving Constraints\n"));
 
         // Finalize the analysis
         finalize();
@@ -431,8 +431,8 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                 if (!isFieldInsensitive(o))
                 {
                     PAGNode* ptdNode = pag->getPAGNode(o);
-                    //outs() << "Setting object " << o << " field-insensitive for vargep\n";
-                    //outs() << *ptdNode << "\n";
+                    //errs() << "Setting object " << o << " field-insensitive for vargep\n";
+                    //errs() << *ptdNode << "\n";
                     setObjFieldInsensitive(o);
                     consCG->addNodeToBeCollapsed(consCG->getBaseObjNode(o));
                 }
@@ -496,9 +496,9 @@ inline void Andersen::collapseFields()
     {
         NodeID node = consCG->getNextCollapseNode();
         if (consCG->isStructTy(node)) {
-            llvm::outs() << "Collapsing struct type object\n";
+            llvm::errs() << "Collapsing struct type object\n";
         } else if (consCG->isArrayTy(node)) {
-            llvm::outs() << "Collapsing array type object\n";
+            llvm::errs() << "Collapsing array type object\n";
         }
         // collapseField() may change the points-to set of the nodes which have been processed
         // before, in this case, we may need to re-do the analysis.
@@ -546,7 +546,7 @@ bool Andersen::addInvariant(ConstraintEdge* edge) {
         }
 
         if (!ptdNode->hasValue()) {
-            llvm::outs() << "ptd doesn't have value\n";
+            llvm::errs() << "ptd doesn't have value\n";
             return false;
         }
         Value* ptdValue = const_cast<Value*>(ptdNode->getValue());
@@ -566,7 +566,7 @@ bool Andersen::addInvariant(ConstraintEdge* edge) {
                 return false;
         }
         if (!ptdNode->hasValue()) {
-            llvm::outs() << "ptd doesn't have value\n";
+            llvm::errs() << "ptd doesn't have value\n";
             return false;
         }
         Value* ptdValue = const_cast<Value*>(ptdNode->getValue());
@@ -587,7 +587,7 @@ void Andersen::addCycleInvariants(CycleID pwcID, PAG::PWCList* gepNodesInSCC) {
 }
 
 void Andersen::handlePointersAsPA(std::set<const llvm::Value*>* gepsInPWC) {
-    // TODO pick a vgep outside of a loop if possible
+    // TODO pick a vgep errside of a loop if possible
     for (const llvm::Value* gep: *gepsInPWC) {
         pag->addPtdForVarGep(gep, -1); 
         break;
@@ -612,7 +612,7 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
     bool isPWC = false;
     if (Options::InvariantPWC) {
         if (subNodes.count() > 5000) {
-            llvm::outs() << "Found large cycle\n";
+            llvm::errs() << "Found large cycle\n";
             //isPWC = true;
         } else {
             for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++) {
@@ -650,7 +650,7 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
         /*
         if (subNodes.count() > 1) {
             if (pagNode->hasValue()) {
-                llvm::outs() << "Node: " << *(pagNode->getValue()) << "\n";
+                llvm::errs() << "Node: " << *(pagNode->getValue()) << "\n";
             }
         }
         */
@@ -873,7 +873,7 @@ std::tuple<ConstraintEdge*, Instruction*, Value*> Andersen::pickCycleEdgeToBreak
         /*
         if (!Options::KaliBreakNullTypeEdges) {
             if (!srcTy || !dstTy) {
-                //llvm::outs() << "srcTy = null? " << srcTy << " dstTy = null? " << dstTy << "\n";
+                //llvm::errs() << "srcTy = null? " << srcTy << " dstTy = null? " << dstTy << "\n";
                 continue;
             }
         }
@@ -943,7 +943,7 @@ std::tuple<ConstraintEdge*, Instruction*, Value*> Andersen::pickCycleEdgeToBreak
                 assert(false && "What else?");
             }
 
-            //llvm::outs() << "Returning edge " << candidateEdge->getSrcID() << " : " << candidateEdge->getDstID() << "\n";
+            //llvm::errs() << "Returning edge " << candidateEdge->getSrcID() << " : " << candidateEdge->getDstID() << "\n";
             return std::make_tuple(candidateEdge, memInst, tgtValue);
 
         }
@@ -1031,7 +1031,7 @@ void Andersen::instrumentInvariant(Instruction* memoryInst, Value* target) {
     }
 
 
-    //llvm::outs() << "Target = " << *target << "\n";
+    //llvm::errs() << "Target = " << *target << "\n";
     // IN case of a load, the memory instruction does not need to be
     // instrumented any further
     LoadInst* ldPtrInst = nullptr;
@@ -1042,7 +1042,7 @@ void Andersen::instrumentInvariant(Instruction* memoryInst, Value* target) {
         Instruction* storePtrInst = SVFUtil::dyn_cast<Instruction>(ptr);
         assert(storePtrInst && "store pointer not inst?");
         IRBuilder builder1(storePtrInst->getNextNode());
-        // llvm::outs() << "Adding instrumentation after store inst: " << *storePtrInst << " in function: " << storePtrInst->getParent()->getParent()->getName() << "\n";
+        // llvm::errs() << "Adding instrumentation after store inst: " << *storePtrInst << " in function: " << storePtrInst->getParent()->getParent()->getName() << "\n";
         Type* loadTy = ptr->getType()->getPointerElementType();
         assert(loadTy && "Should be of pointer type");
         ldPtrInst = builder1.CreateLoad(loadTy, storePtrInst);
@@ -1128,7 +1128,7 @@ void Andersen::connectCaller2CalleeParams(CallSite cs, const SVFFunction* F, Nod
 {
     assert(F);
 
-    DBOUT(DAndersen, outs() << "connect parameters from indirect callsite " << *cs.getInstruction() << " to callee " << *F << "\n");
+    DBOUT(DAndersen, errs() << "connect parameters from indirect callsite " << *cs.getInstruction() << " to callee " << *F << "\n");
 
     CallBlockNode* callBlockNode = pag->getICFG()->getCallBlockNode(cs.getInstruction());
     RetBlockNode* retBlockNode = pag->getICFG()->getRetBlockNode(cs.getInstruction());
@@ -1153,7 +1153,7 @@ void Andersen::connectCaller2CalleeParams(CallSite cs, const SVFFunction* F, Nod
         }
         else
         {
-            DBOUT(DAndersen, outs() << "not a pointer ignored\n");
+            DBOUT(DAndersen, errs() << "not a pointer ignored\n");
         }
     }
 
@@ -1164,7 +1164,7 @@ void Andersen::connectCaller2CalleeParams(CallSite cs, const SVFFunction* F, Nod
         const PAG::PAGNodeList& csArgList = pag->getCallSiteArgsList(callBlockNode);
         const PAG::PAGNodeList& funArgList = pag->getFunArgsList(F);
         //Go through the fixed parameters.
-        DBOUT(DPAGBuild, outs() << "      args:");
+        DBOUT(DPAGBuild, errs() << "      args:");
         PAG::PAGNodeList::const_iterator funArgIt = funArgList.begin(), funArgEit = funArgList.end();
         PAG::PAGNodeList::const_iterator csArgIt  = csArgList.begin(), csArgEit = csArgList.end();
         for (; funArgIt != funArgEit; ++csArgIt, ++funArgIt)
@@ -1172,7 +1172,7 @@ void Andersen::connectCaller2CalleeParams(CallSite cs, const SVFFunction* F, Nod
             //Some programs (e.g. Linux kernel) leave unneeded parameters empty.
             if (csArgIt  == csArgEit)
             {
-                DBOUT(DAndersen, outs() << " !! not enough args\n");
+                DBOUT(DAndersen, errs() << " !! not enough args\n");
                 break;
             }
             const PAGNode *cs_arg = *csArgIt ;
@@ -1180,7 +1180,7 @@ void Andersen::connectCaller2CalleeParams(CallSite cs, const SVFFunction* F, Nod
 
             if (cs_arg->isPointer() && fun_arg->isPointer())
             {
-                DBOUT(DAndersen, outs() << "process actual parm  " << cs_arg->toString() << " \n");
+                DBOUT(DAndersen, errs() << "process actual parm  " << cs_arg->toString() << " \n");
                 NodeID srcAA = sccRepNode(cs_arg->getId());
                 NodeID dstFA = sccRepNode(fun_arg->getId());
                 if(addCopyEdge(srcAA, dstFA))
@@ -1194,7 +1194,7 @@ void Andersen::connectCaller2CalleeParams(CallSite cs, const SVFFunction* F, Nod
         if (F->isVarArg())
         {
             NodeID vaF = sccRepNode(pag->getVarargNode(F));
-            DBOUT(DPAGBuild, outs() << "\n      varargs:");
+            DBOUT(DPAGBuild, errs() << "\n      varargs:");
             for (; csArgIt != csArgEit; ++csArgIt)
             {
                 const PAGNode *cs_arg = *csArgIt;
@@ -1248,10 +1248,10 @@ bool Andersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId, std::vector<Constra
 void Andersen::mergeNodeToRep(NodeID nodeId,NodeID newRepId, std::vector<ConstraintEdge*>& criticalGepEdges)
 {
 
-    //llvm::outs() << "Merging node: " << nodeId << " to newRepId " << newRepId << "\n";
+    //llvm::errs() << "Merging node: " << nodeId << " to newRepId " << newRepId << "\n";
     ConstraintNode* node = consCG->getConstraintNode(nodeId);
     bool gepInsideScc = mergeSrcToTgt(nodeId,newRepId, criticalGepEdges);
-    //llvm::outs() << "Found critical Gep inside SCC\n";
+    //llvm::errs() << "Found critical Gep inside SCC\n";
     /// We do this in mergeSccNodes
     /// 1. if find gep edges inside SCC cycle, the rep node will become a PWC node and
     /// its pts should be collapsed later.
@@ -1296,15 +1296,15 @@ void Andersen::dumpTopLevelPtsTo()
         if (getPAG()->isValidTopLevelPtr(node))
         {
             const PointsTo& pts = this->getPts(node->getId());
-            outs() << "\nNodeID " << node->getId() << " ";
+            errs() << "\nNodeID " << node->getId() << " ";
 
             if (pts.empty())
             {
-                outs() << "\t\tPointsTo: {empty}\n\n";
+                errs() << "\t\tPointsTo: {empty}\n\n";
             }
             else
             {
-                outs() << "\t\tPointsTo: { ";
+                errs() << "\t\tPointsTo: { ";
 
                 multiset<Size_t> line;
                 for (PointsTo::iterator it = pts.begin(), eit = pts.end();
@@ -1313,11 +1313,11 @@ void Andersen::dumpTopLevelPtsTo()
                     line.insert(*it);
                 }
                 for (multiset<Size_t>::const_iterator it = line.begin(); it != line.end(); ++it)
-                    outs() << *it << " ";
-                outs() << "}\n\n";
+                    errs() << *it << " ";
+                errs() << "}\n\n";
             }
         }
     }
 
-    outs().flush();
+    errs().flush();
 }
