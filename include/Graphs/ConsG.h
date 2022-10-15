@@ -331,8 +331,11 @@ public:
         return pag->getBaseObjNode(id);
     }
 
+<<<<<<< HEAD
     bool hasArrayTyAnnotation(NodeID);
 
+=======
+>>>>>>> 59f87fc513db41d352ae889bf436e8ba82b17697
     bool hasStructTyAnnotation(NodeID);
 
     inline bool isStructTy(NodeID id) {
