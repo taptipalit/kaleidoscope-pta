@@ -125,8 +125,8 @@ Debloater::runOnModule (Module & module) {
         }
     }
 
-    llvm::errs() << "Address taken functions: " << atFunctions << "\n";
-    llvm::errs() << "Total functions: " << totalFunctions << "\n";
+    llvm::outs() << "Address taken functions: " << atFunctions << "\n";
+    llvm::outs() << "Total functions: " << totalFunctions << "\n";
     /*
     buildCallGraph(module);
     for (GlobalVariable& gvar: module.getGlobalList()) {
@@ -165,10 +165,10 @@ Debloater::runOnModule (Module & module) {
         for (auto& it2: it.second) {
             int index = it2.first;
             Function* func = it2.second;
-        //    llvm::errs() << "Debloating candidate: " << func->getName() << "\n";
+        //    llvm::outs() << "Debloating candidate: " << func->getName() << "\n";
             if (std::find(indicesAccessed.begin(), indicesAccessed.end(),
                         index) == indicesAccessed.end()) {
-         //       llvm::errs() << "Can debloat\n";
+         //       llvm::outs() << "Can debloat\n";
             }
         }
     }

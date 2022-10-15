@@ -174,7 +174,7 @@ void InvariantHandler::handlePWCInvariants() {
                 /*
                 const BasicBlock* bb = gep->getParent();
                 if (!loopInfo->getLoopFor(bb)) {
-                    llvm::errs() << "found gep outside loop\n";
+                    llvm::outs() << "found gep outside loop\n";
                     nonLoopGep = const_cast<GetElementPtrInst*>(gep);
                     break;
                 }
@@ -184,7 +184,7 @@ void InvariantHandler::handlePWCInvariants() {
         nonLoopGep = geps[0];
         /*
         if (!nonLoopGep) {
-            llvm::errs() << "Did not find gep outside loop\n";
+            llvm::outs() << "Did not find gep outside loop\n";
             nonLoopGep = geps[0];
         }
         */

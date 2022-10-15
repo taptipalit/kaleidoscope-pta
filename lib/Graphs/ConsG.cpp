@@ -200,14 +200,14 @@ AddrCGEdge* ConstraintGraph::addAddrCGEdge(NodeID src, NodeID dst)
  */
 CopyCGEdge* ConstraintGraph::addCopyCGEdge(NodeID src, NodeID dst)
 {
-//    llvm::errs() << "src = " << src << " dst = " << dst << "\n";
+//    llvm::outs() << "src = " << src << " dst = " << dst << "\n";
     // Did we blacklist this edge? 
     if (blackListEdges.find(std::make_tuple(src, dst)) != 
             blackListEdges.end()) {
         return nullptr;
     }
 
-    //llvm::errs() << "Adding copy edge: " << src << " --> " << dst << "\n";
+    //llvm::outs() << "Adding copy edge: " << src << " --> " << dst << "\n";
 
     ConstraintNode* srcNode = getConstraintNode(src);
     ConstraintNode* dstNode = getConstraintNode(dst);
@@ -265,9 +265,7 @@ VariantGepCGEdge* ConstraintGraph::addVariantGepCGEdge(NodeID src, NodeID dst, b
  */
 LoadCGEdge* ConstraintGraph::addLoadCGEdge(NodeID src, NodeID dst)
 {
-    if (src == 224119 && dst == 74467) {
-        llvm::errs() << "break!\n";
-    }
+
     ConstraintNode* srcNode = getConstraintNode(src);
     ConstraintNode* dstNode = getConstraintNode(dst);
     if(hasEdge(srcNode,dstNode,ConstraintEdge::Load))
@@ -662,6 +660,28 @@ void ConstraintGraph::print()
     outs()
             << "--------------------------------------------------------------\n";
 
+}
+
+bool ConstraintGraph::hasStructTyAnnotation(NodeID o) {
+    PAGNode* objNode = pag->getPAGNode(o);
+    if (structIndHeapCalls.test(o)) return true; // for objects allocated at indirect callsites
+    if (isStructTy(o)) return true; // for globals and stacks
+
+    // For heap calls
+    if (objNode->hasValue()) {
+        const Value* objVal = objNode->getValue();
+        if (const CallInst* heapCall = SVFUtil::dyn_cast<CallInst>(objVal)) {
+            if (heapCall->hasMetadata("annotation")) {
+                MDNode* mdNode = heapCall->getMetadata("annotation");
+                MDString* tyAnnotStr = (MDString*)mdNode->getOperand(0).get();
+                if (tyAnnotStr->getString() == "StructType") {
+                    return true;
+                }
+            }
+        }
+
+    } 
+    return false;
 }
 
 /*!

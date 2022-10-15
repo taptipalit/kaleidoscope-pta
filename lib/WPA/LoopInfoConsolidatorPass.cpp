@@ -3,7 +3,7 @@
 using namespace llvm;
 
 bool LoopInfoConsolidatorPass::runOnModule(Module& M) {
-	errs() << "I saw a module called " << M.getName() << "!\n";
+	outs() << "I saw a module called " << M.getName() << "!\n";
 	
     for (Function& func: M.getFunctionList()) {
         if (func.isDeclaration()) {
@@ -19,7 +19,7 @@ bool LoopInfoConsolidatorPass::runOnModule(Module& M) {
     }
     
     /*
-    errs() << "loop bbs:\n";
+    outs() << "loop bbs:\n";
     for (BasicBlock* bb: bbInLoops) {
         bb->dump();
     }

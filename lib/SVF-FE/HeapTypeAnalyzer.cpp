@@ -196,7 +196,7 @@ bool HeapTypeAnalyzer::deepClone(llvm::Function* func, llvm::Function*& topClone
         llvm::ValueToValueMapTy::iterator it = VMap.find(mallocCalls[0]);
         if (it != VMap.end()) {
             Value* clonedMallocValue = VMap[mallocCalls[0]];
-            //llvm::errs() << *clonedMallocValue << "\n";
+            //llvm::outs() << *clonedMallocValue << "\n";
             Instruction* clonedMallocInst = SVFUtil::dyn_cast<Instruction>(clonedMallocValue);
             clonedMallocInst->addAnnotationMetadata("ArrayType");
             // CallInst* clonedMalloc = SVFUtil::dyn_cast<CallInst>(&(VMap[mallocCalls[0]]));
@@ -217,7 +217,7 @@ bool HeapTypeAnalyzer::deepClone(llvm::Function* func, llvm::Function*& topClone
     workList.push_back(topLevelClone);
 
     for (auto it: cloneMap) {
-        llvm::errs() << "Function " << it.first->getName() << " cloned to " << it.second->getName() << "\n";
+        llvm::outs() << "Function " << it.first->getName() << " cloned to " << it.second->getName() << "\n";
     }
 
     while (!workList.empty()) {
@@ -231,7 +231,7 @@ bool HeapTypeAnalyzer::deepClone(llvm::Function* func, llvm::Function*& topClone
                 if (std::find(cloneFuncs.begin(), cloneFuncs.end(), calledFunc) != cloneFuncs.end()) {
                     Function* clonedFunction = cloneMap[calledFunc];
                     CI->setCalledFunction(clonedFunction);
-                    llvm::errs() << "Updated CI " << *CI << "\n";
+                    llvm::outs() << "Updated CI " << *CI << "\n";
                 }
             }
         }
@@ -286,7 +286,7 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypes(llvm::Module& module) {
                             if (std::find(memAllocFns.begin(), memAllocFns.end(), calledFunc->getName()) != memAllocFns.end() 
                                     && std::find(heapCalls.begin(), heapCalls.end(), F) == heapCalls.end() 
                                     /* if the caller is a heap allocator we don't care*/) {
-                                llvm::errs() << "No type annotation for heap call: " << *callInst << " in function : " << callInst->getFunction()->getName() << " treating as scalar\n";
+                                llvm::outs() << "No type annotation for heap call: " << *callInst << " in function : " << callInst->getFunction()->getName() << " treating as scalar\n";
                                 callInst->addAnnotationMetadata("IntegerType");
                                 if (callInst->getCalledFunction() == malloc) {
                                     callInst->setCalledFunction(scalarMalloc);
@@ -331,10 +331,10 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypes(llvm::Module& module) {
                         if (callInst->getCalledFunction()->isIntrinsic()) {
                             continue;
                         } else {
-                            llvm::errs() << "Call to function: " << callInst->getCalledFunction()->getName() << " has type info but not a heap allocation\n";
+                            llvm::outs() << "Call to function: " << callInst->getCalledFunction()->getName() << " has type info but not a heap allocation\n";
                         }
                     } else {
-                        llvm::errs() << "Instruction: " << " in function: " << inst->getFunction()->getName() << " : " << *inst << " has type info but not a heap allocation\n";
+                        llvm::outs() << "Instruction: " << " in function: " << inst->getFunction()->getName() << " : " << *inst << " has type info but not a heap allocation\n";
                     }
                 }
                 */
@@ -435,9 +435,9 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypesWithCloning(llvm::Module& module
         Type* arrTy = nullptr;
         Type* structTy = nullptr;
         
-        llvm::errs() << "Potential malloc wrapper: " << potentialMallocWrapper->getName() << "\n";
+        llvm::outs() << "Potential malloc wrapper: " << potentialMallocWrapper->getName() << "\n";
         for (Type* type: types) {
-            llvm::errs() << "\t" << *type << "\n";
+            llvm::outs() << "\t" << *type << "\n";
             if (SVFUtil::isa<ArrayType>(type)) {
                 arrTy = SVFUtil::dyn_cast<ArrayType>(type);
             } else if (SVFUtil::isa<StructType>(type)) {
@@ -474,7 +474,7 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypesWithCloning(llvm::Module& module
         } else if (SVFUtil::isa<IntegerType>(type)) {
             cInst->addAnnotationMetadata("IntegerType");
         }
-        llvm::errs() << "Call inst in function: " << cInst->getFunction()->getName() << " takes type " << *type << "\n";
+        llvm::outs() << "Call inst in function: " << cInst->getFunction()->getName() << " takes type " << *type << "\n";
     }
 
 }
@@ -520,11 +520,11 @@ void HeapTypeAnalyzer::buildCallGraphs (Module & module) {
 
     for (auto it: callerDistMap) {
         int callerCount = it.first;
-        llvm::errs() << callerCount << " callers: ";
+        llvm::outs() << callerCount << " callers: ";
         for (Function* func: it.second) {
-            llvm::errs() << func->getName() << ", ";
+            llvm::outs() << func->getName() << ", ";
         }
-        llvm::errs() << "\n";
+        llvm::outs() << "\n";
     }
     
 }
@@ -594,7 +594,7 @@ void HeapTypeAnalyzer::findHeapContexts (Module& M) {
     }
 
     for (Function* f: oneLevelFuncs) {
-        llvm::errs() << "One Level Function name: " << f->getName() << "\n";
+        llvm::outs() << "One Level Function name: " << f->getName() << "\n";
         memAllocFns.push_back(f->getName().str());
     }
 
@@ -608,7 +608,7 @@ void HeapTypeAnalyzer::findHeapContexts (Module& M) {
     }
 
     for (Function* f: twoLevelFuncs) {
-        llvm::errs() << "Two Level Function name: " << f->getName() << "\n";
+        llvm::outs() << "Two Level Function name: " << f->getName() << "\n";
         memAllocFns.push_back(f->getName().str());
     }
 
@@ -636,7 +636,7 @@ void HeapTypeAnalyzer::findHeapContexts (Module& M) {
     }
 
     for (Function* f: heapCalls) {
-        llvm::errs() << " Heap call function: " << f->getName() << "\n";
+        llvm::outs() << " Heap call function: " << f->getName() << "\n";
         memAllocFns.push_back(f->getName().str());
     }
 }
@@ -647,6 +647,10 @@ void HeapTypeAnalyzer::initHeapSeparatorFunctions(Module& module) {
     scalarMalloc = SVFUtil::dyn_cast<Function>(module.getOrInsertFunction("scalarMalloc", mallocFnTy).getCallee());
     structMalloc = SVFUtil::dyn_cast<Function>(module.getOrInsertFunction("structMalloc", mallocFnTy).getCallee());
     arrayMalloc = SVFUtil::dyn_cast<Function>(module.getOrInsertFunction("arrayMalloc", mallocFnTy).getCallee());
+
+    heapCalls.push_back(scalarMalloc);
+    heapCalls.push_back(structMalloc);
+    heapCalls.push_back(arrayMalloc);
 }
 
 bool
