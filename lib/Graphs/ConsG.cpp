@@ -662,7 +662,6 @@ void ConstraintGraph::print()
 
 }
 
-<<<<<<< HEAD
 bool ConstraintGraph::hasArrayTyAnnotation(NodeID o) {
     PAGNode* objNode = pag->getPAGNode(o);
     if (arrayIndHeapCalls.test(o)) return true; // for objects allocated at indirect callsites
@@ -684,6 +683,7 @@ bool ConstraintGraph::hasArrayTyAnnotation(NodeID o) {
     } 
     return false;
 }
+
 bool ConstraintGraph::hasStructTyAnnotation(NodeID o) {
     PAGNode* objNode = pag->getPAGNode(o);
     if (structIndHeapCalls.test(o)) return true; // for objects allocated at indirect callsites

@@ -26,13 +26,8 @@ then
 fi
 
 
-<<<<<<< HEAD
 /home/tpalit/svf-kernel/Debug-build/bin/wpa -invariant-pwc=true \
 -invariant-vgep=true -short-circuit=false \
-=======
-/home/tpalit/svf-kernel/Debug-build/bin/wpa -invariant-pwc=false \
--invariant-vgep=true -print-pag  -dump-pag -short-circuit=false -print-all-pts \
->>>>>>> 59f87fc513db41d352ae889bf436e8ba82b17697
 -ptd=persistent \
 -ander $file_bc #aeSearchNearestTimer,
 #-print-all-pts -debug-funcs=initServer 
