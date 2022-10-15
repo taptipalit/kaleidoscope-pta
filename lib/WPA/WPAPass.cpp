@@ -141,7 +141,7 @@ void WPAPass::collectCFI(SVFModule* svfModule, Module& M, bool woInv) {
     linkVariadics(svfModule, pag);
     for (Module::iterator MIterator = M.begin(); MIterator != M.end(); MIterator++) {
         if (Function* F = SVFUtil::dyn_cast<Function>(&*MIterator)) {
-            llvm::errs() << "Function: " << F->getName() << "\n";
+            llvm::outs() << "Function: " << F->getName() << "\n";
             for (inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F); I != E; ++I) {
                 if (CallInst* callInst = SVFUtil::dyn_cast<CallInst>(&*I)) {
                     if (callInst->isIndirectCall()) {
@@ -149,7 +149,7 @@ void WPAPass::collectCFI(SVFModule* svfModule, Module& M, bool woInv) {
                         const PointsTo& pts = _pta->getPts(callNodePtr);
                         bool hasTarget = false;
 
-                        llvm::errs() << "For a callsite in " << F->getName() << " : \n";
+                        llvm::outs() << "For a callsite in " << F->getName() << " : \n";
                         for (PointsTo::iterator piter = pts.begin(), epiter = pts.end(); piter != epiter; ++piter) {
                             NodeID ptd = *piter;
                             if (pag->hasPAGNode(ptd)) {
@@ -158,7 +158,7 @@ void WPAPass::collectCFI(SVFModule* svfModule, Module& M, bool woInv) {
                                     if (const Function* tgtFunction = SVFUtil::dyn_cast<Function>(tgtNode->getValue())) {
                                         hasTarget = true;
                                         (*indCallMap)[callInst].insert(const_cast<Function*>(tgtFunction));
-                                        llvm::errs() << "    calls " << tgtFunction->getName() << "\n";
+                                        llvm::outs() << "    calls " << tgtFunction->getName() << "\n";
                                         //funcIndCallMap[F][callInst].push_back(const_cast<Function*>(tgtFunction));
                                     }
                                 }
@@ -167,14 +167,14 @@ void WPAPass::collectCFI(SVFModule* svfModule, Module& M, bool woInv) {
                         for (Function* function: fixupSet) {
                             if (!matchFunctionType(function, callInst)) continue;
                             (*indCallMap)[callInst].insert(function);
-                            llvm::errs() << "    calls " << function->getName() << "\n";
+                            llvm::outs() << "    calls " << function->getName() << "\n";
                             hasTarget = true;
                             if (std::find(indCallProhibited->begin(), indCallProhibited->end(), callInst) != indCallProhibited->end()) {
                                 indCallProhibited->erase(callInst);
                             }
                         }
                         if (!hasTarget) {
-                            llvm::errs() << "   in " << F->getName() << " NO TARGET FOUND\n";
+                            llvm::outs() << "   in " << F->getName() << " NO TARGET FOUND\n";
                             (*indCallProhibited).insert(callInst);
                         }
                     }
@@ -193,17 +193,17 @@ void WPAPass::collectCFI(SVFModule* svfModule, Module& M, bool woInv) {
     }
 
   
-    llvm::errs() << "EC Size:\t Ind. Call-sites\n";
+    llvm::outs() << "EC Size:\t Ind. Call-sites\n";
     int totalTgts = 0;
     int totalIndCallSites = 0;
     for (auto it: (*histogram)) {
-        llvm::errs() << it.first << " : " << it.second << "\n";
+        llvm::outs() << it.first << " : " << it.second << "\n";
         totalIndCallSites += it.second;
         totalTgts += it.first*it.second;
     }
-    llvm::errs() << "Total Ind. Call-sites: " << totalIndCallSites << "\n";
-    llvm::errs() << "Total Tgts: " << totalTgts << "\n";
-    std::cerr << "Average CFI: " << std::fixed << (float)totalTgts / (float)totalIndCallSites << "\n";
+    llvm::outs() << "Total Ind. Call-sites: " << totalIndCallSites << "\n";
+    llvm::outs() << "Total Tgts: " << totalTgts << "\n";
+    llvm::outs() << "Average CFI: " << std::to_string((float)totalTgts / (float)totalIndCallSites) << "\n";
 }
 
 void WPAPass::instrumentCFICheck(llvm::CallInst* indCall) {
@@ -299,14 +299,14 @@ void WPAPass::deriveHeapAllocationTypes(llvm::Module& module) {
     for (auto pair: callInstCastToStructs) {
         CallInst* cInst = pair.first;
         StructType* stTy = pair.second;
-        llvm::errs() << "CallInst in function: " << cInst->getFunction()->getName() << " is cast to struct: " << *stTy << "\n";
+        llvm::outs() << "CallInst in function: " << cInst->getFunction()->getName() << " is cast to struct: " << *stTy << "\n";
         
     }
 
     for (auto pair: callInstCastToArrays) {
         CallInst* cInst = pair.first;
         ArrayType* arrTy = pair.second;
-        llvm::errs() << "CallInst in function: " << cInst->getFunction()->getName() << " is cast to array: " << *arrTy << "\n";
+        llvm::outs() << "CallInst in function: " << cInst->getFunction()->getName() << " is cast to array: " << *arrTy << "\n";
         
     }
 
@@ -483,7 +483,7 @@ void WPAPass::linkVariadics(SVFModule* svfModule, PAG* pag) {
     }
     
     for (Function* fixup: fixupSet) {
-        llvm::errs() << "Fix up with function: " << fixup->getName() << "\n";
+        llvm::outs() << "Fix up with function: " << fixup->getName() << "\n";
     }
     /*
     for (auto it: wInvIndCallMap) {
@@ -532,7 +532,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 	/// Build PAG
 	PAGBuilder builder;
 
-    llvm::errs() << "Running with invariants turned on\n";
+    llvm::outs() << "Running with invariants turned on\n";
     // Accept the command line inputs here
     /*
     Options::InvariantVGEP = true;

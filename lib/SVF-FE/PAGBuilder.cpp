@@ -641,7 +641,7 @@ void PAGBuilder::visitGetElementPtrInst(GetElementPtrInst &inst)
 
     }/* else {
         NormalGepPE* normalGep = SVFUtil::dyn_cast<NormalGepPE>(gepEdge);
-        llvm::errs() << "Normal Gep: " << inst << " ls offset: " << normalGep->getOffset() << "\n";
+        llvm::outs() << "Normal Gep: " << inst << " ls offset: " << normalGep->getOffset() << "\n";
 
     }*/
 }

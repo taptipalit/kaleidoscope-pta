@@ -18,7 +18,7 @@ namespace SVF
 
     llvm::cl::opt<bool> Options::DumpCFIStat(
             "dump-cfi-stat",
-            llvm::cl::init(true),
+            llvm::cl::init(false),
             llvm::cl::desc("Dump CFI Stat"));
 
     llvm::cl::opt<bool> Options::InvariantVGEP(

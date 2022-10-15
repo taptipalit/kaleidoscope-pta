@@ -96,6 +96,7 @@ void ObjTypeInfo::analyzeGlobalStackObjType(const Value* val)
  */
 void ObjTypeInfo::analyzeHeapStaticObjType(const Value* heapValue)
 {
+    /*
     if (Options::InvariantVGEP) {
         // TODO: Heap and static objects are considered as pointers right now.
         //       Refine this function to get more details about heap and static objects.
@@ -104,9 +105,9 @@ void ObjTypeInfo::analyzeHeapStaticObjType(const Value* heapValue)
                 MDNode* mdNode = heapCall->getMetadata("annotation");
                 MDString* tyAnnotStr = (MDString*)mdNode->getOperand(0).get();
                 if (tyAnnotStr->getString() == "ArrayType") {
-                    setFlag(CONST_ARRAY_OBJ);
+                    setFlag(VAR_ARRAY_OBJ);
                 } else if (tyAnnotStr->getString() == "StructType") {
-                    setFlag(CONST_STRUCT_OBJ);
+                    setFlag(VAR_STRUCT_OBJ);
                 }
             } else {
                 setFlag(HASPTR_OBJ);
@@ -115,8 +116,9 @@ void ObjTypeInfo::analyzeHeapStaticObjType(const Value* heapValue)
             setFlag(HASPTR_OBJ);
         }
     } else {
-        setFlag(HASPTR_OBJ);
-    }
+    */
+    setFlag(HASPTR_OBJ);
+    //}
 }
 
 /*!

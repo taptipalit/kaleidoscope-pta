@@ -331,25 +331,16 @@ public:
         return pag->getBaseObjNode(id);
     }
 
+    bool hasStructTyAnnotation(NodeID);
+
     inline bool isStructTy(NodeID id) {
-        PAGNode* objNode = pag->getPAGNode(id);
-        // Heap calls via indirect callsites need this
-        if (!SVFUtil::isa<DummyObjPN>(objNode)) {
-            const MemObj* mem = pag->getBaseObj(id);
-            return mem->isStruct();
-        } else {
-            return structIndHeapCalls.test(id);
-        }
+        const MemObj* mem = pag->getBaseObj(id);
+        return mem->isStruct();
     }
 
     inline bool isArrayTy(NodeID id) {
-        PAGNode* objNode = pag->getPAGNode(id);
-        if (!SVFUtil::isa<DummyObjPN>(objNode)) {
-            const MemObj* mem = pag->getBaseObj(id);
-            return mem->isArray();
-        } else {
-            return arrayIndHeapCalls.test(id);
-        }
+        const MemObj* mem = pag->getBaseObj(id);
+        return mem->isArray();
     }
 
     NodeBS structIndHeapCalls;
