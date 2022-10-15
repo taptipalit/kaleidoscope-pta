@@ -376,11 +376,16 @@ bool Andersen::processGep(NodeID, const GepCGEdge* edge)
 }
 
 bool Andersen::canApplyPAInvariant(VariantGepCGEdge* vgepCGEdge, NodeID obj) {
+    assert(false && "unimplemented");
+    return false;
+    /*
+     * Revisit this in light of changed memory model.
     if (vgepCGEdge->isStructTy() && consCG->isArrayTy(obj)) {
         return false;
     } else {
         return true;
     }
+    */
 }
 /*!
  * Compute points-to for gep edges

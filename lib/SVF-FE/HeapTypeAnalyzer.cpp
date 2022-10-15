@@ -127,120 +127,6 @@ CallInst* HeapTypeAnalyzer::findCInstFA(Value* val) {
     return nullptr;
 }
 
-/**
- * func: The function that must be deep cloned
- * mallocFunctions: The list of malloc wrappers that our system is aware of
- * (malloc, calloc)
- * cloneHeapTy: What type the deepest malloc clone should be set to
- * origHeapTy: What type the deepest malloc of the original should be set to
- */
-/*
-bool HeapTypeAnalyzer::deepClone(llvm::Function* func, llvm::Function*& topClonedFunc, std::vector<std::string>& mallocFunctions, 
-        Type* cloneHeapTy, Type* origHeapTy) {
-    std::vector<Function*> workList;
-    std::vector<Function*> visited;
-
-    std::vector<Function*> cloneFuncs; // The list of functions to clone
-    cloneFuncs.push_back(func);
-    std::vector<CallInst*> mallocCalls; // the list of calls to malloc. Should be 1
-
-    workList.push_back(func);
-    visited.push_back(func);
-    while (!workList.empty()) {
-        Function* F = workList.back();
-        workList.pop_back();
-        for (llvm::inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F); I != E; ++I) {
-            if (CallInst* CI = SVFUtil::dyn_cast<CallInst>(&*I)) {
-                Function* calledFunc = CI->getCalledFunction();
-                if (!calledFunc) {
-                    // We can't handle indirect calls
-                    return false;
-                }
-                if (std::find(mallocFunctions.begin(), mallocFunctions.end(), calledFunc->getName())
-                        != mallocFunctions.end()) {
-                    mallocCalls.push_back(CI);
-                } else {
-                    // If it returns a pointer
-                    PointerType* retPtrTy = SVFUtil::dyn_cast<PointerType>(calledFunc->getReturnType());
-                    if (!retPtrTy) {
-                        // We don't need to clone this function as it doesn't
-                        // return a pointer.
-                        //
-                        // We only need to clone the path that returns the
-                        // heap object created on the heap
-                        continue;
-                    }
-                    if (std::find(visited.begin(), visited.end(), calledFunc) == visited.end()) {
-                        workList.push_back(calledFunc);
-                        visited.push_back(calledFunc);
-                        cloneFuncs.push_back(calledFunc);
-                    }
-                }
-            }
-        }
-    }
-
-    if (mallocCalls.size() != 1) {
-        return false;
-    }
-
-    std::map<Function*, Function*> cloneMap;
-
-    // Fix the cloned Functions
-    // We will handle the callers of the clone later
-    for (Function* toCloneFunc: cloneFuncs) {
-        llvm::ValueToValueMapTy VMap;
-        Function* clonedFunc = llvm::CloneFunction(toCloneFunc, VMap);
-        // If the VMap contains the call to malloc, then we can set it right
-        // away
-        llvm::ValueToValueMapTy::iterator it = VMap.find(mallocCalls[0]);
-        if (it != VMap.end()) {
-            Value* clonedMallocValue = VMap[mallocCalls[0]];
-            //llvm::outs() << *clonedMallocValue << "\n";
-            Instruction* clonedMallocInst = SVFUtil::dyn_cast<Instruction>(clonedMallocValue);
-            clonedMallocInst->addAnnotationMetadata("ArrayType");
-            // CallInst* clonedMalloc = SVFUtil::dyn_cast<CallInst>(&(VMap[mallocCalls[0]]));
-            // SVFUtil::dyn_cast<CallInst*>(it->second());
-        }
-        cloneMap[toCloneFunc] = clonedFunc;
-    }
-
-    mallocCalls[0]->addAnnotationMetadata("StructType");
-    // Okay, now go over all the original copies of these functions
-    // If they had a call to _another_ function that was also cloned, replace
-    // them with the code. 
-    //
-
-    Function* topLevelClone = cloneMap[func];
-
-    workList.clear();
-    workList.push_back(topLevelClone);
-
-    for (auto it: cloneMap) {
-        llvm::outs() << "Function " << it.first->getName() << " cloned to " << it.second->getName() << "\n";
-    }
-
-    while (!workList.empty()) {
-        Function* F = workList.back();
-        workList.pop_back();
-        for (llvm::inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F); I != E; ++I) {
-            if (CallInst* CI = SVFUtil::dyn_cast<CallInst>(&*I)) {
-                Function* calledFunc = CI->getCalledFunction();
-                assert(calledFunc && "We shouldn't have to reach here");
-                // If this was cloned
-                if (std::find(cloneFuncs.begin(), cloneFuncs.end(), calledFunc) != cloneFuncs.end()) {
-                    Function* clonedFunction = cloneMap[calledFunc];
-                    CI->setCalledFunction(clonedFunction);
-                    llvm::outs() << "Updated CI " << *CI << "\n";
-                }
-            }
-        }
-    }
-    topClonedFunc = cloneMap[func];
-    return true;
-}
-*/
-
 HeapTypeAnalyzer::HeapTy HeapTypeAnalyzer::getSizeOfTy(Module& module, LLVMContext& Ctx, MDNode* sizeOfTyName, MDNode* sizeOfTyArgNum, MDNode* mulFactor) {
     // Get the type
     MDString* typeNameStr = (MDString*)sizeOfTyName->getOperand(0).get();
@@ -298,28 +184,30 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypes(llvm::Module& module) {
                         continue;
                     }
 
-                    HeapTy ty = getSizeOfTy(module, Ctx, sizeOfTyName, sizeOfTyArgNum, mulFactor);
-                    switch(ty) {
-                        case ScalarTy:
-                            callInst->addAnnotationMetadata("IntegerType");
-                            if (callInst->getCalledFunction() == malloc) {
-                                callInst->setCalledFunction(scalarMalloc);
-                            }
-                            break;
-                        case StructTy:
-                            callInst->addAnnotationMetadata("StructType");
-                            if (callInst->getCalledFunction() == malloc) {
-                                callInst->setCalledFunction(structMalloc);
-                            }
-                            break;
-                        case ArrayTy:
-                            callInst->addAnnotationMetadata("ArrayType"); 
-                            if (callInst->getCalledFunction() == malloc) {
-                                callInst->setCalledFunction(arrayMalloc);
-                            }
-                            break;
-                        default:
-                            assert(false && "Shouldn't reach here");
+                    if (callInst->getCalledFunction()) {
+                        HeapTy ty = getSizeOfTy(module, Ctx, sizeOfTyName, sizeOfTyArgNum, mulFactor);
+                        switch(ty) {
+                            case ScalarTy:
+                                callInst->addAnnotationMetadata("IntegerType");
+                                if (callInst->getCalledFunction() == malloc) {
+                                    callInst->setCalledFunction(scalarMalloc);
+                                }
+                                break;
+                            case StructTy:
+                                callInst->addAnnotationMetadata("StructType");
+                                if (callInst->getCalledFunction() == malloc) {
+                                    callInst->setCalledFunction(structMalloc);
+                                }
+                                break;
+                            case ArrayTy:
+                                callInst->addAnnotationMetadata("ArrayType"); 
+                                if (callInst->getCalledFunction() == malloc) {
+                                    callInst->setCalledFunction(arrayMalloc);
+                                }
+                                break;
+                            default:
+                                assert(false && "Shouldn't reach here");
+                        }
                     }
                     handled = true;
                 }
@@ -643,14 +531,16 @@ void HeapTypeAnalyzer::findHeapContexts (Module& M) {
 
 void HeapTypeAnalyzer::initHeapSeparatorFunctions(Module& module) {
     malloc = module.getFunction("malloc");
-    FunctionType* mallocFnTy = malloc->getFunctionType();
-    scalarMalloc = SVFUtil::dyn_cast<Function>(module.getOrInsertFunction("scalarMalloc", mallocFnTy).getCallee());
-    structMalloc = SVFUtil::dyn_cast<Function>(module.getOrInsertFunction("structMalloc", mallocFnTy).getCallee());
-    arrayMalloc = SVFUtil::dyn_cast<Function>(module.getOrInsertFunction("arrayMalloc", mallocFnTy).getCallee());
+    if (malloc) {
+        FunctionType* mallocFnTy = malloc->getFunctionType();
+        scalarMalloc = SVFUtil::dyn_cast<Function>(module.getOrInsertFunction("scalarMalloc", mallocFnTy).getCallee());
+        structMalloc = SVFUtil::dyn_cast<Function>(module.getOrInsertFunction("structMalloc", mallocFnTy).getCallee());
+        arrayMalloc = SVFUtil::dyn_cast<Function>(module.getOrInsertFunction("arrayMalloc", mallocFnTy).getCallee());
 
-    heapCalls.push_back(scalarMalloc);
-    heapCalls.push_back(structMalloc);
-    heapCalls.push_back(arrayMalloc);
+        heapCalls.push_back(scalarMalloc);
+        heapCalls.push_back(structMalloc);
+        heapCalls.push_back(arrayMalloc);
+    }
 }
 
 bool
