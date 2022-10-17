@@ -140,6 +140,9 @@ void AndersenStat::constraintGraphStat()
     u32_t storemaxOut = 0;
 
 
+    NodeID copymaxOutNode = -1;
+    NodeID copymaxInNode = -1;
+    
     for (ConstraintGraph::ConstraintNodeIDToNodeMapTy::iterator nodeIt = consCG->begin(), nodeEit = consCG->end();
             nodeIt != nodeEit; nodeIt++)
     {
@@ -152,12 +155,16 @@ void AndersenStat::constraintGraphStat()
             objNodeNumber++;
 
         u32_t nCopyIn = nodeIt->second->getDirectInEdges().size();
-        if(nCopyIn > copymaxIn)
+        if(nCopyIn > copymaxIn) {
             copymaxIn = nCopyIn;
+            copymaxInNode = nodeIt->first;
+        }
         copytotalIn +=nCopyIn;
         u32_t nCopyOut = nodeIt->second->getDirectOutEdges().size();
-        if(nCopyOut > copymaxOut)
+        if(nCopyOut > copymaxOut) {
             copymaxOut = nCopyOut;
+            copymaxOutNode = nodeIt->first;
+        }
         copytotalOut +=nCopyOut;
         u32_t nLoadIn = nodeIt->second->getLoadInEdges().size();
         if(nLoadIn > loadmaxIn)
@@ -215,6 +222,32 @@ void AndersenStat::constraintGraphStat()
     timeStatMap["AvgIn/OutAddrEdge"] = addravgIn;
     timeStatMap["AvgIn/OutEdge"] = avgIn;
 
+    if (copymaxOutNode != -1) {
+        PAGNode* outNode = pta->getPAG()->getPAGNode(copymaxOutNode);
+        if (outNode->hasValue()) {
+            const Value* val = outNode->getValue();
+            if (const Instruction* inst = SVFUtil::dyn_cast<Instruction>(val)) {
+                llvm::errs() << "Copy max out value: " << *inst << " in " << inst->getParent()->getParent()->getName() << "\n";
+            } else {
+                llvm::errs() << "Copy max out value: " << *val << "\n";
+            }
+        } else {
+            llvm::errs() << "Dummy node of type: " << outNode->getNodeKind() << "\n";
+        }
+    }
+    if (copymaxInNode != -1) {
+        PAGNode* inNode = pta->getPAG()->getPAGNode(copymaxInNode);
+        if (inNode->hasValue()) {
+            const Value* val = inNode->getValue();
+            if (const Instruction* inst = SVFUtil::dyn_cast<Instruction>(val)) {
+                llvm::errs() << "Copy max in value: " << *inst << " in " << inst->getParent()->getParent()->getName() << "\n";
+            } else {
+                llvm::errs() << "Copy max in value: " << *val << "\n";
+            }
+        } else {
+            llvm::errs() << "Dummy node of type: " << inNode->getNodeKind() << "\n";
+        }
+    }
     PTAStat::printStat("Constraint Graph Stats");
 }
 /*!

@@ -86,7 +86,6 @@ void HeapTypeAnalyzer::removePoolAllocatorBody(Module& module) {
             if (std::find(L_A0_Fns.begin(), L_A0_Fns.end(), F->getName()) != L_A0_Fns.end()) {
                 F->deleteBody();
             }
-            /*
             if (F->getName().startswith("Curl_dyn")
                     || F->getName().startswith("Curl_str")
                     || F->getName().startswith("curl_str")
@@ -96,10 +95,18 @@ void HeapTypeAnalyzer::removePoolAllocatorBody(Module& module) {
                     || F->getName().startswith("curl_easy_getinfo")
                     || F->getName().startswith("curl_slist")
                     || F->getName().startswith("tool_setopt")
-                    || F->getName().startswith("curl_msnprintf")) {
+                    || F->getName().startswith("curl_msnprintf")
+                    || F->getName().startswith("log_error")
+                    || F->getName().startswith("buffer_append_string_len")
+                    || F->getName().startswith("buffer_eq_slen")
+                    || F->getName().startswith("buffer_copy_string_len")
+                    || F->getName().startswith("log_perror")
+                    || F->getName().startswith("buffer_")
+                    || F->getName().startswith("chunkqueue_append_mem")
+                    || F->getName().startswith("array_")
+                    ) {
                 F->deleteBody();
             }
-            */
         }
     }
 
@@ -548,8 +555,10 @@ HeapTypeAnalyzer::runOnModule (Module & module) {
 
     initHeapSeparatorFunctions(module);
     findHeapContexts(module);
-    handleVersions(module);
-//    removePoolAllocatorBody(module);
+    if (!module.getName().startswith("light")) {
+        handleVersions(module);
+    }
+    removePoolAllocatorBody(module);
     deriveHeapAllocationTypes(module);
     
     std::error_code EC;

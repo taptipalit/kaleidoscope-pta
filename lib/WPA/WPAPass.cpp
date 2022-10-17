@@ -138,7 +138,7 @@ void WPAPass::collectCFI(SVFModule* svfModule, Module& M, bool woInv) {
 
 
     PAG* pag = _pta->getPAG();
-    linkVariadics(svfModule, pag);
+    //linkVariadics(svfModule, pag);
     for (Module::iterator MIterator = M.begin(); MIterator != M.end(); MIterator++) {
         if (Function* F = SVFUtil::dyn_cast<Function>(&*MIterator)) {
             llvm::errs() << "Function: " << F->getName() << "\n";

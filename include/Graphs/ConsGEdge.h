@@ -303,6 +303,8 @@ private:
     void operator=(const NormalGepCGEdge &); ///< place holder
 
     LocationSet ls;	///< location set of the gep edge
+                    //
+    NodeBS generated;
 
 public:
     /// Methods for support type inquiry through isa, cast, and dyn_cast:
@@ -324,6 +326,14 @@ public:
         return edge->getEdgeKind() == NormalGep;
     }
     //@}
+
+    void setGenerated(NodeID n) {
+        generated.set(n);
+    }
+
+    bool isGenerated(NodeID n) const {
+        return generated.test(n);
+    }
 
     /// Constructor
     NormalGepCGEdge(ConstraintNode* s, ConstraintNode* d, const LocationSet& l, EdgeID id)

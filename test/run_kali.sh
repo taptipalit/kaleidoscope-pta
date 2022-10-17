@@ -28,8 +28,8 @@ fi
 
 /home/tpalit/svf-kernel/Debug-build/bin/wpa -invariant-pwc=true \
 -invariant-vgep=true -short-circuit=false \
--ptd=persistent -stat-limit=1 \
--ander $file_bc #aeSearchNearestTimer,
+-ptd=persistent -field-limit=50 -dump-cfi-stat -stat-limit=1 \
+-ander -print-all-pts $file_bc #aeSearchNearestTimer,
 #-print-all-pts -debug-funcs=initServer 
 
 if [ $? -ne 0 ]; then

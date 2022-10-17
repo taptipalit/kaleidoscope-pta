@@ -407,7 +407,7 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
             
             PAGNode* objNode = pag->getPAGNode(o);
             
-            if (Options::InvariantVGEP && canApplyPAInvariant(vgepCGEdge, o)) {
+            if (Options::InvariantVGEP /*&& canApplyPAInvariant(vgepCGEdge, o)*/) {
                 // First of all, we believe that variable indices
                 // when the type is a complex type, are most definitely accessing 
                 // an element in the array.
@@ -450,6 +450,10 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
         // base object is always returned.
         for (NodeID o : pts)
         {
+            if (normalGepEdge->isGenerated(o)) {
+                continue;
+                //llvm::errs() << "GEP cycle created for gep edge " << normalGepEdge->getEdgeID() << " with o = " << o << "\n";
+            }
             if (consCG->isBlkObjOrConstantObj(o))
             {
                 tmpDstPts.set(o);
@@ -459,6 +463,11 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
             if (!matchType(edge->getSrcID(), o, normalGepEdge)) continue;
 
             NodeID fieldSrcPtdNode = consCG->getGepObjNode(o, normalGepEdge->getLocationSet());
+            if (fieldSrcPtdNode != o) {
+                //llvm::errs() << "GEP field retrieved for gep edge " << normalGepEdge->getEdgeID() << " " << fieldSrcPtdNode << " for original o = " << o <<  "\n";
+
+                (const_cast<NormalGepCGEdge*>(normalGepEdge))->setGenerated(fieldSrcPtdNode);
+            }
             tmpDstPts.set(fieldSrcPtdNode);
             addTypeForGepObjNode(fieldSrcPtdNode, normalGepEdge);
         }
@@ -492,12 +501,13 @@ inline void Andersen::collapsePWCNode(NodeID nodeId)
 
 inline void Andersen::collapseFields()
 {
+    return;
     while (consCG->hasNodesToBeCollapsed())
     {
         NodeID node = consCG->getNextCollapseNode();
-        if (consCG->isStructTy(node)) {
+        if (consCG->hasStructTyAnnotation(node)) {
             llvm::errs() << "Collapsing struct type object\n";
-        } else if (consCG->isArrayTy(node)) {
+        } else if (consCG->hasArrayTyAnnotation(node)) {
             llvm::errs() << "Collapsing array type object\n";
         }
         // collapseField() may change the points-to set of the nodes which have been processed
@@ -607,55 +617,59 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
     bool hasStructType = false;
 
 
-    // Check if there's going to be a PWC
-    // If yes, then don't collapse
-    bool isPWC = false;
-    if (Options::InvariantPWC) {
-        if (subNodes.count() > 5000) {
-            llvm::errs() << "Found large cycle\n";
-            //isPWC = true;
-        } else {
-            for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++) {
-                NodeID subNodeId = *nodeIt;
-                ConstraintNode* subNode = consCG->getConstraintNode(subNodeId);
-                for (ConstraintNode::const_iterator it = subNode->InEdgeBegin(), eit = subNode->InEdgeEnd(); it != eit; ++it) {
-                    ConstraintEdge* subInEdge = *it;
-                    if (sccRepNode(subInEdge->getSrcID()) == repNodeId) {
-                        if (SVFUtil::isa<GepCGEdge>(subInEdge)) {
-                            isPWC = !consCG->isZeroOffsettedGepCGEdge(subInEdge);
-                            if (isPWC) break;
-                        }
+    /*
+    if (subNodes.count () > 1) {
+        llvm::errs() << "Cycle begin: \n";
+    }
+    */
+
+    /*
+    if (subNodes.count() > 500) {
+        llvm::errs() << "Cycle begin: \n";
+        for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
+        {
+            NodeID subNodeId = *nodeIt;
+            PAGNode* pagNode = pag->getPAGNode(subNodeId);
+            if (pagNode->hasValue()) {
+                const Value* val = pagNode->getValue();
+                if (const Instruction* inst = SVFUtil::dyn_cast<Instruction>(val)) {
+                    llvm::errs() << *inst << " in " << inst->getParent()->getParent()->getName() << "\n";
+                } else {
+                    if (const Function* f = SVFUtil::dyn_cast<Function>(val)) {
+                        llvm::errs() << "function: " << f->getName() << "\n";
+                    } else {
+                        llvm::errs() << "Value: " << *val << "\n";
                     }
                 }
-                if (isPWC) break; // no need to check more
-                for (ConstraintNode::const_iterator it = subNode->OutEdgeBegin(), eit = subNode->OutEdgeEnd(); it != eit;
-                        ++it)
-                {
-                    ConstraintEdge* subOutEdge = *it;
-                    if(sccRepNode(subOutEdge->getDstID()) == repNodeId) {
-                        if (SVFUtil::isa<GepCGEdge>(subOutEdge)) {
-                            isPWC = !consCG->isZeroOffsettedGepCGEdge(subOutEdge);
-                            if (isPWC) break;
-                        }
-                    }
-                }
+            } else {
+                llvm::errs() << "Dummy node of type " << pagNode->getNodeKind() << " : " << subNodeId << "\n";
             }
+
         }
     }
+    */
 
     for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
     {
         NodeID subNodeId = *nodeIt;
+
         PAGNode* pagNode = pag->getPAGNode(subNodeId);
         /*
-        if (subNodes.count() > 1) {
+        if (subNodes.count() > 1 && !isPWC) {
             if (pagNode->hasValue()) {
-                llvm::errs() << "Node: " << *(pagNode->getValue()) << "\n";
+                Function* f = nullptr;
+                if (const Instruction* I = SVFUtil::dyn_cast<Instruction>(pagNode->getValue())) {
+                    f = const_cast<Function*>(I->getParent()->getParent());
+                }
+                llvm::errs() << "Node: " << *(pagNode->getValue()) << " " << (f? f->getName(): "") << "\n";
+            } else {
+                llvm::errs() << "Dummy node: " << subNodeId << "\n";
             }
         }
         */
         subPAGNodes.push_back(pagNode);
 
+        /*
         if (!Options::InvariantPWC) {
             if (subNodeId != repNodeId)
             {
@@ -669,6 +683,8 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                 }
             }
         }
+        */
+        mergeNodeToRep(subNodeId, repNodeId, criticalGepEdges);
     }
 
     std::set<const llvm::Value*>* gepNodesInSCC = new std::set<const llvm::Value*>();
@@ -1081,6 +1097,7 @@ void Andersen::instrumentInvariant(Instruction* memoryInst, Value* target) {
 void Andersen::heapAllocatorViaIndCall(CallSite cs, NodePairSet &cpySrcNodes)
 {
     assert(SVFUtil::getCallee(cs) == nullptr && "not an indirect callsite?");
+    llvm::errs() << "Callsite is heap allocator " << *(cs.getInstruction()) << "\n";
     RetBlockNode* retBlockNode = pag->getICFG()->getRetBlockNode(cs.getInstruction());
     const PAGNode* cs_return = pag->getCallSiteRet(retBlockNode);
     NodeID srcret;

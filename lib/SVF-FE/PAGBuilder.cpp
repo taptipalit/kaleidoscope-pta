@@ -123,11 +123,13 @@ PAG* PAGBuilder::build(SVFModule* svfModule)
         }
     }
 
+    /*
     for (Value* eventCTLObj: pag->getEpollCTLEventObjs()) {
         for (Value* eventWaitObj: pag->getEpollWAITEventObjs()) {
             addEpollComplexCons(eventWaitObj, eventCTLObj);
         }
     }
+    */
 
     sanityCheck();
 
