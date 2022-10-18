@@ -625,11 +625,17 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
 
     // Check if there's going to be a PWC
     // If yes, then don't collapse
+
     bool isPWC = false;
+    if (subNodes.count() > 5000) {
+        isPWC = true;
+    }
     if (Options::InvariantPWC) {
+        /*
         if (subNodes.count() > 5000) {
             isPWC = true;
         } else {
+        */
             for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++) {
                 NodeID subNodeId = *nodeIt;
                 ConstraintNode* subNode = consCG->getConstraintNode(subNodeId);
@@ -655,7 +661,7 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                     }
                 }
             }
-        }
+        //}
     }
 
     for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
