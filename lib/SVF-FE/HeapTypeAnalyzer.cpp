@@ -632,8 +632,8 @@ void HeapTypeAnalyzer::findHeapContexts (Module& M) {
 bool
 HeapTypeAnalyzer::runOnModule (Module & module) {
     findHeapContexts(module);
-    handleVersions(module);
-//    removePoolAllocatorBody(module);
+//    handleVersions(module);
+    removePoolAllocatorBody(module);
     deriveHeapAllocationTypes(module);
     
     std::error_code EC;

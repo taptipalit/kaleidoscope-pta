@@ -423,7 +423,7 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                }
             }
             */
-            if (Options::InvariantVGEP && canApplyPAInvariant(const_cast<VariantGepCGEdge*>(vgepCGEdge), o)/*!vgepCGEdge->isStructTy() && !SVFUtil::isa<GepObjPN>(objNode)*/) {
+            if (Options::InvariantVGEP /*&& canApplyPAInvariant(const_cast<VariantGepCGEdge*>(vgepCGEdge), o)*//*!vgepCGEdge->isStructTy() && !SVFUtil::isa<GepObjPN>(objNode)*/) {
                 // First of all, we believe that variable indices
                 // when the type is a complex type, are most definitely accessing 
                 // an element in the array.
@@ -437,11 +437,11 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                     pag->addPtdForVarGep(vgepCGEdge->getLLVMValue(), o);
                     PAGNode* node = pag->getPAGNode(o);
                     continue;
-                } else {
+                }/* else {
                     LocationSet ls(0);
                     NodeID fieldSrcPtdNode = consCG->getGepObjNode(o, ls);
                     tmpDstPts.set(fieldSrcPtdNode);
-                }
+                }*/
             } else {
 
                 if (!isFieldInsensitive(o))
