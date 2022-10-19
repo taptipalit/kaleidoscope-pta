@@ -510,7 +510,7 @@ void HeapTypeAnalyzer::buildCallGraphs (Module & module) {
         int callerCount = it.first;
         llvm::errs() << callerCount << " callers: ";
         for (Function* func: it.second) {
-            llvm::errs() << func->getName() << ", ";
+            llvm::errs() << func->getName() << " ["<< func->isDeclaration() << "], ";
         }
         llvm::errs() << "\n";
     }
@@ -614,7 +614,9 @@ void HeapTypeAnalyzer::findHeapContexts (Module& M) {
             "ngx_slab_calloc_locked"//,
             "ngx_palloc_large",
             "ngx_calloc",
-            "ngx_create_pool"
+            "ngx_create_pool",
+            "ngx_array_push",
+            "ngx_array_push_n"
     };
 
     for (Function& f: M.getFunctionList()) {

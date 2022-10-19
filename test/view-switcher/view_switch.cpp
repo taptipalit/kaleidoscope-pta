@@ -45,8 +45,8 @@ extern "C" uint32_t ptdTargetCheck(uint64_t* tgt, uint64_t len, uint64_t* tgts) 
         uint64_t id = tgts[i];
         auto valSet = vgepMap[id];
         if (valSet.find((uint64_t)tgt) != valSet.end()) {
-//            cout << "VGEP invariant failed\n";
-            //invFlipped = true;
+            cout << "VGEP invariant failed\n";
+            invFlipped = true;
             return 1;
         }
     }
@@ -62,14 +62,37 @@ extern "C" void updatePWC(uint32_t pwcId, uint32_t invVal) {
 INLINE 
 extern "C" uint32_t checkPWC(uint32_t pwcId, uint64_t newVal, uint64_t offset) {
     if (newVal == pwcInvariants[pwcId] + offset) { // The +offset should probably not be there. We're instrumenting the pointer before the gep and after the gep. 
-        //cout << "PWC invariant " << pwcId << " failed\n";
-        //invFlipped = true;
+        cout << "PWC invariant " << pwcId << " failed\n";
+        invFlipped = true;
         return 1;
     } else {
         return 0;
     } 
 }
- 
+
+extern "C" void* netq_malloc_node(size_t size) {
+    return malloc(1024+size);
+}
+
+extern "C" void* _TIFFmalloc(size_t size) {
+    return malloc(size);
+}
+
+extern "C" void* png_malloc_base(void* pp, size_t s) {
+    return malloc(s);
+}
+#define png_malloc_base(pp, s) malloc(s)
+
+/*
+static inline netq_t *
+netq_malloc_node(size_t size) {
+      return (netq_t *)malloc(sizeof(netq_t) + size);
+}
+*/
+
+extern "C" void* _TIFFcalloc(size_t nmemb, size_t size) {
+    return calloc(nmemb, size);
+}
 /**
  * Return 1 if the view needs to be changed
  * Return 0 if the view does not need to be changed

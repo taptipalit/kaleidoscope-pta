@@ -627,9 +627,11 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
     // If yes, then don't collapse
 
     bool isPWC = false;
+    /*
     if (subNodes.count() > 5000) {
         isPWC = true;
     }
+    */
     if (Options::InvariantPWC) {
         /*
         if (subNodes.count() > 5000) {
