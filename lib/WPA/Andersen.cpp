@@ -617,6 +617,11 @@ void Andersen::handlePointersAsPA(std::set<const llvm::Value*>* gepsInPWC) {
 void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
 {
     std::vector<ConstraintEdge*> criticalGepEdges;
+    std::vector<ConstraintEdge*> criticalGepEdgesDiscard; // This one is collected while merging. 
+                                                          // Don't want to change the API right now and 
+                                                          // deal with that shit. 
+                                                          // So I'm just discarding it.
+
     std::vector<PAGNode*> subPAGNodes;
     bool treatAsPAInv = false;
     bool inLoop = false;
@@ -679,19 +684,22 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
         */
         subPAGNodes.push_back(pagNode);
 
+        mergeNodeToRep(subNodeId, repNodeId, criticalGepEdgesDiscard);
+        /*
         if (!Options::InvariantPWC) {
             if (subNodeId != repNodeId)
             {
-                mergeNodeToRep(subNodeId, repNodeId, criticalGepEdges);
+                mergeNodeToRep(subNodeId, repNodeId, criticalGepEdgesDiscard);
             }
         } else {
             if (!isPWC) {
                 if (subNodeId != repNodeId)
                 {
-                    mergeNodeToRep(subNodeId, repNodeId, criticalGepEdges);
+                    mergeNodeToRep(subNodeId, repNodeId, criticalGepEdgesDiscard);
                 }
             }
         }
+        */
     }
 
     std::set<const llvm::Value*>* gepNodesInSCC = new std::set<const llvm::Value*>();

@@ -104,9 +104,9 @@ void ObjTypeInfo::analyzeHeapStaticObjType(const Value* heapValue)
                 MDNode* mdNode = heapCall->getMetadata("annotation");
                 MDString* tyAnnotStr = (MDString*)mdNode->getOperand(0).get();
                 if (tyAnnotStr->getString() == "ArrayType") {
-                    setFlag(CONST_ARRAY_OBJ);
+                    setFlag(VAR_ARRAY_OBJ);
                 } else if (tyAnnotStr->getString() == "StructType") {
-                    setFlag(CONST_STRUCT_OBJ);
+                    setFlag(VAR_STRUCT_OBJ);
                 }
             } else {
                 setFlag(HASPTR_OBJ);

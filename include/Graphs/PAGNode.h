@@ -58,15 +58,15 @@ public:
     /// Clone*Node: objects created by TBHC.
     enum PNODEK
     {
-        ValNode,
-        ObjNode,
-        RetNode,
-        VarargNode,
-        GepValNode,
-        GepObjNode,
-        FIObjNode,
-        DummyValNode,
-        DummyObjNode,
+        ValNode,        // 0
+        ObjNode,        // 1
+        RetNode,        // 2
+        VarargNode,     // 3
+        GepValNode,     // 4
+        GepObjNode,     // 5
+        FIObjNode,      // 6
+        DummyValNode,   // 7
+        DummyObjNode,   // 8
         CloneGepObjNode,   // NOTE: only used for TBHC.
         CloneFIObjNode,    // NOTE: only used for TBHC.
         CloneDummyObjNode  // NOTE: only used for TBHC.

@@ -523,6 +523,7 @@ bool HeapTypeAnalyzer::returnsUntypedMalloc(Function* potentialMallocWrapper) {
     
     Instruction* mallockedPtr = nullptr;
 
+
     for (inst_iterator I = inst_begin(potentialMallocWrapper), E = inst_end(potentialMallocWrapper); I != E; ++I) {
         if (CallInst* cInst = SVFUtil::dyn_cast<CallInst>(&*I)) {
             if (cInst->getCalledFunction() && 
@@ -600,23 +601,24 @@ void HeapTypeAnalyzer::findHeapContexts (Module& M) {
         memAllocFns.push_back(f->getName().str());
     }
 
+    // IMPORTANT: Make sure this is consistent with the list in ExtAPI.cpp
     std::vector<std::string> allocFns {
         "ngx_alloc",
         "ngx_array_create",
         "ngx_calloc",
-            "ngx_palloc",
-            "ngx_palloc_small",
-            "ngx_pcalloc",
-            "ngx_pnalloc",
-            "ngx_resolver_alloc",
-            "ngx_resolver_calloc",
-            "ngx_slab_alloc",
-            "ngx_slab_calloc_locked"//,
-            "ngx_palloc_large",
-            "ngx_calloc",
-            "ngx_create_pool",
-            "ngx_array_push",
-            "ngx_array_push_n"
+        "ngx_palloc",
+        "ngx_palloc_small",
+        "ngx_pcalloc",
+        "ngx_pnalloc",
+        "ngx_resolver_alloc",
+        "ngx_resolver_calloc",
+        "ngx_slab_alloc",
+        "ngx_slab_calloc_locked",
+        "ngx_palloc_large",
+        "ngx_calloc",
+        "ngx_create_pool",
+        "ngx_array_push",
+        "ngx_array_push_n"
     };
 
     for (Function& f: M.getFunctionList()) {
@@ -633,6 +635,29 @@ void HeapTypeAnalyzer::findHeapContexts (Module& M) {
 
 bool
 HeapTypeAnalyzer::runOnModule (Module & module) {
+    llvm::CFLAndersAAWrapperPass& aaPass = getAnalysis<llvm::CFLAndersAAWrapperPass>();
+    llvm::CFLAndersAAResult& aaResult = aaPass.getResult();
+ 
+    for (Function& F: module.getFunctionList()) {
+        for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
+            if (ReturnInst* retInst = SVFUtil::dyn_cast<ReturnInst>(&*I)) {
+                if (!retInst->getReturnValue()) continue;
+                if (Instruction* retValue = SVFUtil::dyn_cast<Instruction>(retInst->getReturnValue())) {
+                    // Check if it aliases with an argument
+                    for (int i = 0; i < F.arg_size(); i++) {
+                        Argument* arg = F.getArg(i);
+                        llvm::AliasResult isAlias = aaResult.query(
+                                llvm::MemoryLocation(arg, llvm::LocationSize(32)), 
+                                llvm::MemoryLocation(retValue, llvm::LocationSize(32)));
+                        if (isAlias == llvm::AliasResult::MayAlias) {
+                            llvm::errs() << "Function " << F.getName() << " returns an argument\n";
+                        }
+                    }
+                }
+            }
+        }
+    }
+ 
     findHeapContexts(module);
 //    handleVersions(module);
     removePoolAllocatorBody(module);

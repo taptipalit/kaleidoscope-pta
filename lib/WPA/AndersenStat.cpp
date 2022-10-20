@@ -419,12 +419,28 @@ void AndersenStat::performStat()
     }
 
     if (maxFieldsNodeID > 0 && pag->hasPAGNode(maxFieldsNodeID)) {
+        llvm::errs() << "Max fields info ---------------------- \n";
         PAGNode* maxFieldsNode = pag->getPAGNode(maxFieldsNodeID);
         if (maxFieldsNode->hasValue()) {
             llvm::errs() << "Max fields node: " << *(maxFieldsNode->getValue()) << " ... max fields: " << maxFields << "\n";
+            if (const Instruction* heap = SVFUtil::dyn_cast<Instruction>(maxFieldsNode->getValue())) {
+                llvm::errs() << "Max fields node: heap object in function: " << heap->getParent()->getParent()->getName() << "\n";
+            }
         } else {
             llvm::errs() << "Max fields node: " << *maxFieldsNode << " ... max fields: " << maxFields << "\n";
         }
+        if (GepObjPN* gepObj = SVFUtil::dyn_cast<GepObjPN>(maxFieldsNode)) {
+            NodeID parent = gepObj->getBaseNode();
+            PAGNode* parentNode = pag->getPAGNode(parent);
+            llvm::errs() << "Max fields node: for gep node, parent id: " << parent << "\n";
+            llvm::errs() << "Max fields node: for gep node, parend has type: " << parentNode->getNodeKind() << "\n";
+            if (parentNode->hasValue()) {
+                llvm::errs() << "Max fields node: parent node has value: " << *(parentNode->getValue()) << "\n";
+            } else {
+                llvm::errs() << "Max fields node: parent node has no value: \n";
+            }
+        }
+        llvm::errs() << "----------------------------\n";
     }
 
 
