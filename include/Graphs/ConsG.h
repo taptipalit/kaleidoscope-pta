@@ -368,13 +368,19 @@ public:
         const MemObj* mem = pag->getBaseObj(id);
         return (mem->getMaxFieldOffsetLimit() == 1);
     }
+
+    bool newCreatedFlag; // This is a debugging flag that tells us that a new
+                         // constraint node was created for a field
+                         //
     /// Get a field of a memory object
     inline NodeID getGepObjNode(NodeID id, const LocationSet& ls)
     {
         NodeID gep =  pag->getGepObjNode(id,ls);
         /// Create a node when it is (1) not exist on graph and (2) not merged
-        if(sccRepNode(gep)==gep && hasConstraintNode(gep)==false)
+        if(sccRepNode(gep)==gep && hasConstraintNode(gep)==false) {
+            //newCreatedFlag = true;
             addConstraintNode(new ConstraintNode(gep),gep);
+        }
         return gep;
     }
     /// Get a field-insensitive node of a memory object

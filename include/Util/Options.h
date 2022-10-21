@@ -18,6 +18,8 @@ class Options
 public:
     Options(void) = delete;
 
+    static llvm::cl::opt<signed> RemoveThres;
+
 
     static llvm::cl::list<std::string> DebugFuncsList;
     static llvm::cl::opt<bool> ShortCircuit;

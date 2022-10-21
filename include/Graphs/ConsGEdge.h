@@ -302,6 +302,7 @@ private:
     NormalGepCGEdge(const NormalGepCGEdge &);  ///< place holder
     void operator=(const NormalGepCGEdge &); ///< place holder
 
+    NodeBS created;
     LocationSet ls;	///< location set of the gep edge
 
 public:
@@ -329,6 +330,14 @@ public:
     NormalGepCGEdge(ConstraintNode* s, ConstraintNode* d, const LocationSet& l, EdgeID id)
         : GepCGEdge(s,d,NormalGep,id), ls(l)
     {}
+
+    void addCreated(NodeID id) {
+        created.set(id);
+    }
+
+    bool isCreated(NodeID id) const {
+        return created.test(id);
+    }
 
     /// Get location set of the gep edge
     inline const LocationSet& getLocationSet() const

@@ -35,6 +35,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/InstIterator.h"
 #include "llvm/Transforms/Utils/Cloning.h"
+#include "Util/Options.h"
 
 
 #include "SVF-FE/HeapTypeAnalyzer.h"
@@ -100,6 +101,9 @@ void HeapTypeAnalyzer::removePoolAllocatorBody(Module& module) {
                 F->deleteBody();
             }
             */
+            if (F->getName().startswith("ngx_log_error_core")) {
+                F->deleteBody();
+            }
         }
     }
 
@@ -506,13 +510,22 @@ void HeapTypeAnalyzer::buildCallGraphs (Module & module) {
         callerDistMap[it.second].push_back(calledFunc);
     }
 
+    int i = 0;
     for (auto it: callerDistMap) {
         int callerCount = it.first;
         llvm::errs() << callerCount << " callers: ";
         for (Function* func: it.second) {
             llvm::errs() << func->getName() << " ["<< func->isDeclaration() << "], ";
+            if ( i < Options::RemoveThres
+                    && std::find(heapCalls.begin(), heapCalls.end(), func)
+                    == heapCalls.end()) {
+                func->deleteBody();
+                llvm::errs() << "Removing body\n";
+                i++;
+            }
         }
         llvm::errs() << "\n";
+        
     }
     
 }
@@ -562,7 +575,6 @@ bool HeapTypeAnalyzer::returnsUntypedMalloc(Function* potentialMallocWrapper) {
 }
 
 void HeapTypeAnalyzer::findHeapContexts (Module& M) {
-    buildCallGraphs(M);
     std::vector<Function*> oneLevelFuncs;
 
     std::vector<Function*> twoLevelFuncs;
@@ -631,10 +643,13 @@ void HeapTypeAnalyzer::findHeapContexts (Module& M) {
         llvm::errs() << " Heap call function: " << f->getName() << "\n";
         memAllocFns.push_back(f->getName().str());
     }
+
+    buildCallGraphs(M);
 }
 
 bool
 HeapTypeAnalyzer::runOnModule (Module & module) {
+    /*
     llvm::CFLAndersAAWrapperPass& aaPass = getAnalysis<llvm::CFLAndersAAWrapperPass>();
     llvm::CFLAndersAAResult& aaResult = aaPass.getResult();
  
@@ -646,9 +661,22 @@ HeapTypeAnalyzer::runOnModule (Module & module) {
                     // Check if it aliases with an argument
                     for (int i = 0; i < F.arg_size(); i++) {
                         Argument* arg = F.getArg(i);
+                        // Find the stack location
+                        AllocaInst* stackArg = nullptr;
+                        for (User* u: arg->users()) {
+                            if (StoreInst* store = SVFUtil::dyn_cast<StoreInst>(u)) {
+                                if (AllocaInst* stack = SVFUtil::dyn_cast<AllocaInst>(store->getPointerOperand())) {
+                                    stackArg = stack;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!stackArg || !stackArg->getType()->isPointerTy() || !retValue->getType()->isPointerTy()) {
+                            continue;
+                        }
                         llvm::AliasResult isAlias = aaResult.query(
-                                llvm::MemoryLocation(arg, llvm::LocationSize(32)), 
-                                llvm::MemoryLocation(retValue, llvm::LocationSize(32)));
+                                llvm::MemoryLocation(stackArg, llvm::LocationSize(8)), 
+                                llvm::MemoryLocation(retValue, llvm::LocationSize(8)));
                         if (isAlias == llvm::AliasResult::MayAlias) {
                             llvm::errs() << "Function " << F.getName() << " returns an argument\n";
                         }
@@ -657,6 +685,7 @@ HeapTypeAnalyzer::runOnModule (Module & module) {
             }
         }
     }
+    */
  
     findHeapContexts(module);
 //    handleVersions(module);

@@ -466,6 +466,12 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
         // base object is always returned.
         for (NodeID o : pts)
         {
+            /*
+            if (normalGepEdge->isCreated(o)) {
+                llvm::errs() << "Processing a field obj I created. This is a cycle\n";
+                llvm::errs() << "Value: " << *(normalGepEdge->getLLVMValue()) << "\n";
+            }
+            */
             if (consCG->isBlkObjOrConstantObj(o))
             {
                 tmpDstPts.set(o);
@@ -474,7 +480,17 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
 
             if (!matchType(edge->getSrcID(), o, normalGepEdge)) continue;
 
+            // Check if I have created this one
+
+            //consCG->newCreatedFlag = false; // this is a debugging flag
             NodeID fieldSrcPtdNode = consCG->getGepObjNode(o, normalGepEdge->getLocationSet());
+
+            /*
+            if (consCG->newCreatedFlag) {
+                (const_cast<NormalGepCGEdge*>(normalGepEdge))->addCreated(fieldSrcPtdNode);
+            }
+            */
+
             tmpDstPts.set(fieldSrcPtdNode);
             addTypeForGepObjNode(fieldSrcPtdNode, normalGepEdge);
         }

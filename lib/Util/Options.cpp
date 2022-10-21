@@ -6,6 +6,12 @@
 namespace SVF
 {
 
+    llvm::cl::opt<signed> Options::RemoveThres(
+            "remove-thres",
+            llvm::cl::init(-1),
+            llvm::cl::desc("Remove top N popular functions"));
+
+
     llvm::cl::list<std::string>
         Options::DebugFuncsList("debug-funcs", llvm::cl::value_desc("function names to debug"),
                 llvm::cl::desc("Only debug the functions listed here"),

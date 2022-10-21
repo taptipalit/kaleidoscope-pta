@@ -109,7 +109,8 @@ void ObjTypeInfo::analyzeHeapStaticObjType(const Value* heapValue)
                     setFlag(VAR_STRUCT_OBJ);
                 }
             } else {
-                setFlag(HASPTR_OBJ);
+                // If it doesn't have an annotation, we treat them as scalar
+                // setFlag(HASPTR_OBJ); 
             }
         } else {
             setFlag(HASPTR_OBJ);
