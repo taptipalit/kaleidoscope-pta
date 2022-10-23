@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+int a;
+
 void fn(int* p) {
     printf("%d\n", *p);
 }

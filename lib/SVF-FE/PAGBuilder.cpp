@@ -135,7 +135,88 @@ PAG* PAGBuilder::build(SVFModule* svfModule)
 
     pag->setNodeNumAfterPAGBuild(pag->getTotalNodeNum());
 
-    // Print number of vargeps
+    int totalAddressTaken = 0;
+    int storedToArray = 0;
+
+    // Validate
+    for (PAG::iterator it = pag->begin(), eit = pag->end(); it != eit; it++) {
+        NodeID node = it->first;
+        PAGNode* pagNode = pag->getPAGNode(node);
+        if (ValPN* valPN = SVFUtil::dyn_cast<ValPN>(pagNode)) {
+            if (valPN->hasValue()) {
+                const Value* v = valPN->getValue();
+                int iterations = 10;
+                if (const Function* f = SVFUtil::dyn_cast<Function>(v)) {
+                    if (f->hasAddressTaken()) {
+                        totalAddressTaken++;
+                    }
+                    // Track if this is 
+                    llvm::errs() << "PAG Function: " << f->getName() << "\n";
+                    std::vector<PAGEdge*> workList;
+                    for(PAGEdge* edge: valPN->getOutgoingEdges(PAGEdge::Store)) {
+                        workList.push_back(edge);
+                    }
+
+                    for(PAGEdge* edge: valPN->getOutgoingEdges(PAGEdge::Copy)) {
+                        workList.push_back(edge);
+                    }
+                    while(!workList.empty()) {
+                        PAGEdge* e = workList.back();
+                        workList.pop_back();
+                        if (SVFUtil::isa<CopyPE>(e)) {
+                            NodeID dst = e->getDstID();
+                            PAGNode* dstNode = pag->getPAGNode(dst);
+                            for(PAGEdge* edge: dstNode->getOutgoingEdges(PAGEdge::Store)) {
+                                workList.push_back(edge);
+                            }
+                            for(PAGEdge* edge: dstNode->getOutgoingEdges(PAGEdge::Copy)) {
+                                workList.push_back(edge);
+                            }       
+                        } else if (StorePE* storePE = SVFUtil::dyn_cast<StorePE>(e)) {
+                            NodeID dest = storePE->getDstID();
+                            PAGNode* destNode = pag->getPAGNode(dest);
+                            const Value* storeValue = destNode->getValue();
+                            Type* storeTargetType = storeValue->getType();
+                            llvm::errs() << "Store type: " << *storeTargetType << "\n";
+                            if (storeTargetType->isPointerTy()) {
+                                storeTargetType = storeTargetType->getPointerElementType();
+                            }
+                            if (SVFUtil::isa<ArrayType>(storeTargetType)) {
+                                llvm::errs() << "PAG Function " << f->getName() << " eventually stored to array: " << *storeValue << "\n";
+                                storedToArray++;
+                            }
+
+                            if (iterations-- < 0) {
+                                continue;
+                            }
+                            if (GepValPN* gepValPN = SVFUtil::dyn_cast<GepValPN>(destNode)) {
+                                // Find the base pointer
+                                for (PAGEdge* edge: gepValPN->getIncomingEdges(PAGEdge::NormalGep)) {
+                                    if (NormalGepPE* ngep = SVFUtil::dyn_cast<NormalGepPE>(edge)) {
+                                        NodeID src = ngep->getSrcID();
+                                        PAGNode* srcBasePtr = pag->getPAGNode(src);
+                                        // Where is this stored?
+                                        for (PAGEdge* edge: srcBasePtr->getOutgoingEdges(PAGEdge::Store)) {
+                                            workList.push_back(edge);
+                                        }
+                                        for (PAGEdge* edge: srcBasePtr->getOutgoingEdges(PAGEdge::Copy)) {
+                                            workList.push_back(edge);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                }
+            }
+        }
+    }
+
+    llvm::errs() << "Validation done\n";
+    llvm::errs() << "Total address taken: " << totalAddressTaken << "\n";
+    llvm::errs() << "Stored to array: " << storedToArray << "\n";
+
     return pag;
 }
 
