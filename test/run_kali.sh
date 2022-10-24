@@ -30,7 +30,7 @@ fi
 -invariant-vgep=true -short-circuit=false -stat-limit=1 \
 -ptd=persistent \
 -ander $file_bc #aeSearchNearestTimer,
-#-print-all-pts -debug-funcs=initServer 
+#-print-all-pts -debug-funcs=initServer #-field-limit=30
 
 if [ $? -ne 0 ]; then
     echo "Failed to run invariant-based pointer analysis"

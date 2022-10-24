@@ -543,6 +543,13 @@ static const ei_pair ei_pairs[]=
     {"ngx_array_push", ExtAPI::EFT_ALLOC},
     {"ngx_array_push_n", ExtAPI::EFT_ALLOC},
 
+    {"luaM_reallocv", ExtAPI::EFT_ALLOC},
+    {"luaM_malloc", ExtAPI::EFT_ALLOC},
+    {"luaM_new", ExtAPI::EFT_ALLOC},
+    {"luaM_newvector", ExtAPI::EFT_ALLOC},
+    {"luaM_growvector", ExtAPI::EFT_ALLOC},
+    {"luaM_reallocvector", ExtAPI::EFT_ALLOC},
+
     {"pango_cairo_font_map_create_context", ExtAPI::EFT_ALLOC},
     //This may also point *arg2 to a new string.
     {"pcre_compile", ExtAPI::EFT_ALLOC},

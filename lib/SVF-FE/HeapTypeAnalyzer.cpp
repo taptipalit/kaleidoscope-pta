@@ -630,7 +630,14 @@ void HeapTypeAnalyzer::findHeapContexts (Module& M) {
         "ngx_calloc",
         "ngx_create_pool",
         "ngx_array_push",
-        "ngx_array_push_n"
+        "ngx_array_push_n",
+
+        "luaM_reallocv",
+        "luaM_malloc",
+        "luaM_new",
+        "luaM_newvector",
+        "luaM_growvector",
+        "luaM_reallocvector"
     };
 
     for (Function& f: M.getFunctionList()) {

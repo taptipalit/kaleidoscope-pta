@@ -377,6 +377,7 @@ bool Andersen::processGep(NodeID, const GepCGEdge* edge)
 
 bool Andersen::canApplyPAInvariant(VariantGepCGEdge* vgepCGEdge, NodeID obj) {
     if (vgepCGEdge->isStructTy() && consCG->isArrayTy(obj)) {
+        llvm::errs() << "Can't apply invariant: " << *(vgepCGEdge->getLLVMValue()) << "\n";
         return false;
     } else {
         return true;
@@ -687,17 +688,34 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
         //}
     }
 
+    /*
+    if (!isPWC && subNodes.count() > 1) {
+        llvm::errs() << "Cycle dump -----------------\n";
+    }
+    */
+    std::set<const Function*> cycleFuncSet;
     for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
     {
         NodeID subNodeId = *nodeIt;
         PAGNode* pagNode = pag->getPAGNode(subNodeId);
         /*
-        if (subNodes.count() > 1) {
-            if (pagNode->hasValue()) {
-                llvm::errs() << "Node: " << *(pagNode->getValue()) << "\n";
+        if (!isPWC) {
+            if (subNodes.count() > 1) {
+                if (pagNode->hasValue()) {
+                    const Value* v = pagNode->getValue();
+                    if (const Instruction* inst = SVFUtil::dyn_cast<Instruction>(v)) {
+                        llvm::errs() << "Node: " << *inst << " in function: " << inst->getParent()->getParent()->getName() << "\n";
+                        cycleFuncSet.insert(inst->getParent()->getParent());
+                    } else {
+                        llvm::errs() << "Node: " << *(pagNode->getValue()) << "\n";
+                    }
+                }
             }
         }
         */
+
+        
+
         subPAGNodes.push_back(pagNode);
 
         mergeNodeToRep(subNodeId, repNodeId, criticalGepEdgesDiscard);
@@ -718,6 +736,11 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
         */
     }
 
+    /*
+    if (cycleFuncSet.size() > 1) {
+        llvm::errs() << "Cross function cycle found\n";
+    }
+    */
     std::set<const llvm::Value*>* gepNodesInSCC = new std::set<const llvm::Value*>();
     if (criticalGepEdges.size() > 0) {
         if (Options::InvariantPWC) {

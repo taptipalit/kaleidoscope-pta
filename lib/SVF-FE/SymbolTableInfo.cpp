@@ -426,6 +426,7 @@ LocationSet SymbolTableInfo::getModulusOffset(const MemObj* obj, const LocationS
     if(offset < 0)
     {
         writeWrnMsg("try to create a gep node with negative offset.");
+        llvm::errs() << "Trying to create a gep node with negative offset.";
         offset = abs(offset);
     }
     u32_t maxOffset = obj->getMaxFieldOffsetLimit();
