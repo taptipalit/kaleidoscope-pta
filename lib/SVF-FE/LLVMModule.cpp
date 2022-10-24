@@ -153,7 +153,19 @@ void LLVMModuleSet::preProcessBCs(std::vector<std::string> &moduleNameVec)
     releaseLLVMModuleSet();
 }
 
-
+void LLVMModuleSet::reattachHeapContexts() {
+    for (u32_t i = 0; i < LLVMModuleSet::getLLVMModuleSet()->getModuleNum(); ++i) {
+        Module *module = LLVMModuleSet::getLLVMModuleSet()->getModule(i);
+        for (auto it: clonedFunctionMap) {
+            Function* oldFunc = module->getFunction(it.first);
+            if (oldFunc) {
+                oldFunc->replaceAllUsesWith(it.second);
+                //module->getFunctionList().push_back(it.second);
+            }
+        }
+    }
+     
+}
 
 void LLVMModuleSet::build()
 {
@@ -181,6 +193,12 @@ void LLVMModuleSet::preInitialize() {
 
         for (Function* heapCall: heapTyPass->getHeapCalls()) {
             heapCalls.push_back(heapCall);
+        }
+
+        for (auto it: heapTyPass->getClonedFunctionMap()) {
+            StringRef fName = it.first;
+            Function* func = it.second;
+            clonedFunctionMap[fName] = func;
         }
     }
 }

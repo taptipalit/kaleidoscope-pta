@@ -65,10 +65,13 @@ private:
     LLVMModuleSet(): svfModule(nullptr), cxts(nullptr), preProcessed(false) {}
 
     std::vector<Function*> heapCalls;
+    std::map<StringRef, Function*> clonedFunctionMap;
     void build();
 
 public:
 
+
+    void reattachHeapContexts();
     std::vector<Function*>& getHeapCalls() { return heapCalls; }
 
     static inline LLVMModuleSet *getLLVMModuleSet()

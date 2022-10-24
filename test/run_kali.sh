@@ -45,6 +45,7 @@ opt -verify $file_inst -o $file_discard
 clang++ -c -O0 -ggdb -emit-llvm $SVF_HOME/test/view-switcher/view_switch.cpp -o $SVF_HOME/test/view-switcher/view_switch.bc
 clang++ -c -O0 -ggdb -emit-llvm $SVF_HOME/test/view-switcher/debugger.cpp -o $SVF_HOME/test/view-switcher/debugger.bc
 clang++ -c -O0 -ggdb -emit-llvm $SVF_HOME/test/view-switcher/docfi.cpp -o $SVF_HOME/test/view-switcher/docfi.bc
+
 llvm-link $file_inst $SVF_HOME/test/view-switcher/docfi.bc $SVF_HOME/test/view-switcher/view_switch.bc $SVF_HOME/test/view-switcher/debugger.bc -o $file_linked
 
 if [ $? -ne 0 ]; then

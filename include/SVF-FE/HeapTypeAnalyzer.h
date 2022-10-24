@@ -40,10 +40,14 @@ private:
 
     std::vector<Function*> heapCalls;
 
+    std::map<StringRef, Function*> clonedFunctionMap;
+
 public:
     static char ID;
 
     std::vector<Function*>& getHeapCalls() { return heapCalls; }
+    std::map<StringRef, Function*>& getClonedFunctionMap() { return clonedFunctionMap; }
+
     HeapTypeAnalyzer() : ModulePass(ID) {
         /*
         memAllocFns.push_back("ngx_alloc");

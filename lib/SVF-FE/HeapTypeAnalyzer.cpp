@@ -637,14 +637,22 @@ void HeapTypeAnalyzer::findHeapContexts (Module& M) {
         "luaM_new",
         "luaM_newvector",
         "luaM_growvector",
-        "luaM_reallocvector"
+        "luaM_reallocvector",
+        "mytest_malloc"
     };
 
     for (Function& f: M.getFunctionList()) {
         if (std::find(allocFns.begin(), allocFns.end(), f.getName().str()) != allocFns.end()) {
             heapCalls.push_back(&f);
+
+            llvm::ValueToValueMapTy  vmap;
+            Function* cloned = llvm::CloneFunction(&f, vmap, NULL);
+            clonedFunctionMap[f.getName()] = cloned;
         }
     }
+
+
+
 
     for (Function* f: heapCalls) {
         llvm::errs() << " Heap call function: " << f->getName() << "\n";

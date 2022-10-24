@@ -718,7 +718,9 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
 
         subPAGNodes.push_back(pagNode);
 
-        mergeNodeToRep(subNodeId, repNodeId, criticalGepEdgesDiscard);
+        if (subNodeId != repNodeId) {
+            mergeNodeToRep(subNodeId, repNodeId, criticalGepEdgesDiscard);
+        }
         /*
         if (!Options::InvariantPWC) {
             if (subNodeId != repNodeId)
