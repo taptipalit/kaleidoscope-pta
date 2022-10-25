@@ -407,10 +407,12 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                     // We will add the invariant later
                     pag->addPtdForVarGep(vgepCGEdge->getLLVMValue(), o);
                     PAGNode* node = pag->getPAGNode(o);
+                    /*
                     if (node && node->hasValue()) {
                         const llvm::Value* val = node->getValue();
                         llvm::errs() << "adding vgep invariant: " << *val << "\n";
                     }
+                    */
                     continue;
                 } else {
                     LocationSet ls(0);

@@ -38,7 +38,7 @@ extern "C" uint32_t ptdTargetCheck(uint64_t* tgt, uint64_t len, uint64_t* tgts) 
         uint64_t id = tgts[i];
         uint64_t ptrVal = vgepMap[id];
         if (tgt == (uint64_t*)ptrVal) {
-            //cout << "VGEP invariant failed\n";
+            cout << "VGEP invariant failed\n";
             invFlipped = true;
             return 1;
         }
