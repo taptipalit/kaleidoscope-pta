@@ -424,7 +424,16 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                }
             }
             */
-            if (Options::InvariantVGEP /*&& canApplyPAInvariant(const_cast<VariantGepCGEdge*>(vgepCGEdge), o)*//*!vgepCGEdge->isStructTy() && !SVFUtil::isa<GepObjPN>(objNode)*/) {
+            /*
+            bool mustCollapse = false;
+            Value* llvmValue = vgepCGEdge->getLLVMValue();
+            if (Instruction* inst = SVFUtil::dyn_cast<Instruction>(llvmValue)) {
+                if (inst->getFunction()->getName() == "plugins_call_fn_srv_data") {
+                    mustCollapse = true;
+                }
+            }
+            */
+            if (Options::InvariantVGEP /*&& !mustCollapse*/) {
                 // First of all, we believe that variable indices
                 // when the type is a complex type, are most definitely accessing 
                 // an element in the array.
@@ -438,11 +447,16 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                     pag->addPtdForVarGep(vgepCGEdge->getLLVMValue(), o);
                     PAGNode* node = pag->getPAGNode(o);
                     continue;
-                }/* else {
+                } else {
+                    // For arrays this should work
+                    // You take the zeroth index
+                    //NodeID baseId = consCG->getFIObjNode(o);
+                    //tmpDstPts.set(baseId);
+
                     LocationSet ls(0);
                     NodeID fieldSrcPtdNode = consCG->getGepObjNode(o, ls);
                     tmpDstPts.set(fieldSrcPtdNode);
-                }*/
+                }
             } else {
 
                 if (!isFieldInsensitive(o))
@@ -516,6 +530,7 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
  */
 inline void Andersen::collapsePWCNode(NodeID nodeId)
 {
+    llvm::errs() << "Collapsing PWC node " << consCG->isPWCNode(nodeId) << "\n";
     // If a node is a PWC node, collapse all its points-to tarsget.
     // collapseNodePts() may change the points-to set of the nodes which have been processed
     // before, in this case, we may need to re-do the analysis.
@@ -527,6 +542,7 @@ inline void Andersen::collapseFields()
 {
     while (consCG->hasNodesToBeCollapsed())
     {
+        llvm::errs() << "Collapsing fields\n";
         NodeID node = consCG->getNextCollapseNode();
         if (consCG->isStructTy(node)) {
             llvm::errs() << "Collapsing struct type object\n";
@@ -792,6 +808,7 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
  */
 bool Andersen::collapseNodePts(NodeID nodeId)
 {
+    llvm::errs() << "Collapsing node pts\n";
     bool changed = false;
     const PointsTo& nodePts = getPts(nodeId);
     /// Points to set may be changed during collapse, so use a clone instead.

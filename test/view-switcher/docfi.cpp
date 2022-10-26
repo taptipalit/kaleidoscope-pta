@@ -34,7 +34,7 @@ extern "C" void checkCFI(CallSiteID callsite, uint64_t tgt) {
     
     if (!tgtFound) {
         cerr << "CFI error\n";
-        exit(-1);
+//        exit(-1);
     }
 }
 

@@ -118,6 +118,7 @@ void ObjTypeInfo::analyzeHeapStaticObjType(const Value* heapValue)
     } else {
         setFlag(HASPTR_OBJ);
     }
+    setFlag(HASPTR_OBJ);
 }
 
 /*!

@@ -281,14 +281,16 @@ bool SymbolTableInfo::computeGepOffset(const User *V, LocationSet& ls)
         // If you treat this as a constant gep, then you'll only point to the
         // first element and not be able to capture any of the other pointer
         // relationships. 
+        /*
         if (Options::InvariantVGEP) {
-            PointerType* ptrGIType = SVFUtil::dyn_cast<PointerType>(giType);
-            if (ptrGIType) {
-                if (SVFUtil::isa<StructType>(ptrGIType->getPointerElementType())) {
-                    continue;
-                }
+            while (giType->isPointerTy()) {
+                giType = giType->getPointerElementType();
+            }
+            if (SVFUtil::isa<StructType>(giType)) {
+                continue;
             }
         }
+        */
 
         //The int-value object of the current index operand
         //  (may not be constant for arrays).

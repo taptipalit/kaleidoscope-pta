@@ -757,7 +757,7 @@ struct DOTGraphTraits<ConstraintGraph*> : public DOTGraphTraits<PAG*>
         }
         else if (edge->getEdgeKind() == ConstraintEdge::NormalGep)
         {
-            return "color=purple";
+            return "color=purple, headlabel=\"{" + std::to_string(((NormalGepCGEdge*)edge)->getOffset()) + "}\"";
         } else if (edge->getEdgeKind() == ConstraintEdge::VariantGep)
         {
             return "color=pink";
