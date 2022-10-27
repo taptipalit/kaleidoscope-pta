@@ -357,6 +357,8 @@ bool Andersen::processCopy(NodeID node, const ConstraintEdge* edge)
     NodeID dst = edge->getDstID();
     const PointsTo& srcPts = getDiffPts(node);
 
+
+
     bool changed = unionPts(dst, srcPts);
     if (changed)
         pushIntoWorklist(dst);
@@ -397,13 +399,6 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
         // then set this memory object to be field insensitive,
         // unless the object is a black hole/constant.
         llvm::Value* llvmValue = vgepCGEdge->getLLVMValue();
-        /*
-        if (llvm::Instruction* inst = SVFUtil::dyn_cast<llvm::Instruction>(llvmValue)) {
-            if (inst->getParent()->getParent()->getName() == "sha256_transform") {
-                llvm::errs() << "sha256_transform: " << *inst << "\n";
-            }
-        }
-        */
         for (NodeID o : pts)
         {
             if (consCG->isBlkObjOrConstantObj(o))
@@ -414,25 +409,6 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
             
             PAGNode* objNode = pag->getPAGNode(o);
             
-            /*
-            if (Options::InvariantVGEP && vgepCGEdge->isStructTy()) {
-               PAGNode* node = pag->getPAGNode(o);
-               if (node->hasValue()) {
-                   const Value* pagValue = node->getValue();
-                   if (SVFUtil::isa<Function>(pagValue)) continue;
-                   llvm::errs() << "A struct pointer turned object: " << *pagValue << " insensitive. Type = " << consCG->isStructTy(o) << "\n";
-               }
-            }
-            */
-            /*
-            bool mustCollapse = false;
-            Value* llvmValue = vgepCGEdge->getLLVMValue();
-            if (Instruction* inst = SVFUtil::dyn_cast<Instruction>(llvmValue)) {
-                if (inst->getFunction()->getName() == "plugins_call_fn_srv_data") {
-                    mustCollapse = true;
-                }
-            }
-            */
             if (Options::InvariantVGEP /*&& !mustCollapse*/) {
                 // First of all, we believe that variable indices
                 // when the type is a complex type, are most definitely accessing 
@@ -448,11 +424,6 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                     PAGNode* node = pag->getPAGNode(o);
                     continue;
                 } else {
-                    // For arrays this should work
-                    // You take the zeroth index
-                    //NodeID baseId = consCG->getFIObjNode(o);
-                    //tmpDstPts.set(baseId);
-
                     LocationSet ls(0);
                     NodeID fieldSrcPtdNode = consCG->getGepObjNode(o, ls);
                     tmpDstPts.set(fieldSrcPtdNode);
@@ -462,8 +433,6 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                 if (!isFieldInsensitive(o))
                 {
                     PAGNode* ptdNode = pag->getPAGNode(o);
-                    //errs() << "Setting object " << o << " field-insensitive for vargep\n";
-                    //errs() << *ptdNode << "\n";
                     setObjFieldInsensitive(o);
                     consCG->addNodeToBeCollapsed(consCG->getBaseObjNode(o));
                 }
@@ -481,12 +450,6 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
         // base object is always returned.
         for (NodeID o : pts)
         {
-            /*
-            if (normalGepEdge->isCreated(o)) {
-                llvm::errs() << "Processing a field obj I created. This is a cycle\n";
-                llvm::errs() << "Value: " << *(normalGepEdge->getLLVMValue()) << "\n";
-            }
-            */
             if (consCG->isBlkObjOrConstantObj(o))
             {
                 tmpDstPts.set(o);
@@ -495,16 +458,8 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
 
             if (!matchType(edge->getSrcID(), o, normalGepEdge)) continue;
 
-            // Check if I have created this one
 
-            //consCG->newCreatedFlag = false; // this is a debugging flag
             NodeID fieldSrcPtdNode = consCG->getGepObjNode(o, normalGepEdge->getLocationSet());
-
-            /*
-            if (consCG->newCreatedFlag) {
-                (const_cast<NormalGepCGEdge*>(normalGepEdge))->addCreated(fieldSrcPtdNode);
-            }
-            */
 
             tmpDstPts.set(fieldSrcPtdNode);
             addTypeForGepObjNode(fieldSrcPtdNode, normalGepEdge);
@@ -516,6 +471,62 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
     }
 
     NodeID dstId = edge->getDstID();
+
+    if (Options::LogAll) {
+        llvm::errs() << "$$ ------------\n";
+        NodeID src = edge->getSrcID();
+        NodeID dst = edge->getDstID();
+
+        llvm::errs() << "$$ Solving gep edge between: " << src << " and " << dst << "\n";
+
+        PAGNode* srcNode = pag->getPAGNode(src);
+        PAGNode* dstNode = pag->getPAGNode(dst);
+
+        if (srcNode->hasValue()) {
+            const Value* srcVal = srcNode->getValue();
+            llvm::errs() << "$$ Src value: " << *srcVal << " : " << SVFUtil::getSourceLoc(srcVal) << "\n";
+        }
+
+        if (dstNode->hasValue()) {
+            const Value* dstVal = dstNode->getValue();
+            llvm::errs() << "$$ Dst value: " << *dstVal << " : " << SVFUtil::getSourceLoc(dstVal) << "\n";
+        }
+
+        if (edge->getLLVMValue()) {
+            Value* gepVal = edge->getLLVMValue();
+            if (Instruction* inst = SVFUtil::dyn_cast<Instruction>(gepVal)) {
+                llvm::errs() << "$$ Processing gep edge: [PRIMARY] : " << edge->getEdgeID() << " : "  << *inst << " : " << inst->getFunction()->getName() << "\n";
+            } else {
+                llvm::errs() << "$$ Processing gep edge: [PRIMARY] : " << edge->getEdgeID() << " : " << *gepVal << "\n";
+            }
+        } else {
+            llvm::errs() << "$$ Processing gep edge: [PRIMARY] : " << edge->getEdgeID() << " : NO VALUE!\n";
+        }
+        for (NodeBS::iterator nodeIt = tmpDstPts.begin(); nodeIt != tmpDstPts.end(); nodeIt++) {
+            NodeID ptd = *nodeIt;
+            PAGNode* pagNode = pag->getPAGNode(ptd);
+            int idx = -1;
+            if (GepObjPN* gepNode = SVFUtil::dyn_cast<GepObjPN>(pagNode)) {
+                idx = gepNode->getLocationSet().getOffset();
+            }
+            if (pagNode->hasValue()) {
+                Value* ptdValue = const_cast<Value*>(pagNode->getValue());
+                if (Function* f = SVFUtil::dyn_cast<Function>(ptdValue)) {
+                    llvm::errs() << "$$ PTD : " << ptd << " Function : " << f->getName() << " : " << SVFUtil::getSourceLoc(f) << "\n";
+                } else if (Instruction* I = SVFUtil::dyn_cast<Instruction>(ptdValue)) {
+
+                    llvm::errs() << "$$ PTD : " << ptd << " Stack object: " << *I << " : " << idx << " : " << I->getFunction()->getName() << " : " << SVFUtil::getSourceLoc(I) << "\n";
+                } else if (GlobalVariable* v = SVFUtil::dyn_cast<GlobalVariable>(ptdValue)) {
+                    llvm::errs() << "$$ PTD : " << ptd << " Global variable: " << *v << " : " << idx << " : " << *v << " : " << SVFUtil::getSourceLoc(v) << "\n";
+                }
+            } else {
+                llvm::errs() << "$$ PTD : " << ptd << "PTD Dummy node: " << ptd << " : " << idx << "\n";
+            }
+            
+        }
+        llvm::errs() << "$$ ------------\n";
+    }
+
     if (unionPts(dstId, tmpDstPts))
     {
         pushIntoWorklist(dstId);
@@ -530,7 +541,6 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
  */
 inline void Andersen::collapsePWCNode(NodeID nodeId)
 {
-    llvm::errs() << "Collapsing PWC node " << consCG->isPWCNode(nodeId) << "\n";
     // If a node is a PWC node, collapse all its points-to tarsget.
     // collapseNodePts() may change the points-to set of the nodes which have been processed
     // before, in this case, we may need to re-do the analysis.
@@ -542,13 +552,15 @@ inline void Andersen::collapseFields()
 {
     while (consCG->hasNodesToBeCollapsed())
     {
-        llvm::errs() << "Collapsing fields\n";
+        //llvm::errs() << "Collapsing fields\n";
         NodeID node = consCG->getNextCollapseNode();
+        /*
         if (consCG->isStructTy(node)) {
             llvm::errs() << "Collapsing struct type object\n";
         } else if (consCG->isArrayTy(node)) {
             llvm::errs() << "Collapsing array type object\n";
         }
+        */
         // collapseField() may change the points-to set of the nodes which have been processed
         // before, in this case, we may need to re-do the analysis.
         if (collapseField(node))
@@ -676,39 +688,40 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
             isPWC = true;
         } else {
         */
-            for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++) {
-                NodeID subNodeId = *nodeIt;
-                ConstraintNode* subNode = consCG->getConstraintNode(subNodeId);
-                for (ConstraintNode::const_iterator it = subNode->InEdgeBegin(), eit = subNode->InEdgeEnd(); it != eit; ++it) {
-                    ConstraintEdge* subInEdge = *it;
-                    if (sccRepNode(subInEdge->getSrcID()) == repNodeId) {
-                        if (SVFUtil::isa<GepCGEdge>(subInEdge)) {
-                            isPWC = !consCG->isZeroOffsettedGepCGEdge(subInEdge);
-                            if (isPWC) break;
-                        }
-                    }
-                }
-                if (isPWC) break; // no need to check more
-                for (ConstraintNode::const_iterator it = subNode->OutEdgeBegin(), eit = subNode->OutEdgeEnd(); it != eit;
-                        ++it)
-                {
-                    ConstraintEdge* subOutEdge = *it;
-                    if(sccRepNode(subOutEdge->getDstID()) == repNodeId) {
-                        if (SVFUtil::isa<GepCGEdge>(subOutEdge)) {
-                            isPWC = !consCG->isZeroOffsettedGepCGEdge(subOutEdge);
-                            if (isPWC) break;
-                        }
+        for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++) {
+            NodeID subNodeId = *nodeIt;
+            ConstraintNode* subNode = consCG->getConstraintNode(subNodeId);
+            for (ConstraintNode::const_iterator it = subNode->InEdgeBegin(), eit = subNode->InEdgeEnd(); it != eit; ++it) {
+                ConstraintEdge* subInEdge = *it;
+                if (sccRepNode(subInEdge->getSrcID()) == repNodeId) {
+                    if (SVFUtil::isa<GepCGEdge>(subInEdge)) {
+                        isPWC = !consCG->isZeroOffsettedGepCGEdge(subInEdge);
+                        if (isPWC) break;
                     }
                 }
             }
+            if (isPWC) break; // no need to check more
+            for (ConstraintNode::const_iterator it = subNode->OutEdgeBegin(), eit = subNode->OutEdgeEnd(); it != eit;
+                    ++it)
+            {
+                ConstraintEdge* subOutEdge = *it;
+                if(sccRepNode(subOutEdge->getDstID()) == repNodeId) {
+                    if (SVFUtil::isa<GepCGEdge>(subOutEdge)) {
+                        isPWC = !consCG->isZeroOffsettedGepCGEdge(subOutEdge);
+                        if (isPWC) break;
+                    }
+                }
+            }
+        }
         //}
     }
 
     /*
-    if (!isPWC && subNodes.count() > 1) {
-        llvm::errs() << "Cycle dump -----------------\n";
+    if (isPWC && subNodes.count() > 1) {
+        llvm::errs() << "PWC Cycle dump -----------------\n";
     }
     */
+
     std::set<const Function*> cycleFuncSet;
     for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
     {
@@ -808,7 +821,7 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
  */
 bool Andersen::collapseNodePts(NodeID nodeId)
 {
-    llvm::errs() << "Collapsing node pts\n";
+    //llvm::errs() << "Collapsing node pts\n";
     bool changed = false;
     const PointsTo& nodePts = getPts(nodeId);
     /// Points to set may be changed during collapse, so use a clone instead.
@@ -1317,6 +1330,50 @@ bool Andersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId, std::vector<Constra
     /// union pts of node to rep
     updatePropaPts(newRepId, nodeId);
     unionPts(newRepId,nodeId);
+
+    if (Options::LogAll) {
+        llvm::errs() << "--------\n";
+        llvm::errs() << "Merging " << nodeId << " to rep " << newRepId << "\n";
+        const PointsTo& ptd = getPts(newRepId);
+        PAGNode* mergeeNode = pag->getPAGNode(nodeId);
+        PAGNode* repNode = pag->getPAGNode(newRepId);
+
+        int idx = -1;
+        if (GepObjPN* gepNode = SVFUtil::dyn_cast<GepObjPN>(mergeeNode)) {
+            idx = gepNode->getLocationSet().getOffset();
+        }
+
+        if (mergeeNode->hasValue()) {
+            Value* ptrValue = const_cast<Value*>(mergeeNode->getValue());
+            if (Function* f = SVFUtil::dyn_cast<Function>(ptrValue)) {
+                llvm::errs() << "MERGEE : " << nodeId << " Function : " << f->getName() << " : " << SVFUtil::getSourceLoc(f) << "\n";
+            } else if (Instruction* I = SVFUtil::dyn_cast<Instruction>(ptrValue)) {
+                llvm::errs() << "MERGEE : " << nodeId << " Stack object: " << *I << " : " << idx << " : " << I->getFunction()->getName() << SVFUtil::getSourceLoc(I) << "\n";
+
+            } else if (GlobalVariable* v = SVFUtil::dyn_cast<GlobalVariable>(ptrValue)) {
+                llvm::errs() << "MERGEE : " << nodeId << " Global variable: " << *v << " : " << idx << " : " << *v << " : " << SVFUtil::getSourceLoc(v) << "\n";
+            }
+        } else {
+            llvm::errs() << "MERGEE : " << nodeId << "MERGEE Dummy node: " << idx << "\n";
+        }
+
+        if (GepObjPN* gepNode = SVFUtil::dyn_cast<GepObjPN>(repNode)) {
+            idx = gepNode->getLocationSet().getOffset();
+        }
+        if (repNode->hasValue()) {
+            Value* ptrValue = const_cast<Value*>(repNode->getValue());
+            if (Function* f = SVFUtil::dyn_cast<Function>(ptrValue)) {
+                llvm::errs() << "REP: " << newRepId << " Function : " << f->getName() << "\n";
+            } else if (Instruction* I = SVFUtil::dyn_cast<Instruction>(ptrValue)) {
+                llvm::errs() << "REP: " << newRepId << " Stack object: " << *I << " : " << idx << " : " << I->getFunction()->getName() << " : " << SVFUtil::getSourceLoc(I) << "\n";
+            } else if (GlobalVariable* v = SVFUtil::dyn_cast<GlobalVariable>(ptrValue)) {
+                llvm::errs() << "REP: " << newRepId << " Global variable: " << *v << " : " << idx << " : " << *v << " : " << SVFUtil::getSourceLoc(v) << "\n";
+            }
+        } else {
+            llvm::errs() << "REP: " << newRepId << "REP Dummy node: " << idx << "\n";
+        }
+        llvm::errs() << "--------\n";
+    }
 
     /// move the edges from node to rep, and remove the node
     ConstraintNode* node = consCG->getConstraintNode(nodeId);

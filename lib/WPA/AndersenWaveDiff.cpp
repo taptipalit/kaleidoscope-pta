@@ -197,6 +197,73 @@ bool AndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge* edge)
     assert((SVFUtil::isa<CopyCGEdge>(edge)) && "not copy/call/ret ??");
     NodeID dst = edge->getDstID();
     const PointsTo& srcDiffPts = getDiffPts(node);
+    if (Options::LogAll) {
+        llvm::errs() << "$$ ------------\n";
+        NodeID src = edge->getSrcID();
+        NodeID dst = edge->getDstID();
+
+        llvm::errs() << "$$ Solving copy edge between: " << src << " and " << dst << "\n";
+
+        PAGNode* srcNode = pag->getPAGNode(src);
+        PAGNode* dstNode = pag->getPAGNode(dst);
+
+        if (srcNode->hasValue()) {
+            const Value* srcVal = srcNode->getValue();
+            llvm::errs() << "$$ Src value: " << *srcVal << " : " << SVFUtil::getSourceLoc(srcVal) << "\n";
+        }
+
+        if (dstNode->hasValue()) {
+            const Value* dstVal = dstNode->getValue();
+            llvm::errs() << "$$ Dst value: " << *dstVal << " : " << SVFUtil::getSourceLoc(dstVal) << "\n";
+        }
+
+        if (edge->getLLVMValue()) {
+            Value* copyVal = edge->getLLVMValue();
+            if (Instruction* inst = SVFUtil::dyn_cast<Instruction>(copyVal)) {
+                llvm::errs() << "$$ Processing copy edge: [PRIMARY] : " << edge->getEdgeID() << " : " << *inst << " : " << inst->getFunction()->getName() << " : " << SVFUtil::getSourceLoc(inst) << "\n";
+            } else {
+                llvm::errs() << "$$ Processing copy edge: [PRIMARY] : " << edge->getEdgeID() << " : " << *copyVal << "\n";
+            }
+        } else {
+            llvm::errs() << "$$ Processing copy edge: [DERIVED/GLOBAL] : " << edge->getEdgeID() << " : " ;
+            if (edge->getSourceEdge()) {
+                llvm::errs() << edge->getSourceEdge()->getEdgeID() << " : ";
+                Value* sourceVal = edge->getSourceEdge()->getLLVMValue();
+                if (sourceVal) {
+                    if (Instruction* sourceInst = SVFUtil::dyn_cast<Instruction>(sourceVal)) {
+                        llvm::errs() << *sourceInst << " : " << sourceInst->getFunction()->getName() << "\n";
+                    } else {
+                        llvm::errs() << *sourceVal << "\n";
+                    }
+                } else {
+                    llvm::errs() << "$$ NO SOURCE VAL\n";
+                }
+            } else {
+                llvm::errs() << "$$ NO SOURCE EDGE\n";
+            }
+        }
+        for (NodeBS::iterator nodeIt = srcDiffPts.begin(); nodeIt != srcDiffPts.end(); nodeIt++) {
+            NodeID ptd = *nodeIt;
+            PAGNode* pagNode = pag->getPAGNode(ptd);
+            int idx = -1;
+            if (GepObjPN* gepNode = SVFUtil::dyn_cast<GepObjPN>(pagNode)) {
+                idx = gepNode->getLocationSet().getOffset();
+            }
+            if (pagNode->hasValue()) {
+                Value* ptdValue = const_cast<Value*>(pagNode->getValue());
+                if (Function* f = SVFUtil::dyn_cast<Function>(ptdValue)) {
+                    llvm::errs() << "$$ PTD : " << ptd << " Function : " << f->getName() << "\n";
+                } else if (Instruction* I = SVFUtil::dyn_cast<Instruction>(ptdValue)) {
+                    llvm::errs() << "$$ PTD : " << ptd << " Stack object: " << *I << " : " << idx << " : " << I->getFunction()->getName() << "\n";
+                } else if (GlobalVariable* v = SVFUtil::dyn_cast<GlobalVariable>(ptdValue)) {
+                    llvm::errs() << "$$ PTD : " << ptd << " Global variable: " << *v << " : " << idx << " : " << *v << "\n";
+                }
+            } else {
+                llvm::errs() << "$$ PTD : " << ptd << "PTD Dummy node: " << ptd << " : " << idx << "\n";
+            }
+            
+        }
+    }
     processCast(edge);
     if(unionPts(dst,srcDiffPts))
     {

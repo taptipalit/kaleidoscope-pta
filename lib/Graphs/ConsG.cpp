@@ -335,6 +335,7 @@ void ConstraintGraph::reTargetDstOfEdge(ConstraintEdge* edge, ConstraintNode* ne
         ConstraintEdge* newEdge = addCopyCGEdge(srcId,newDstNodeID);
         if (newEdge) {
             newEdge->setLLVMValue(oldValue);
+            newEdge->setSourceEdge(edge->getSourceEdge());
         }
     }
     else if(NormalGepCGEdge* gep = SVFUtil::dyn_cast<NormalGepCGEdge>(edge))

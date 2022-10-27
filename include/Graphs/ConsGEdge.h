@@ -96,7 +96,7 @@ public:
         origEdge = edge;
     }
 
-    ConstraintEdge* getSourceEdge() {
+    ConstraintEdge* getSourceEdge() const {
         return origEdge;
     }
 

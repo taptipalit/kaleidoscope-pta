@@ -381,6 +381,21 @@ protected:
         ConstraintEdge* copyEdge = consCG->addCopyCGEdge(src, dst);
         if (copyEdge)
         {
+            if (Options::LogAll) {
+                llvm::errs() << "$$ ------\n";
+                llvm::errs() << "$$ Adding copy edge : " << copyEdge->getEdgeID() << " : " << " between (" << src << "," << dst << ") : for " << sourceEdge->getEdgeID() << "\n";
+                if (Value* val = sourceEdge->getLLVMValue()) {
+                    if (Instruction* inst = SVFUtil::dyn_cast<Instruction>(val)) {
+                        llvm::errs() << "$$ Source edge inst: " << *inst << " : " << inst->getFunction()->getName() << " : " << SVFUtil::getSourceLoc(inst) << "\n";
+                    } else {
+                        llvm::errs() << "$$ Source edge val: " << *val << SVFUtil::getSourceLoc(val) << "\n";
+                    }
+                } else {
+                    llvm::errs() << "$$ NO SOURCE VAL\n";
+                }
+                llvm::errs() << "$$ ------\n";
+            }
+
             copyEdge->setDerivedWeight(derivedWeight);
             copyEdge->setSourceEdge(sourceEdge);
             updatePropaPts(src, dst);

@@ -36,7 +36,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "llvm/IR/InstIterator.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "Util/Options.h"
-
+#include "llvm/IR/InstIterator.h"
 
 #include "SVF-FE/HeapTypeAnalyzer.h"
 
@@ -101,9 +101,13 @@ void HeapTypeAnalyzer::removePoolAllocatorBody(Module& module) {
                 F->deleteBody();
             }
             */
-            if (F->getName().startswith("ngx_log_error_core")) {
+            /*
+            if (F->getName().startswith("ngx_log_error_core")
+                    || F->getName().startswith("config")
+                    || F->getName().startswith("array_insert_unique")) {
                 F->deleteBody();
             }
+            */
         }
     }
 
@@ -664,6 +668,28 @@ void HeapTypeAnalyzer::findHeapContexts (Module& M) {
 
 bool
 HeapTypeAnalyzer::runOnModule (Module & module) {
+    /*
+    // Replace all invariant geps with 1-field index
+
+    IntegerType* i64Ty = IntegerType::get(module.getContext(), 64);
+    Constant* oneCons = ConstantInt::get(i64Ty, 1);
+
+    for (Function& F: module.getFunctionList()) {
+        for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
+            Instruction* inst = &*I;
+            if (GetElementPtrInst* gep = SVFUtil::dyn_cast<GetElementPtrInst>(inst)) {
+                int i = 0;
+                for (auto& it: gep->indices()) {
+                    Value& op = *it;
+                    if (!SVFUtil::isa<Constant>(&op)) {
+                        gep->setOperand(i+1, oneCons);
+                    }
+                    i++;
+                }
+            }
+        }
+    }
+    */
     /*
     llvm::CFLAndersAAWrapperPass& aaPass = getAnalysis<llvm::CFLAndersAAWrapperPass>();
     llvm::CFLAndersAAResult& aaResult = aaPass.getResult();

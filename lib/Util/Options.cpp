@@ -22,6 +22,11 @@ namespace SVF
             llvm::cl::init(true),
             llvm::cl::desc("Short circuit"));
 
+    llvm::cl::opt<bool> Options::LogAll(
+            "log-all",
+            llvm::cl::init(true),
+            llvm::cl::desc("Log everything"));
+
     llvm::cl::opt<bool> Options::DumpCFIStat(
             "dump-cfi-stat",
             llvm::cl::init(true),
