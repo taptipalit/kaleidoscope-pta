@@ -662,11 +662,6 @@ void Andersen::handlePointersAsPA(std::set<const llvm::Value*>* gepsInPWC) {
 void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
 {
     std::vector<ConstraintEdge*> criticalGepEdges;
-    std::vector<ConstraintEdge*> criticalGepEdgesDiscard; // This one is collected while merging. 
-                                                          // Don't want to change the API right now and 
-                                                          // deal with that shit. 
-                                                          // So I'm just discarding it.
-
     std::vector<PAGNode*> subPAGNodes;
     bool treatAsPAInv = false;
     bool inLoop = false;
@@ -676,42 +671,7 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
     // Check if there's going to be a PWC
     // If yes, then don't collapse
 
-    bool isPWC = false;
     
-    if (Options::InvariantPWC) {
-        for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++) {
-            NodeID subNodeId = *nodeIt;
-            ConstraintNode* subNode = consCG->getConstraintNode(subNodeId);
-            for (ConstraintNode::const_iterator it = subNode->InEdgeBegin(), eit = subNode->InEdgeEnd(); it != eit; ++it) {
-                ConstraintEdge* subInEdge = *it;
-                if (sccRepNode(subInEdge->getSrcID()) == repNodeId) {
-                    if (SVFUtil::isa<GepCGEdge>(subInEdge)) {
-                        isPWC = !consCG->isZeroOffsettedGepCGEdge(subInEdge);
-                        if (isPWC) break;
-                    }
-                }
-            }
-            if (isPWC) break; // no need to check more
-            for (ConstraintNode::const_iterator it = subNode->OutEdgeBegin(), eit = subNode->OutEdgeEnd(); it != eit;
-                    ++it)
-            {
-                ConstraintEdge* subOutEdge = *it;
-                if(sccRepNode(subOutEdge->getDstID()) == repNodeId) {
-                    if (SVFUtil::isa<GepCGEdge>(subOutEdge)) {
-                        isPWC = !consCG->isZeroOffsettedGepCGEdge(subOutEdge);
-                        if (isPWC) break;
-                    }
-                }
-            }
-        }
-        //}
-    }
-
-    if (Options::DumpCycle) {
-        if (subNodes.count() > 1) {
-            llvm::errs() << "Cycle dump ----------------- isPWC: " << isPWC << "\n";
-        }
-    }
 
     std::set<const Function*> cycleFuncSet;
     for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
@@ -735,7 +695,7 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
         subPAGNodes.push_back(pagNode);
 
         if (subNodeId != repNodeId) {
-            mergeNodeToRep(subNodeId, repNodeId, criticalGepEdgesDiscard);
+            mergeNodeToRep(subNodeId, repNodeId, criticalGepEdges);
         }
     }
 
