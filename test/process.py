@@ -6,12 +6,13 @@ import subprocess
 import re
 
 class Value:
-    def __init__(self, valName, dLoc):
+    def __init__(self, valName, ln, fl):
         self.valName = valName
-        self.dLoc = dLoc
+        self.ln = ln
+        self.fl = fl
 
     def __str__(self):
-        return self.valName
+        return "%s [ %s %s ]" % (self.valName, self.fl, self.ln)
 
 class Copy:
     def __init__(self, srcID, dstID):
@@ -30,8 +31,11 @@ class Copy:
     def setPtdSet(self, ptdSet):
         self.ptdSet = ptdSet
 
+    def setOrigVal(self, v):
+        self.origVal = v
+
     def __str__(self): 
-        return "%s --> %s" % (self.srcVal, self.dstVal) 
+        return "%s --> %s { %s }" % (self.srcVal, self.dstVal, self.origVal) 
 
 class Gep:
     def __init__(self, srcID, dstID):
@@ -56,14 +60,38 @@ class Gep:
     def __str__(self): 
         return "%s --> %s" % (self.srcVal, self.dstVal) 
 
+def parseDloc(dloc):
+    tokens = dloc.split()
+    # print(tokens)
+    if len(tokens) < 3:
+        return ("0", "0")
+    if "Glob" in dloc:
+        ln = tokens[2]
+        fl = tokens[4]
+    else:
+        if "cl" in dloc:
+            ln = tokens[1]
+            fl = tokens[5]
+        else:
+            ln = tokens[1]
+            fl = tokens[3]
+    return (ln, fl)
 
 def parseVal(line):
     # print (line)
     tokens = line.split(":")
-    # dloc = re.search('{(.*)}', line).group(1)
-    v = Value(tokens[1], tokens[2])
+    dloc = re.search('{(.*)}', line).group(1)
+    (ln, fl) = parseDloc(dloc)
+    v = Value(tokens[1], ln, fl)
     return v
-        
+
+def parseVal2(line):
+    tokens = line.split(":")
+    valStr = tokens[4]
+    dloc = re.search('{(.*)}', line).group(1)
+    (ln, fl) = parseDloc(dloc)
+    v = Value(valStr, ln, fl)
+    return v
 
 def process(filename, tgt):
     file = open(filename, 'r')
@@ -87,8 +115,14 @@ def process(filename, tgt):
                 copy.setSrc(srcVal)
                 copy.setDst(dstVal)
                 # Processing cpoy edge: [PRIMARY] / [DERIVED]
+                i = i + 1
+                if "DERIVED" in lines[i] and ("NO SOURCE" not in lines[i]):
+                    v = parseVal2(lines[i])
+                    copy.setOrigVal(v)
+                else:
+                    copy.setOrigVal(None)
                 # PTD
-                temp = i + 2
+                temp = i + 1
                 ptdSet = []
                 while "PTD" in lines[temp]:
                     ptdSet.append(lines[temp])

@@ -231,9 +231,9 @@ bool AndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge* edge)
                 Value* sourceVal = edge->getSourceEdge()->getLLVMValue();
                 if (sourceVal) {
                     if (Instruction* sourceInst = SVFUtil::dyn_cast<Instruction>(sourceVal)) {
-                        llvm::errs() << *sourceInst << " : " << sourceInst->getFunction()->getName() << "\n";
+                        llvm::errs() << *sourceInst << " : " << sourceInst->getFunction()->getName() << " : " << SVFUtil::getSourceLoc(sourceInst) << "\n";
                     } else {
-                        llvm::errs() << *sourceVal << "\n";
+                        llvm::errs() << *sourceVal << " : " << SVFUtil::getSourceLoc(sourceVal) << "\n";
                     }
                 } else {
                     llvm::errs() << "$$ NO SOURCE VAL\n";
