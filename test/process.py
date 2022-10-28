@@ -5,14 +5,29 @@ import sys
 import subprocess
 import re
 
+LLVM_ONLY=False
+C_ONLY=True
+LLVM_AND_C=False
+
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
 class Value:
-    def __init__(self, valName, ln, fl):
-        self.valName = valName
-        self.ln = ln
-        self.fl = fl
+    def __init__(self, valName, ln, fl, cSourceLine):
+        self.valName = valName.strip()
+        self.ln = ln.strip()
+        self.fl = fl.strip()
+        self.cSourceLine = cSourceLine.strip()
 
     def __str__(self):
-        return "%s [ %s %s ]" % (self.valName, self.fl, self.ln)
+        if LLVM_AND_C:
+            formatStr = "%s [ %s %s ] " + RED + "(%s)" + NC
+            return formatStr % (self.valName, self.fl, self.ln, self.cSourceLine)
+        elif C_ONLY:
+            return "%s [%s %s]" % (self.cSourceLine, self.fl, self.ln)
+        else:
+            return "%s [ %s %s ]" % (self.valName, self.fl, self.ln)
+
 
 class Copy:
     def __init__(self, srcID, dstID):
@@ -35,7 +50,7 @@ class Copy:
         self.origVal = v
 
     def __str__(self): 
-        return "%s --> %s { %s }" % (self.srcVal, self.dstVal, self.origVal) 
+        return "%s --(copy)--> %s { %s }" % (self.srcVal, self.dstVal, self.origVal) 
 
 class Gep:
     def __init__(self, srcID, dstID):
@@ -58,7 +73,7 @@ class Gep:
         self.fldIdx = fldIdx
 
     def __str__(self): 
-        return "%s --> %s" % (self.srcVal, self.dstVal) 
+        return "%s --(gep)--> %s" % (self.srcVal, self.dstVal) 
 
 def parseDloc(dloc):
     tokens = dloc.split()
@@ -77,26 +92,27 @@ def parseDloc(dloc):
             fl = tokens[3]
     return (ln, fl)
 
-def parseVal(line):
+def parseVal(line, sourceDir):
     # print (line)
     tokens = line.split(":")
     dloc = re.search('{(.*)}', line).group(1)
     (ln, fl) = parseDloc(dloc)
-    v = Value(tokens[1], ln, fl)
+    result = subprocess.run(['../grok.sh', sourceDir, fl, ln], stdout = subprocess.PIPE)
+    v = Value(tokens[1], ln, fl, result.stdout.decode('utf-8').strip())
     return v
 
-def parseVal2(line):
+def parseVal2(line, sourceDir):
     tokens = line.split(":")
     valStr = tokens[4]
     dloc = re.search('{(.*)}', line).group(1)
     (ln, fl) = parseDloc(dloc)
-    v = Value(valStr, ln, fl)
+    result = subprocess.run(['../grok.sh', sourceDir, fl, ln], stdout = subprocess.PIPE)
+    v = Value(valStr, ln, fl, result.stdout.decode('utf-8').strip())
     return v
 
-def process(filename, tgt):
+def process(filename, tgt, sourceDir):
     file = open(filename, 'r')
     lines = file.readlines()
-
     copys = []
     geps = []
     for i in range(len(lines)): # We want to modify i inside the loop
@@ -108,16 +124,16 @@ def process(filename, tgt):
                 copy = Copy(src, dst)
                 # Src value: ...
                 i = i + 1
-                srcVal = parseVal(lines[i])
+                srcVal = parseVal(lines[i], sourceDir)
                 # Dst value: ...
                 i = i + 1
-                dstVal = parseVal(lines[i])
+                dstVal = parseVal(lines[i], sourceDir)
                 copy.setSrc(srcVal)
                 copy.setDst(dstVal)
                 # Processing cpoy edge: [PRIMARY] / [DERIVED]
                 i = i + 1
                 if "DERIVED" in lines[i] and ("NO SOURCE" not in lines[i]):
-                    v = parseVal2(lines[i])
+                    v = parseVal2(lines[i], sourceDir)
                     copy.setOrigVal(v)
                 else:
                     copy.setOrigVal(None)
@@ -135,10 +151,10 @@ def process(filename, tgt):
                 gep = Gep(src, dst)
                 i = i + 1
                 # print("here>>" + lines[i])
-                srcVal = parseVal(lines[i])
+                srcVal = parseVal(lines[i], sourceDir)
                 i = i + 1
                 # print("here2>>" + lines[i])
-                dstVal = parseVal(lines[i])
+                dstVal = parseVal(lines[i], sourceDir)
                 gep.setSrc(srcVal)
                 gep.setDst(dstVal)
                 temp = i + 2
@@ -149,7 +165,6 @@ def process(filename, tgt):
                 i = temp - 1
                 gep.setPtdSet(ptdSet)
                 geps.append(gep)
-
     for copy in copys:
         for ptd in copy.ptdSet:
             if tgt in ptd:
@@ -160,6 +175,5 @@ def process(filename, tgt):
             if tgt in ptd:
                 print (gep)
 
-
 if __name__ == "__main__":
-    process(sys.argv[1], sys.argv[2])
+    process(sys.argv[1], sys.argv[2], sys.argv[3])
