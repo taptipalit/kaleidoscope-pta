@@ -6,11 +6,14 @@ import subprocess
 import re
 
 LLVM_ONLY=False
-C_ONLY=True
-LLVM_AND_C=False
+C_ONLY=False
+LLVM_AND_C=True
 
-RED='\033[0;31m'
-NC='\033[0m' # No Color
+#RED='\033[0;31m'
+#NC='\033[0m' # No Color
+
+RED=''
+NC=''
 
 class Value:
     def __init__(self, valName, ln, fl, cSourceLine):

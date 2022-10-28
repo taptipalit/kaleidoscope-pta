@@ -677,17 +677,8 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
     // If yes, then don't collapse
 
     bool isPWC = false;
-    /*
-    if (subNodes.count() > 5000) {
-        isPWC = true;
-    }
-    */
+    
     if (Options::InvariantPWC) {
-        /*
-        if (subNodes.count() > 5000) {
-            isPWC = true;
-        } else {
-        */
         for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++) {
             NodeID subNodeId = *nodeIt;
             ConstraintNode* subNode = consCG->getConstraintNode(subNodeId);
@@ -716,19 +707,18 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
         //}
     }
 
-    /*
-    if (isPWC && subNodes.count() > 1) {
-        llvm::errs() << "PWC Cycle dump -----------------\n";
+    if (Options::DumpCycle) {
+        if (subNodes.count() > 1) {
+            llvm::errs() << "Cycle dump ----------------- isPWC: " << isPWC << "\n";
+        }
     }
-    */
 
     std::set<const Function*> cycleFuncSet;
     for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
     {
         NodeID subNodeId = *nodeIt;
         PAGNode* pagNode = pag->getPAGNode(subNodeId);
-        /*
-        if (!isPWC) {
+        if (Options::DumpCycle) {
             if (subNodes.count() > 1) {
                 if (pagNode->hasValue()) {
                     const Value* v = pagNode->getValue();
@@ -741,37 +731,14 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                 }
             }
         }
-        */
-
-        
 
         subPAGNodes.push_back(pagNode);
 
         if (subNodeId != repNodeId) {
             mergeNodeToRep(subNodeId, repNodeId, criticalGepEdgesDiscard);
         }
-        /*
-        if (!Options::InvariantPWC) {
-            if (subNodeId != repNodeId)
-            {
-                mergeNodeToRep(subNodeId, repNodeId, criticalGepEdgesDiscard);
-            }
-        } else {
-            if (!isPWC) {
-                if (subNodeId != repNodeId)
-                {
-                    mergeNodeToRep(subNodeId, repNodeId, criticalGepEdgesDiscard);
-                }
-            }
-        }
-        */
     }
 
-    /*
-    if (cycleFuncSet.size() > 1) {
-        llvm::errs() << "Cross function cycle found\n";
-    }
-    */
     std::set<const llvm::Value*>* gepNodesInSCC = new std::set<const llvm::Value*>();
     if (criticalGepEdges.size() > 0) {
         if (Options::InvariantPWC) {

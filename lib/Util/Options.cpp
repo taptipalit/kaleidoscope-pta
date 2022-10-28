@@ -17,6 +17,11 @@ namespace SVF
                 llvm::cl::desc("Only debug the functions listed here"),
                 llvm::cl::CommaSeparated, llvm::cl::Hidden);
 
+    llvm::cl::opt<bool> Options::DumpCycle(
+            "dump-cycle",
+            llvm::cl::init(false),
+            llvm::cl::desc("Dump Cycle"));
+
     llvm::cl::opt<bool> Options::ShortCircuit(
             "short-circuit",
             llvm::cl::init(true),

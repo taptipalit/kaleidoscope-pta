@@ -445,7 +445,7 @@ void ConstraintGraph::removeLoadEdge(LoadCGEdge* edge)
     getConstraintNode(edge->getSrcID())->removeOutgoingLoadEdge(edge);
     getConstraintNode(edge->getDstID())->removeIncomingLoadEdge(edge);
     Size_t num = LoadCGEdgeSet.erase(edge);
-    delete edge;
+    //    delete edge;
     assert(num && "edge not in the set, can not remove!!!");
 }
 
@@ -457,7 +457,7 @@ void ConstraintGraph::removeStoreEdge(StoreCGEdge* edge)
     getConstraintNode(edge->getSrcID())->removeOutgoingStoreEdge(edge);
     getConstraintNode(edge->getDstID())->removeIncomingStoreEdge(edge);
     Size_t num = StoreCGEdgeSet.erase(edge);
-    delete edge;
+    //    delete edge;
     assert(num && "edge not in the set, can not remove!!!");
 }
 
