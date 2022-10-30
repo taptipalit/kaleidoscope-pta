@@ -15,7 +15,8 @@ void dothis(void**s, void** p) {
 void (*indcall)() = dothis;
 
 int main(void) {
-    struct Object* p = malloc(1024);
+    struct Object obj;
+    struct Object* p = &obj;
     int** s;
     p->field0 = &a;
     p->field1 = &b;

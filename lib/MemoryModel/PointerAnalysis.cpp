@@ -398,6 +398,7 @@ void PointerAnalysis::printIndCSTargets(const CallBlockNode* cs, const FunctionS
     outs() << "\tLocation: " << SVFUtil::getSourceLoc(cs->getCallSite());
     outs() << "\t with Targets: ";
 
+
     if (!targets.empty())
     {
         FunctionSet::const_iterator fit = targets.begin();
@@ -414,6 +415,7 @@ void PointerAnalysis::printIndCSTargets(const CallBlockNode* cs, const FunctionS
     }
 
     outs() << "\n";
+
 }
 
 /*!

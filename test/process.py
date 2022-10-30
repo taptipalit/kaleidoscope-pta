@@ -144,18 +144,19 @@ def parseVal2(line, sourceDir):
     return v
 
 def parseVal3(line, sourceDir):
-    return
-"""
-    print (line)
     tokens = line.split(":")
     valStr = tokens[2]
-    
-    dloc = re.search('{(.*)}', line).group(1)
-    (ln, fl) = parseDloc(dloc)
-    result = subprocess.run(['../grok.sh', sourceDir, fl, ln], stdout = subprocess.PIPE)
-    v = Value(valStr, ln, fl, result.stdout.decode('utf-8').strip())
+    matches = re.search('{(.*)}', line)
+    if matches is not None:
+        dloc = re.search('{(.*)}', line).group(1)
+        (ln, fl) = parseDloc(dloc)
+        result = subprocess.run(['../grok.sh', sourceDir, fl, ln], stdout = subprocess.PIPE)
+        v = Value(valStr, ln, fl, result.stdout.decode('utf-8').strip())
+    else:
+        ln = "0"
+        fl = "0"
+        v = Value(valStr, ln, fl, "")
     return v
-"""
 
 def process(filename, tgt, sourceDir):
     file = open(filename, 'r')
@@ -164,7 +165,8 @@ def process(filename, tgt, sourceDir):
     geps = []
     for i in range(len(lines)): # We want to modify i inside the loop
         line = lines[i]
-        print("Processing: " + str(i) + " out of " + str(len(lines)) + " " + str ((float(i)/float(len(lines))*100.0)) + "%")
+        if (i % 10) == 0:
+            print("Processing: " + str(i) + " out of " + str(len(lines)) + " " + str ((float(i)/float(len(lines))*100.0)) + "%")
         if line.startswith("$$"):
             line = line[3:]
             if "Solving copy edge" in line:
@@ -215,13 +217,15 @@ def process(filename, tgt, sourceDir):
                 geps.append(gep)
     for copy in copys:
         for ptd in copy.ptdSet:
-        #if tgt in ptd:
-            print (copy)
+            print(ptd.valName + " looking for " + tgt)
+            if tgt in ptd.valName:
+                print (copy)
 
     for gep in geps:
         for ptd in gep.ptdSet:
-        #if tgt in ptd:
-            print (gep)
+            print(ptd.valName + " looking for " + tgt)
+            if tgt in ptd.valName:
+                print (gep)
 
 if __name__ == "__main__":
     process(sys.argv[1], sys.argv[2], sys.argv[3])

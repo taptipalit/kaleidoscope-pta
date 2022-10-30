@@ -189,7 +189,12 @@ void WPAPass::collectCFI(SVFModule* svfModule, Module& M, bool woInv) {
     for (auto it: *indCallMap) {
         CallInst* cInst = it.first;
         int sz = it.second.size();
+        llvm::errs() << "[DUMPING IND CALL] Function: " << cInst->getFunction()->getName() << " : ";
+        for (Function* tgt: it.second) {
+            llvm::errs() << tgt->getName() << ", ";
+        }
         (*histogram)[sz]++;
+        llvm::errs() << "\n";
     }
 
   
