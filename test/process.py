@@ -4,6 +4,8 @@ import os
 import sys
 import subprocess
 import re
+import pickle
+from datetime import datetime
 
 LLVM_ONLY=False
 C_ONLY=False
@@ -118,7 +120,7 @@ def parseVal(line, sourceDir):
     if matches is not None:
         dloc = matches.group(1)
         (ln, fl) = parseDloc(dloc)
-        result = subprocess.run(['../grok.sh', sourceDir, fl, ln], stdout = subprocess.PIPE)
+        result = subprocess.run(['../grok.sh', sourceDir, fl, ln], stdout = subprocess.PIPE, stderr=subprocess.DEVNULL)
         v = Value(tokens[1], ln, fl, result.stdout.decode('utf-8').strip())
     else:
         ln = "0"
@@ -135,7 +137,7 @@ def parseVal2(line, sourceDir):
     if matches is not None:
         dloc = matches.group(1)
         (ln, fl) = parseDloc(dloc)
-        result = subprocess.run(['../grok.sh', sourceDir, fl, ln], stdout = subprocess.PIPE)
+        result = subprocess.run(['../grok.sh', sourceDir, fl, ln], stdout = subprocess.PIPE, stderr=subprocess.DEVNULL)
         v = Value(valStr, ln, fl, result.stdout.decode('utf-8').strip())
     else:
         ln = "0"
@@ -150,7 +152,7 @@ def parseVal3(line, sourceDir):
     if matches is not None:
         dloc = re.search('{(.*)}', line).group(1)
         (ln, fl) = parseDloc(dloc)
-        result = subprocess.run(['../grok.sh', sourceDir, fl, ln], stdout = subprocess.PIPE)
+        result = subprocess.run(['../grok.sh', sourceDir, fl, ln], stdout = subprocess.PIPE, stderr=subprocess.DEVNULL)
         v = Value(valStr, ln, fl, result.stdout.decode('utf-8').strip())
     else:
         ln = "0"
@@ -158,74 +160,117 @@ def parseVal3(line, sourceDir):
         v = Value(valStr, ln, fl, "")
     return v
 
-def process(filename, tgt, sourceDir):
-    file = open(filename, 'r')
-    lines = file.readlines()
+def process(filename, tgt, sourceDir, outfile, copysPickleFile = None, gepsPickleFile = None):
+    oFile = open(outfile, 'w')
+    if (copysPickleFile is not None) and (gepsPickleFile is not None):
+        with open(copysPickleFile, "rb") as pickleFile:
+            copys = pickle.load(pickleFile)
+        with open(gepsPickleFile, "rb") as pickleFile:
+            geps = pickle.load(pickleFile)
+        __process(copys, geps, oFile)
+    else:
+        print("Just collecting the records ... ")
+        file = open(filename, 'r')
+        lines = file.readlines()
+        records = []
+        beginRecord = False
+        for line in lines:
+            if beginRecord:
+                record.append(line)
+            if "$$ -----" in line:
+                if beginRecord:
+                    beginRecord = False
+                    records.append(record)
+                else:
+                    beginRecord = True
+                    record = []
+        print ("Number of records: " + str(len(records)))
+        """
+        for record in records:
+            print(record)
+            print()
+        """
+        _process(records, tgt, sourceDir, oFile)
+
+def _process(records, tgt, sourceDir, oFile):
     copys = []
     geps = []
-    for i in range(len(lines)): # We want to modify i inside the loop
-        line = lines[i]
-        if (i % 10) == 0:
-            print("Processing: " + str(i) + " out of " + str(len(lines)) + " " + str ((float(i)/float(len(lines))*100.0)) + "%")
-        if line.startswith("$$"):
-            line = line[3:]
-            if "Solving copy edge" in line:
-                (src, dst) = line.split(":")[1].split("and")
-                copy = Copy(src, dst)
-                # Src value: ...
-                i = i + 1
-                srcVal = parseVal(lines[i], sourceDir)
-                # Dst value: ...
-                i = i + 1
-                dstVal = parseVal(lines[i], sourceDir)
-                copy.setSrc(srcVal)
-                copy.setDst(dstVal)
-                # Processing cpoy edge: [PRIMARY] / [DERIVED]
-                i = i + 1
-                if "DERIVED" in lines[i] and ("NO SOURCE" not in lines[i]):
-                    v = parseVal2(lines[i], sourceDir)
-                    copy.setOrigVal(v)
-                else:
-                    copy.setOrigVal(None)
-                # PTD
-                temp = i + 1
+    for idx, record in enumerate(records):
+        printProgressBar(idx, len(records))
+        #print (record[0])
+        if "Solving copy edge" in record[0]:
+            # Has 4 lines at least
+            (src, dst) = record[0].split(":")[1].split("and")
+            copy = Copy(src, dst)
+            srcVal = parseVal(record[1], sourceDir)
+            dstVal = parseVal(record[2], sourceDir)
+            copy.setSrc(srcVal)
+            copy.setDst(dstVal)
+            if "DERIVED" in record[3] and ("NO SOURCE" not in record[3]):
+                v = parseVal2(record[3], sourceDir)
+                copy.setOrigVal(v)
+            else:
+                copy.setOrigVal(None)
+            if len(record) > 4:
+                # Has PTDs
                 ptdSet = []
-                while "PTD" in lines[temp]:
-                    ptdSet.append(parseVal3(lines[temp], sourceDir))
-                    temp = temp + 1
-                i = temp - 1
+                for line in record[4:]:
+                    if "PTD" in line:
+                        ptdSet.append(parseVal3(line, sourceDir))
                 copy.setPtdSet(ptdSet)
-                copys.append(copy)
-            if "Solving gep edge" in line:
-                (src, dst) = line.split(":")[1].split("and")
-                gep = Gep(src, dst)
-                i = i + 1
-                # print("here>>" + lines[i])
-                srcVal = parseVal(lines[i], sourceDir)
-                i = i + 1
-                # print("here2>>" + lines[i])
-                dstVal = parseVal(lines[i], sourceDir)
-                gep.setSrc(srcVal)
-                gep.setDst(dstVal)
-                temp = i + 2
+            else:
+                copy.setPtdSet([])
+            copys.append(copy)
+        if "Solving gep edge" in record[0]:
+            # Has 4 lines at least
+            (src, dst) = record[0].split(":")[1].split("and")
+            gep = Gep(src, dst)
+            srcVal = parseVal(record[1], sourceDir)
+            dstVal = parseVal(record[2], sourceDir)
+            gep.setSrc(srcVal)
+            gep.setDst(dstVal)
+            if len(record) > 4:
+                # Has PTDs
                 ptdSet = []
-                while "PTD" in lines[temp]:
-                    ptdSet.append(parseVal3(lines[temp], sourceDir))
-                    temp = temp + 1
-                i = temp - 1
+                for line in record[4:]:
+                    if "PTD" in line:
+                        ptdSet.append(parseVal3(line, sourceDir))
                 gep.setPtdSet(ptdSet)
-                geps.append(gep)
+            else:
+                gep.setPtdSet([])
+            geps.append(gep)
+
+    now = datetime.now()
+    day = now.strftime("%m_%d_%Y_%m_%h_%s")
+
+    with open(day+'_copys.pickle', 'wb') as pickleFile:
+        pickle.dump(copys, pickleFile)
+
+    with open(day+'_geps.pickle', 'wb') as pickleFile:
+        pickle.dump(geps, pickleFile)
+
+    __process(copys, geps, tgt, oFile)
+
+
+def __process(copys, geps, tgt, oFile):
     for copy in copys:
         for ptd in copy.ptdSet:
-            print(ptd.valName + " looking for " + tgt)
             if tgt in ptd.valName:
-                print (copy)
-
+                oFile.write(str(copy) + "\n")
     for gep in geps:
         for ptd in gep.ptdSet:
-            print(ptd.valName + " looking for " + tgt)
             if tgt in ptd.valName:
-                print (gep)
+                oFile.write(str(gep) + "\n")
+
+# Print iterations progress
+def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
+	percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+	filledLength = int(length * iteration // total)
+	bar = fill * filledLength + '-' * (length - filledLength)
+	print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd)
+	# Print New Line on Complete
+	if iteration == total: 
+		print()
 
 if __name__ == "__main__":
-    process(sys.argv[1], sys.argv[2], sys.argv[3])
+    process(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])

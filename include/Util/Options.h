@@ -28,6 +28,8 @@ public:
     static llvm::cl::opt<bool> InvariantVGEP;
     static llvm::cl::opt<bool> InvariantPWC;
     static llvm::cl::opt<bool> LogAll;
+    static llvm::cl::opt<bool> PreventCollapseExplosion;
+
 
     static const llvm::cl::opt<bool> KaliRunTestDriver;
     static llvm::cl::opt<bool> NoInvariants;

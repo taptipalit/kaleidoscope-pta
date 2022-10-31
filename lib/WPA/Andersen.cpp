@@ -448,8 +448,19 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
         // TODO: after the node is set to field insensitive, handling invariant
         // gep edge may lose precision because offsets here are ignored, and the
         // base object is always returned.
+
+        PAGNode* srcNode = pag->getPAGNode(normalGepEdge->getSrcID());
+
+
         for (NodeID o : pts)
         {
+            if (Options::PreventCollapseExplosion) {
+                //llvm::errs() << "Doing GEP for nodeid: " << srcNode->getId() << "\n";
+                if (srcNode->getDiffPtd().test(o)) {
+                    PAGNode* obj = pag->getPAGNode(o);
+                    llvm::errs() << "Must prevent explosion for :" << *obj << "\n";
+                }
+            }
             if (consCG->isBlkObjOrConstantObj(o))
             {
                 tmpDstPts.set(o);
@@ -1254,13 +1265,31 @@ bool Andersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId, std::vector<Constra
     if(nodeId==newRepId)
         return false;
 
+    if (Options::PreventCollapseExplosion) {
+        const PointsTo& repPtd = getPts(newRepId);
+        const PointsTo& nodePtd = getPts(nodeId);
+        PointsTo diffPtd = repPtd;
+        diffPtd.intersectWithComplement(nodePtd);
+        llvm::errs() << "Merging " << nodeId << " to rep " << newRepId << " with diffptd " << diffPtd.count () << "\n";
+        PAGNode* repNode = pag->getPAGNode(newRepId);
+        PointsTo gepDiffPtd;
+        for (NodeID o: diffPtd) {
+            PAGNode* obj = pag->getPAGNode(o);
+            if (GepObjPN* gep = SVFUtil::dyn_cast<GepObjPN>(obj)) {
+                gepDiffPtd.set(o);
+            }
+        }
+
+        repNode->updateDiffPtd(gepDiffPtd);
+    }
+
     /// union pts of node to rep
     updatePropaPts(newRepId, nodeId);
     unionPts(newRepId,nodeId);
 
     if (Options::LogAll) {
-        llvm::errs() << "--------\n";
-        llvm::errs() << "Merging " << nodeId << " to rep " << newRepId << "\n";
+        llvm::errs() << "$$ --------\n";
+        llvm::errs() << "$$ Merging " << nodeId << " to rep " << newRepId << "\n";
         const PointsTo& ptd = getPts(newRepId);
         PAGNode* mergeeNode = pag->getPAGNode(nodeId);
         PAGNode* repNode = pag->getPAGNode(newRepId);
@@ -1273,15 +1302,15 @@ bool Andersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId, std::vector<Constra
         if (mergeeNode->hasValue()) {
             Value* ptrValue = const_cast<Value*>(mergeeNode->getValue());
             if (Function* f = SVFUtil::dyn_cast<Function>(ptrValue)) {
-                llvm::errs() << "MERGEE : " << nodeId << " Function : " << f->getName() << " : " << SVFUtil::getSourceLoc(f) << "\n";
+                llvm::errs() << "$$ MERGEE : " << nodeId << " Function : " << f->getName() << " : " << SVFUtil::getSourceLoc(f) << "\n";
             } else if (Instruction* I = SVFUtil::dyn_cast<Instruction>(ptrValue)) {
-                llvm::errs() << "MERGEE : " << nodeId << " Stack object: " << *I << " : " << idx << " : " << I->getFunction()->getName() << SVFUtil::getSourceLoc(I) << "\n";
+                llvm::errs() << "$$ MERGEE : " << nodeId << " Stack object: " << *I << " : " << idx << " : " << I->getFunction()->getName() << SVFUtil::getSourceLoc(I) << "\n";
 
             } else if (GlobalVariable* v = SVFUtil::dyn_cast<GlobalVariable>(ptrValue)) {
-                llvm::errs() << "MERGEE : " << nodeId << " Global variable: " << *v << " : " << idx << " : " << *v << " : " << SVFUtil::getSourceLoc(v) << "\n";
+                llvm::errs() << "$$ MERGEE : " << nodeId << " Global variable: " << *v << " : " << idx << " : " << *v << " : " << SVFUtil::getSourceLoc(v) << "\n";
             }
         } else {
-            llvm::errs() << "MERGEE : " << nodeId << "MERGEE Dummy node: " << idx << "\n";
+            llvm::errs() << "$$ MERGEE : " << nodeId << "MERGEE Dummy node: " << idx << "\n";
         }
 
         if (GepObjPN* gepNode = SVFUtil::dyn_cast<GepObjPN>(repNode)) {
@@ -1290,16 +1319,16 @@ bool Andersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId, std::vector<Constra
         if (repNode->hasValue()) {
             Value* ptrValue = const_cast<Value*>(repNode->getValue());
             if (Function* f = SVFUtil::dyn_cast<Function>(ptrValue)) {
-                llvm::errs() << "REP: " << newRepId << " Function : " << f->getName() << "\n";
+                llvm::errs() << "$$ REP: " << newRepId << " Function : " << f->getName() << "\n";
             } else if (Instruction* I = SVFUtil::dyn_cast<Instruction>(ptrValue)) {
-                llvm::errs() << "REP: " << newRepId << " Stack object: " << *I << " : " << idx << " : " << I->getFunction()->getName() << " : " << SVFUtil::getSourceLoc(I) << "\n";
+                llvm::errs() << "$$ REP: " << newRepId << " Stack object: " << *I << " : " << idx << " : " << I->getFunction()->getName() << " : " << SVFUtil::getSourceLoc(I) << "\n";
             } else if (GlobalVariable* v = SVFUtil::dyn_cast<GlobalVariable>(ptrValue)) {
-                llvm::errs() << "REP: " << newRepId << " Global variable: " << *v << " : " << idx << " : " << *v << " : " << SVFUtil::getSourceLoc(v) << "\n";
+                llvm::errs() << "$$ REP: " << newRepId << " Global variable: " << *v << " : " << idx << " : " << *v << " : " << SVFUtil::getSourceLoc(v) << "\n";
             }
         } else {
-            llvm::errs() << "REP: " << newRepId << "REP Dummy node: " << idx << "\n";
+            llvm::errs() << "$$ REP: " << newRepId << "REP Dummy node: " << idx << "\n";
         }
-        llvm::errs() << "--------\n";
+        llvm::errs() << "$$ --------\n";
     }
 
     /// move the edges from node to rep, and remove the node
