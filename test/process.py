@@ -30,6 +30,11 @@ class Value:
             self.ln = ln.strip()
             self.fl = fl.strip()
             self.cSourceLine = cSourceLine.strip()
+        else:
+            self.valName = ""
+            self.ln = "0"
+            self.fl = "0"
+            self.cSourceLine = ""
 
     def __str__(self):
         if LLVM_AND_C:
@@ -193,8 +198,7 @@ def process(filename, tgt, sourceDir, outfile, copysPickleFile = None, gepsPickl
         _process(records, tgt, sourceDir, oFile)
 
 def _process(records, tgt, sourceDir, oFile):
-    copys = []
-    geps = []
+    constraints = []
     for idx, record in enumerate(records):
         printProgressBar(idx, len(records))
         #print (record[0])
@@ -220,7 +224,7 @@ def _process(records, tgt, sourceDir, oFile):
                 copy.setPtdSet(ptdSet)
             else:
                 copy.setPtdSet([])
-            copys.append(copy)
+            constraints.append(copy)
         if "Solving gep edge" in record[0]:
             # Has 4 lines at least
             (src, dst) = record[0].split(":")[1].split("and")
@@ -238,29 +242,23 @@ def _process(records, tgt, sourceDir, oFile):
                 gep.setPtdSet(ptdSet)
             else:
                 gep.setPtdSet([])
-            geps.append(gep)
+            constraints.append(gep)
 
     now = datetime.now()
     day = now.strftime("%m_%d_%Y_%m_%h_%s")
 
-    with open(day+'_copys.pickle', 'wb') as pickleFile:
-        pickle.dump(copys, pickleFile)
-
-    with open(day+'_geps.pickle', 'wb') as pickleFile:
-        pickle.dump(geps, pickleFile)
-
-    __process(copys, geps, tgt, oFile)
+    with open(day+'_constraints.pickle', 'wb') as pickleFile:
+        pickle.dump(constraints, pickleFile)
 
 
-def __process(copys, geps, tgt, oFile):
-    for copy in copys:
-        for ptd in copy.ptdSet:
+    __process(constraints, tgt, oFile)
+
+
+def __process(constraints, tgt, oFile):
+    for constraint in constraints:
+        for ptd in constraint.ptdSet:
             if tgt in ptd.valName:
-                oFile.write(str(copy) + "\n")
-    for gep in geps:
-        for ptd in gep.ptdSet:
-            if tgt in ptd.valName:
-                oFile.write(str(gep) + "\n")
+                oFile.write(str(constraint) + "\n")
 
 # Print iterations progress
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
