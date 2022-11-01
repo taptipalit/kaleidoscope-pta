@@ -32,7 +32,7 @@ int main(void) {
     //int** q = p;
     //struct Object* p = optr;
     int** q = &(p->field1);
-    //s = q; // <---- cycle edge
+//    s = q; // <---- cycle edge
     p = (struct Object*) s;
 
     int **r = &(p->field2);

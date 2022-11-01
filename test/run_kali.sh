@@ -26,10 +26,15 @@ then
 fi
 
 
-/home/tpalit/svf-kernel/Debug-build/bin/wpa -invariant-pwc=true \
--invariant-vgep=true -log-all=true -prevent-collapse-explosion -short-circuit=true -stat-limit=1 \
--ptd=persistent -print-all-pts \
--ander $file_bc #aeSearchNearestTimer,
+/home/tpalit/svf-kernel/Debug-build/bin/wpa -invariant-pwc=false \
+-invariant-vgep=true -log-all=false -dump-constraint-graph=false -prevent-collapse-explosion=false -short-circuit=false -stat-limit=1 \
+-ptd=persistent -print-all-pts=true \
+-lander $file_bc #aeSearchNearestTimer,
+
+#/home/tpalit/svf-latest/SVF/Debug-build/bin/wpa -dump-constraint-graph=true -stat-limit=1 \
+#-ptd=persistent -print-all-pts=false \
+#-lander $file_bc #aeSearchNearestTimer,
+
 #-print-all-pts -debug-funcs=initServer #-field-limit=30
 
 if [ $? -ne 0 ]; then

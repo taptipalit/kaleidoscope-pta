@@ -423,10 +423,20 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                     pag->addPtdForVarGep(vgepCGEdge->getLLVMValue(), o);
                     PAGNode* node = pag->getPAGNode(o);
                     continue;
-                } else {
+                } else if (consCG->isArrayTy(o)) {
                     LocationSet ls(0);
                     NodeID fieldSrcPtdNode = consCG->getGepObjNode(o, ls);
                     tmpDstPts.set(fieldSrcPtdNode);
+                } else {
+                    /*
+                    LocationSet ls(0);
+                    NodeID fieldSrcPtdNode = consCG->getGepObjNode(o, ls);
+                    tmpDstPts.set(fieldSrcPtdNode);
+                    */
+                    // Add the field-insensitive node into pts.
+                    NodeID baseId = consCG->getFIObjNode(o);
+                    tmpDstPts.set(baseId);
+
                 }
             } else {
 

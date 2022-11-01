@@ -46,7 +46,7 @@ extern "C" uint32_t ptdTargetCheck(uint64_t* tgt, uint64_t len, uint64_t* tgts) 
         auto valSet = vgepMap[id];
         if (valSet.find((uint64_t)tgt) != valSet.end()) {
             cout << "VGEP invariant failed\n";
-//            invFlipped = true;
+            invFlipped = true;
             return 1;
         }
     }
@@ -63,7 +63,7 @@ INLINE
 extern "C" uint32_t checkPWC(uint32_t pwcId, uint64_t newVal, uint64_t offset) {
     if (newVal == pwcInvariants[pwcId] + offset) { // The +offset should probably not be there. We're instrumenting the pointer before the gep and after the gep. 
         cout << "PWC invariant " << pwcId << " failed\n";
- //       invFlipped = true;
+        invFlipped = true;
         return 1;
     } else {
         return 0;
