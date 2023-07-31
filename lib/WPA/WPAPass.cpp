@@ -546,7 +546,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
     Options::InvariantPWC = true;
     */
 	PAG* pag = builder.build(svfModule);
-    Andersen* anderAnalysis = new AndersenLCD(pag);
+    Andersen* anderAnalysis = new AndersenWaveDiff(pag);
     _pta = anderAnalysis;
     anderAnalysis->setSVFLoopInfo(svfLoopInfo);
     ptaVector.push_back(_pta);
@@ -569,7 +569,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
         PAGBuilder builder2;
 
         PAG* pag2 = builder2.build(svfModule);
-        _pta = new AndersenLCD(pag2);
+        _pta = new AndersenWaveDiff(pag2);
         ptaVector.clear();
         ptaVector.push_back(_pta);
         _pta->analyze();

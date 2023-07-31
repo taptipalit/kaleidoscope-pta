@@ -59,10 +59,63 @@ def parseCycleRecord(cycleRecords):
     print("Number of PWC cycles: " + str(len(pwcCycles)))
     print("Number of non-SCC cycles: " + str(len(nonPWCCycles)))
 
+    allSeen = set()
+    notSeen = set()
+    i = 0
     for cycle in cycles:
-        ptdSet = set(tuple([node.fnPtdTup for node in cycle.nodes]))
-        print ("Cycle has " + str(len(ptdSet)) + " unique sets, and isPWC = " + str(cycle.isPWC))
+        cycleNodePtdSets = set(tuple([(node, node.fnPtdTup) for node in cycle.nodes]))
+        if isEmpty(cycleNodePtdSets):
+            continue # No need to dump
+        i = i + 1
+        print (str(i) + ". Cycle has " + str(len(cycleNodePtdSets)) + " unique sets, of sizes " + str(getIndividualSizes(cycleNodePtdSets)) + " and isPWC = " + str(cycle.isPWC))
+        seenEarlier = set()
+        notSeenEarlierList = []
+        ptds = set()
+        fullSetSeenCount = 0
+        for node, ptdSet in cycleNodePtdSets:
+            fullSetSeen = True
+            notSeenEarlier = set()
+            for ptd in ptdSet:
+                ptds.add(ptd)
+                if ptd in allSeen:
+                    seenEarlier.add(ptd)
+                else:
+                    fullSetSeen = False
+                    notSeenEarlier.add(ptd)
+            notSeenEarlierList.append(notSeenEarlier)
+            if fullSetSeen:
+                fullSetSeenCount = fullSetSeenCount + 1
+        print ("All seen earlier: " + str(len(seenEarlier)) + "/" + str(len(ptds)) + " full-set-seen-count: " + str(fullSetSeenCount))
+        for ptdSet in notSeenEarlierList:
+            if len(ptdSet) > 0:
+                print ("\t\t\t >>> SET >> ")
+            for ptd in ptdSet:
+                print("\t\t\t\t\t >>> " + str(ptd))
+                notSeen.add(ptd)
+        allSeen.update(ptds)
+
+    print("all seen size: " + str(len(allSeen)))
+
+    notSeenList = [fn for fn in notSeen]
+    notSeenList.sort()
+    print("Not seen:")
+    for fn in notSeenList:
+        print(fn)
+
     return cycles
+
+
+def isEmpty(cycleNodePtdSet):
+    for (node, ptdSet) in cycleNodePtdSet:
+        if len(ptdSet) > 0:
+            return False
+    return True
+
+def getIndividualSizes(cycleNodePtdSets) :
+    sizeList = []
+    for node, ptd in cycleNodePtdSets:
+        sizeList.append(len(ptd))
+    return tuple(sizeList)
 
 def process(filename):
     file = open(filename, 'r')

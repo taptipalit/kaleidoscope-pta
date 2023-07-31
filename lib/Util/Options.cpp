@@ -32,8 +32,6 @@ namespace SVF
             llvm::cl::init(true),
             llvm::cl::desc("Prevent the explosion at the collapse"));
 
-
-
     llvm::cl::opt<bool> Options::LogAll(
             "log-all",
             llvm::cl::init(true),

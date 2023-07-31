@@ -18,7 +18,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /*
- * HeapTypeAnalyzer.cpp
+ * HeapSimplifier.cpp
  *
  *  Created on: Oct 8, 2013
  */
@@ -38,18 +38,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "Util/Options.h"
 #include "llvm/IR/InstIterator.h"
 
-#include "SVF-FE/HeapTypeAnalyzer.h"
+#include "SVF-FE/HeapSimplifier.h"
 
 using namespace SVF;
 
 // Identifier variable for the pass
-char HeapTypeAnalyzer::ID = 0;
+char HeapSimplifier::ID = 0;
 
 // Register the pass
-static llvm::RegisterPass<HeapTypeAnalyzer> HT ("heap-type-analyzer",
+static llvm::RegisterPass<HeapSimplifier> HT ("heap-type-analyzer",
         "Heap Type Analyzer");
 
-void HeapTypeAnalyzer::handleVersions(Module& module) {
+void HeapSimplifier::handleVersions(Module& module) {
     for (Module::iterator MIterator = module.begin(); MIterator != module.end(); MIterator++) {
         if (Function *F = SVFUtil::dyn_cast<Function>(&*MIterator)) {
             for (llvm::inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F); I != E; ++I) {
@@ -78,7 +78,7 @@ void HeapTypeAnalyzer::handleVersions(Module& module) {
  
 }
 
-void HeapTypeAnalyzer::removePoolAllocatorBody(Module& module) {
+void HeapSimplifier::removePoolAllocatorBody(Module& module) {
     for (Module::iterator MIterator = module.begin(); MIterator != module.end(); MIterator++) {
         if (Function *F = SVFUtil::dyn_cast<Function>(&*MIterator)) {
             if (std::find(memAllocFns.begin(), memAllocFns.end(), F->getName()) != memAllocFns.end()) {
@@ -113,7 +113,7 @@ void HeapTypeAnalyzer::removePoolAllocatorBody(Module& module) {
 
 }
 
-CallInst* HeapTypeAnalyzer::findCInstFA(Value* val) {
+CallInst* HeapSimplifier::findCInstFA(Value* val) {
     std::vector<Value*> workList;
     workList.push_back(val);
 
@@ -143,7 +143,7 @@ CallInst* HeapTypeAnalyzer::findCInstFA(Value* val) {
  * origHeapTy: What type the deepest malloc of the original should be set to
  */
 /*
-bool HeapTypeAnalyzer::deepClone(llvm::Function* func, llvm::Function*& topClonedFunc, std::vector<std::string>& mallocFunctions, 
+bool HeapSimplifier::deepClone(llvm::Function* func, llvm::Function*& topClonedFunc, std::vector<std::string>& mallocFunctions, 
         Type* cloneHeapTy, Type* origHeapTy) {
     std::vector<Function*> workList;
     std::vector<Function*> visited;
@@ -249,7 +249,7 @@ bool HeapTypeAnalyzer::deepClone(llvm::Function* func, llvm::Function*& topClone
 }
 */
 
-HeapTypeAnalyzer::HeapTy HeapTypeAnalyzer::getSizeOfTy(Module& module, LLVMContext& Ctx, MDNode* sizeOfTyName, MDNode* sizeOfTyArgNum, MDNode* mulFactor) {
+HeapSimplifier::HeapTy HeapSimplifier::getSizeOfTy(Module& module, LLVMContext& Ctx, MDNode* sizeOfTyName, MDNode* sizeOfTyArgNum, MDNode* mulFactor) {
     // Get the type
     MDString* typeNameStr = (MDString*)sizeOfTyName->getOperand(0).get();
     Type* sizeOfTy = nullptr;
@@ -270,7 +270,7 @@ HeapTypeAnalyzer::HeapTy HeapTypeAnalyzer::getSizeOfTy(Module& module, LLVMConte
     
 }
 
-void HeapTypeAnalyzer::deriveHeapAllocationTypes(llvm::Module& module) {
+void HeapSimplifier::deriveHeapAllocationTypes(llvm::Module& module) {
     // Just check all the locations that call the malloc functions 
     // or the pool allocators
     for (Module::iterator MIterator = module.begin(); MIterator != module.end(); MIterator++) {
@@ -340,7 +340,7 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypes(llvm::Module& module) {
 }
 
 /*
-void HeapTypeAnalyzer::deriveHeapAllocationTypesWithCloning(llvm::Module& module) {
+void HeapSimplifier::deriveHeapAllocationTypesWithCloning(llvm::Module& module) {
 
     //StructType* stTy = StructType::getTypeByName(module.getContext(), tyName);
     std::vector<std::string> mallocFunctions;
@@ -477,7 +477,7 @@ void HeapTypeAnalyzer::deriveHeapAllocationTypesWithCloning(llvm::Module& module
 */
 
 
-void HeapTypeAnalyzer::buildCallGraphs (Module & module) {
+void HeapSimplifier::buildCallGraphs (Module & module) {
     for (llvm::Function& F: module.getFunctionList()) {
         for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
             if (CallInst* cInst = SVFUtil::dyn_cast<CallInst>(&*I)) {
@@ -534,7 +534,7 @@ void HeapTypeAnalyzer::buildCallGraphs (Module & module) {
     
 }
 
-bool HeapTypeAnalyzer::returnsUntypedMalloc(Function* potentialMallocWrapper) {
+bool HeapSimplifier::returnsUntypedMalloc(Function* potentialMallocWrapper) {
     llvm::CFLAndersAAWrapperPass& aaPass = getAnalysis<llvm::CFLAndersAAWrapperPass>();
     llvm::CFLAndersAAResult& aaResult = aaPass.getResult();
     
@@ -578,7 +578,7 @@ bool HeapTypeAnalyzer::returnsUntypedMalloc(Function* potentialMallocWrapper) {
     return false;
 }
 
-void HeapTypeAnalyzer::findHeapContexts (Module& M) {
+void HeapSimplifier::findHeapContexts (Module& M) {
     std::vector<Function*> oneLevelFuncs;
 
     std::vector<Function*> twoLevelFuncs;
@@ -667,7 +667,7 @@ void HeapTypeAnalyzer::findHeapContexts (Module& M) {
 }
 
 bool
-HeapTypeAnalyzer::runOnModule (Module & module) {
+HeapSimplifier::runOnModule (Module & module) {
     /*
     // Replace all invariant geps with 1-field index
 

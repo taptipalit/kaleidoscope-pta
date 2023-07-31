@@ -12,7 +12,7 @@
 namespace SVF
 {
 
-class HeapTypeAnalyzer : public ModulePass
+class HeapSimplifier : public ModulePass
 {
 private:
     // Private methods
@@ -48,7 +48,7 @@ public:
     std::vector<Function*>& getHeapCalls() { return heapCalls; }
     std::map<StringRef, Function*>& getClonedFunctionMap() { return clonedFunctionMap; }
 
-    HeapTypeAnalyzer() : ModulePass(ID) {
+    HeapSimplifier() : ModulePass(ID) {
         /*
         memAllocFns.push_back("ngx_alloc");
         memAllocFns.push_back("ngx_palloc");
@@ -96,7 +96,7 @@ public:
     bool deepClone(llvm::Function*, llvm::Function*&, std::vector<std::string>&, 
             llvm::Type*, llvm::Type*);
 
-    HeapTypeAnalyzer::HeapTy getSizeOfTy(llvm::Module&, llvm::LLVMContext&, llvm::MDNode*, llvm::MDNode*, llvm::MDNode*);
+    HeapSimplifier::HeapTy getSizeOfTy(llvm::Module&, llvm::LLVMContext&, llvm::MDNode*, llvm::MDNode*, llvm::MDNode*);
     void removePoolAllocatorBody(llvm::Module&);
 
 };
