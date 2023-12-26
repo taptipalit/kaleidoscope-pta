@@ -27,14 +27,16 @@ namespace SVF
             llvm::cl::init(true),
             llvm::cl::desc("Short circuit"));
 
+		/*
     llvm::cl::opt<bool> Options::PreventCollapseExplosion(
             "prevent-collapse-explosion",
             llvm::cl::init(true),
             llvm::cl::desc("Prevent the explosion at the collapse"));
+		*/
 
     llvm::cl::opt<bool> Options::LogAll(
             "log-all",
-            llvm::cl::init(true),
+            llvm::cl::init(false),
             llvm::cl::desc("Log everything"));
 
     llvm::cl::opt<bool> Options::DumpCFIStat(

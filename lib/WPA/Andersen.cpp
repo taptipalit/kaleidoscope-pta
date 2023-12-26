@@ -464,6 +464,7 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
 
         for (NodeID o : pts)
         {
+						/*
             if (Options::PreventCollapseExplosion) {
                 //llvm::errs() << "Doing GEP for nodeid: " << srcNode->getId() << "\n";
                 if (srcNode->getDiffPtd().test(o)) {
@@ -471,6 +472,7 @@ bool Andersen::processGepPts(const PointsTo& pts, const GepCGEdge* edge)
                     llvm::errs() << "Must prevent explosion for :" << *obj << "\n";
                 }
             }
+						*/
             if (consCG->isBlkObjOrConstantObj(o))
             {
                 tmpDstPts.set(o);
