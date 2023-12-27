@@ -27,7 +27,7 @@ fi
 
 
 /home/tpalit/svf-kernel/Debug-build/bin/wpa -invariant-pwc=true \
--invariant-vgep=true -log-all=false -dump-constraint-graph=false -prevent-collapse-explosion=false -short-circuit=false \
+-invariant-vgep=true -log-all=false -dump-constraint-graph=false -short-circuit=false \
 -ptd=persistent \
 $file_bc #aeSearchNearestTimer,
 

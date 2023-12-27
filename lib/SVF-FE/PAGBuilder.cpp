@@ -135,6 +135,7 @@ PAG* PAGBuilder::build(SVFModule* svfModule)
 
     pag->setNodeNumAfterPAGBuild(pag->getTotalNodeNum());
 
+		/*
     int totalAddressTaken = 0;
     int storedToArray = 0;
 
@@ -216,6 +217,7 @@ PAG* PAGBuilder::build(SVFModule* svfModule)
     llvm::errs() << "Validation done\n";
     llvm::errs() << "Total address taken: " << totalAddressTaken << "\n";
     llvm::errs() << "Stored to array: " << storedToArray << "\n";
+		*/
 
     return pag;
 }

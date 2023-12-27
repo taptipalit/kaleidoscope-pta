@@ -1277,11 +1277,12 @@ bool Andersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId, std::vector<Constra
     if(nodeId==newRepId)
         return false;
 
+		/*
     if (Options::PreventCollapseExplosion) {
-        const PointsTo& repPtd = getPts(newRepId);
-        const PointsTo& nodePtd = getPts(nodeId);
+        const PointsTo& repPtd = getPts(newRepId); // rep node's points-to set
+        const PointsTo& nodePtd = getPts(nodeId);  // the mergee node's points to set
         PointsTo diffPtd = repPtd;
-        diffPtd.intersectWithComplement(nodePtd);
+        diffPtd.intersectWithComplement(nodePtd);  // subtract to get the new points-to nodes
         llvm::errs() << "Merging " << nodeId << " to rep " << newRepId << " with diffptd " << diffPtd.count () << "\n";
         PAGNode* repNode = pag->getPAGNode(newRepId);
         PointsTo gepDiffPtd;
@@ -1294,6 +1295,7 @@ bool Andersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId, std::vector<Constra
 
         repNode->updateDiffPtd(gepDiffPtd);
     }
+		*/
 
     /// union pts of node to rep
     updatePropaPts(newRepId, nodeId);

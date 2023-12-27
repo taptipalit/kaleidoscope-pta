@@ -199,21 +199,12 @@ bool AndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge* edge)
     PointsTo& srcDiffPts = const_cast<PointsTo&>(getDiffPts(node));
 
 
+		/*
     if (Options::PreventCollapseExplosion) {
         PAGNode* srcNode = pag->getPAGNode(node);
         srcDiffPts.intersectWithComplement(srcNode->getDiffPtd());
-        /*
-        for (PointsTo::iterator it = srcDiffPts.begin(), eit = srcDiffPts.end();
-                it != eit; ++it) {
-            NodeID o = *it;
-            //llvm::errs() << "Doing copy for nodeid: " << srcNode->getId() << "\n";
-            if (srcNode->getDiffPtd().test(o)) {
-                PAGNode* obj = pag->getPAGNode(o);
-                llvm::errs() << "Must prevent propagation for :" << *obj << "\n";
-            }
-        }
-        */
     }
+		*/
 
 
     if (Options::LogAll) {

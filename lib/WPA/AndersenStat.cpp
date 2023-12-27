@@ -386,9 +386,11 @@ void AndersenStat::performStat()
         totalPtsSize+=size;
         totalFieldPtsSize+= pts.count();
 
+				/*
         if (pts.test(node)) {
             llvm::errs() << "Self pointer exists\n";
         }
+				*/
 
         if(pta->getPAG()->isValidTopLevelPtr(pta->getPAG()->getPAGNode(node)))
         {

@@ -135,6 +135,7 @@ public:
             return false;
     }
 
+		/*
     PointsTo diffPtd;
 
     inline void updateDiffPtd(PointsTo& newDiffPtd) {
@@ -144,6 +145,7 @@ public:
     inline PointsTo& getDiffPtd() {
         return diffPtd;
     }
+		*/
 
     /// Whether this is an isoloated node on the PAG graph
     bool isIsolatedNode() const;
