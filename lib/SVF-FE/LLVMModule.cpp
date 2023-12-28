@@ -34,8 +34,7 @@
 #include "SVF-FE/LLVMUtil.h"
 #include "SVF-FE/BreakConstantExpr.h"
 #include "SVF-FE/HeapSimplifier.h"
-#include "SVF-FE/Debloater.h"
-
+#include "SVF-FE/ArgFlowAnalysis.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
 #include "llvm/Analysis/CFLAndersAliasAnalysis.h"
@@ -184,8 +183,8 @@ void LLVMModuleSet::preInitialize() {
         llvm::TargetLibraryInfoWrapperPass* infoPass = new llvm::TargetLibraryInfoWrapperPass();
         llvm::CFLAndersAAWrapperPass* aaPass = new llvm::CFLAndersAAWrapperPass();
         HeapSimplifier* heapTyPass = new HeapSimplifier();
-        Debloater* debloaterPass = new Debloater();
-        PM.add(debloaterPass);
+        ArgFlowAnalysis* argFlowAnalysisPass = new ArgFlowAnalysis();
+        PM.add(argFlowAnalysisPass);
         PM.add(infoPass);
         PM.add(aaPass);
         PM.add(heapTyPass);

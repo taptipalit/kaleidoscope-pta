@@ -1,0 +1,145 @@
+/* SVF - Static Value-Flow Analysis Framework
+Copyright (C) 2015 Yulei Sui
+Copyright (C) 2015 Jingling Xue
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+*/
+
+
+#define DEBUG_TYPE "arg-flow-analysis"
+
+#include "llvm/ADT/Statistic.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/InstrTypes.h"
+#include "llvm/IR/Instruction.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/InstIterator.h"
+
+
+#include "SVF-FE/ArgFlowAnalysis.h"
+
+using namespace SVF;
+
+// Identifier variable for the pass
+char ArgFlowAnalysis::ID = 0;
+
+
+// Register the pass
+static llvm::RegisterPass<ArgFlowAnalysis> DEB ("debloater",
+        "ArgFlowAnalysis");
+
+
+void ArgFlowSummary::findSinkSites(Argument* arg) {
+	std::vector<Value*> workList;
+	std::vector<Value*> processedList;
+	workList.push_back(arg);
+
+	while (!workList.empty()) {
+		Value* val = workList.back();
+		workList.pop_back();
+
+		processedList.push_back(val);
+
+		for (User* u: val->users()) {
+			if (Value* uVal = SVFUtil::dyn_cast<Value>(u)) {
+				if (StoreInst* store = SVFUtil::dyn_cast<StoreInst>(uVal)) {
+					// Is val being sunk?
+					if (store->getValueOperand() == val) {
+						Value* ptr = store->getPointerOperand();
+
+						getArgSinkMap()[arg].push_back(ptr);
+
+						// We track multiple levels of sinks
+						if (std::find(processedList.begin(), processedList.end(), ptr)
+								== processedList.end()) {
+							workList.push_back(ptr);
+						}
+					}
+					// If it's not being sunk, then something else is being sunk into it
+					// We don't care about this situation because we always check the
+					// following condition:
+					// Is the sink-site of any arg in the _forward slice_ of another arg
+					// The forward slice doesn't have to capture the store instruction
+					// itself, only its ptr component.
+
+				} else {
+					// Just push it back
+					if (std::find(processedList.begin(), processedList.end(), u) == processedList.end()) {
+						workList.push_back(uVal);
+					}
+					getArgForwardSliceMap()[arg].push_back(uVal);
+				}
+
+
+				// Check that more than one operand of the instruction isn't derived
+				// from an argument, outside of stores
+				if (!SVFUtil::isa<StoreInst>(uVal)) {
+					assert(getBackwardSliceMap().find(uVal) == getBackwardSliceMap().end());
+				}
+
+				// Just copy the backward slice vector
+				getBackwardSliceMap()[uVal] = getBackwardSliceMap()[val];
+
+				// Append val to the end
+				getBackwardSliceMap()[uVal].push_back(val);
+			}
+		}
+	}
+}
+
+ArgFlowSummary* ArgFlowSummary::argFlowSummary;
+
+bool
+ArgFlowAnalysis::runOnModule (Module & module) {
+	ArgFlowSummary* summary = ArgFlowSummary::getArgFlowSummary();
+	for (Function& func: module.getFunctionList()) {
+		if (func.arg_size() < 2) {
+			continue;
+		}
+
+		if (func.getName() == "evmap_io_add_") {
+			llvm::errs() << "# of callsites " + func.getNumUses() << "\n";
+		}
+
+		for (Argument& arg: func.args()) {
+			summary->findSinkSites(&arg);
+		}
+		for (Argument& arg1: func.args()) {
+			std::map<Argument*, std::vector<Value*>>::iterator sinkIt;
+			for (sinkIt = summary->getArgSinkMap().begin(); sinkIt != summary->getArgSinkMap().end(); sinkIt++) {
+				for (Value* sinkSite: sinkIt->second) {
+					// Check if this sink-site is in the forward slice of any of the
+					// other arguments
+					for (Argument& arg2: func.args()) {
+						if (&arg1 == &arg2) {
+							continue;
+						}
+						std::map<Argument*, std::vector<Value*>>::iterator forwardSliceIt;
+						for (forwardSliceIt = summary->getArgForwardSliceMap().begin(); forwardSliceIt != summary->getArgForwardSliceMap().end(); forwardSliceIt++) {
+
+							if (std::find(forwardSliceIt->second.begin(), forwardSliceIt->second.end(), sinkSite)
+									!= forwardSliceIt->second.end()) {
+								// Match found
+								llvm::errs() << "Function: " << func.getName() << ", Argument: " << arg1 << " stored to "  << arg2 << "\n";
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+  return false;
+}
