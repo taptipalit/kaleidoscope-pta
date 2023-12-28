@@ -38,7 +38,7 @@ char ArgFlowAnalysis::ID = 0;
 
 
 // Register the pass
-static llvm::RegisterPass<ArgFlowAnalysis> DEB ("debloater",
+static llvm::RegisterPass<ArgFlowAnalysis> ARGFLOW ("argflow",
         "ArgFlowAnalysis");
 
 
@@ -76,25 +76,23 @@ void ArgFlowSummary::findSinkSites(Argument* arg) {
 					// itself, only its ptr component.
 
 				} else {
+					// If it is a call instruction ignore
+					if (SVFUtil::isa<CallInst>(uVal)) continue;
 					// Just push it back
-					if (std::find(processedList.begin(), processedList.end(), u) == processedList.end()) {
+					if (std::find(processedList.begin(), processedList.end(), uVal) == processedList.end()
+							&& SVFUtil::isa<PointerType>(uVal->getType())) {
 						workList.push_back(uVal);
 					}
 					getArgForwardSliceMap()[arg].push_back(uVal);
 				}
 
-
-				// Check that more than one operand of the instruction isn't derived
-				// from an argument, outside of stores
-				if (!SVFUtil::isa<StoreInst>(uVal)) {
-					assert(getBackwardSliceMap().find(uVal) == getBackwardSliceMap().end());
-				}
-
-				// Just copy the backward slice vector
+				// Just copy the backward slice vectors
 				getBackwardSliceMap()[uVal] = getBackwardSliceMap()[val];
 
-				// Append val to the end
-				getBackwardSliceMap()[uVal].push_back(val);
+				// Append val to the end of all of the backward slice vectors
+				for (auto& vec: getBackwardSliceMap()[uVal]) {
+					vec.push_back(val);
+				}
 			}
 		}
 	}
@@ -117,24 +115,23 @@ ArgFlowAnalysis::runOnModule (Module & module) {
 		for (Argument& arg: func.args()) {
 			summary->findSinkSites(&arg);
 		}
-		for (Argument& arg1: func.args()) {
+		for (Argument& arg1Ref: func.args()) {
+			Argument* arg1 = &arg1Ref;
 			std::map<Argument*, std::vector<Value*>>::iterator sinkIt;
 			for (sinkIt = summary->getArgSinkMap().begin(); sinkIt != summary->getArgSinkMap().end(); sinkIt++) {
 				for (Value* sinkSite: sinkIt->second) {
 					// Check if this sink-site is in the forward slice of any of the
 					// other arguments
-					for (Argument& arg2: func.args()) {
-						if (&arg1 == &arg2) {
+					for (Argument& arg2Ref: func.args()) {
+						Argument* arg2 = &arg2Ref;
+						if (arg1 == arg2) {
 							continue;
 						}
-						std::map<Argument*, std::vector<Value*>>::iterator forwardSliceIt;
-						for (forwardSliceIt = summary->getArgForwardSliceMap().begin(); forwardSliceIt != summary->getArgForwardSliceMap().end(); forwardSliceIt++) {
-
-							if (std::find(forwardSliceIt->second.begin(), forwardSliceIt->second.end(), sinkSite)
-									!= forwardSliceIt->second.end()) {
-								// Match found
-								llvm::errs() << "Function: " << func.getName() << ", Argument: " << arg1 << " stored to "  << arg2 << "\n";
-							}
+						std::vector<Value*>::iterator forwardSliceIt;
+						if (std::find(summary->getArgForwardSliceMap()[arg2].begin(), summary->getArgForwardSliceMap()[arg2].end(), sinkSite)
+								!= summary->getArgForwardSliceMap()[arg2].end()) {
+							// Match found
+							llvm::errs() << "Function: " << func.getName() << ", Argument: " << *arg1 << " stored to "  << *arg2 << "\n";
 						}
 					}
 				}

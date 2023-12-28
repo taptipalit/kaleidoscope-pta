@@ -17,8 +17,9 @@ class ArgFlowSummary {
 		// The master map containing the backward slice of all the 
 		// values originating from the Argument
 		// This only captures the paths from the argument
-		// We assume there is only one path. We will add an assertion here.
-		std::map<Value*, std::vector<Value*>> backwardSliceMap;
+		// There can be multiple paths to the value from different (or same)
+		// arguments
+		std::map<Value*, std::vector<std::vector<Value*>>> backwardSliceMap;
 
 		// Arg to sink map
 		// This records the `store operand` of the StoreInst
@@ -39,7 +40,7 @@ class ArgFlowSummary {
 
 		ArgFlowSummary() {}
 
-		std::map<Value*, std::vector<Value*>>& getBackwardSliceMap() {
+		std::map<Value*, std::vector<std::vector<Value*>>>& getBackwardSliceMap() {
 			return backwardSliceMap;
 		}
 
