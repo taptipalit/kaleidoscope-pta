@@ -24,6 +24,9 @@ class ArgFlowSummary {
 		// Arg to sink map
 		// This records the `store operand` of the StoreInst
 		std::map<Argument*, std::vector<Value*>> argSinkMap;
+
+		// Arg to store inst map
+		std::map<Argument*, std::vector<Value*>> argToSinkStoreMap;
 		
 		// Arg to forward-slice map
 		// This contains loads/casts/geps, etc. Stores live in the argSinkMap
@@ -48,11 +51,17 @@ class ArgFlowSummary {
 			return argSinkMap;
 		}
 
+		std::map<Argument*, std::vector<Value*>>& getArgToSinkStoreMap() {
+			return argToSinkStoreMap;
+		}
+
 		std::map<Argument*, std::vector<Value*>>& getArgForwardSliceMap() {
 			return argForwardSliceMap;
 		}
 
 		void findSinkSites(Argument*);
+
+		void dumpBackwardSlice(Value*);
 };
 
 class ArgFlowAnalysis : public ModulePass

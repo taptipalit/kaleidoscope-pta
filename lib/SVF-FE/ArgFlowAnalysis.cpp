@@ -61,6 +61,7 @@ void ArgFlowSummary::findSinkSites(Argument* arg) {
 						Value* ptr = store->getPointerOperand();
 
 						getArgSinkMap()[arg].push_back(ptr);
+						getArgToSinkStoreMap()[arg].push_back(ptr);
 
 						// We track multiple levels of sinks
 						if (std::find(processedList.begin(), processedList.end(), ptr)
@@ -100,6 +101,11 @@ void ArgFlowSummary::findSinkSites(Argument* arg) {
 
 ArgFlowSummary* ArgFlowSummary::argFlowSummary;
 
+
+void ArgFlowSummary::dumpBackwardSlice (Value* val) {
+
+}
+
 bool
 ArgFlowAnalysis::runOnModule (Module & module) {
 	ArgFlowSummary* summary = ArgFlowSummary::getArgFlowSummary();
@@ -109,11 +115,17 @@ ArgFlowAnalysis::runOnModule (Module & module) {
 		}
 
 		if (func.getName() == "evmap_io_add_") {
-			llvm::errs() << "# of callsites " + func.getNumUses() << "\n";
+			llvm::errs() << "# of callsites " << func.getNumUses() << "\n";
 		}
 
 		for (Argument& arg: func.args()) {
-			summary->findSinkSites(&arg);
+			// Check if this is a pointer type (Note that this isn't going to be a
+			// pointer to a pointer because Args aren't assumed to be stack
+			// locations in LLVM IR
+			Type* argTy = arg.getType();
+			if (SVFUtil::isa<PointerType>(argTy)) {
+				summary->findSinkSites(&arg);
+			}
 		}
 		for (Argument& arg1Ref: func.args()) {
 			Argument* arg1 = &arg1Ref;
@@ -124,7 +136,7 @@ ArgFlowAnalysis::runOnModule (Module & module) {
 					// other arguments
 					for (Argument& arg2Ref: func.args()) {
 						Argument* arg2 = &arg2Ref;
-						if (arg1 == arg2) {
+						if (arg1 == arg2 || !SVFUtil::isa<PointerType>(arg1->getType()) || !SVFUtil::isa<PointerType>(arg1->getType())) {
 							continue;
 						}
 						std::vector<Value*>::iterator forwardSliceIt;
@@ -132,6 +144,7 @@ ArgFlowAnalysis::runOnModule (Module & module) {
 								!= summary->getArgForwardSliceMap()[arg2].end()) {
 							// Match found
 							llvm::errs() << "Function: " << func.getName() << ", Argument: " << *arg1 << " stored to "  << *arg2 << "\n";
+							summary->dumpBackwardSlice(sinkSite);
 						}
 					}
 				}
