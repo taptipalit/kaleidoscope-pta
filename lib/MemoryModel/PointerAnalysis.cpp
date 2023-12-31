@@ -485,6 +485,12 @@ void PointerAnalysis::resolveIndCalls(const CallBlockNode* cs, const PointsTo& t
                 if(matchArgs(cs, callee) == false)
                     continue;
 
+								if (Options::InvariantPWC) {
+									if (pag->getImpactedByCollapseSet().test(*ii)) {
+										if (matchArgTypes(cs, callee) == false) 
+											continue;
+									}
+								}
                 if(0 == getIndCallMap()[cs].count(callee))
                 {
                     newEdges[cs].insert(callee);
@@ -500,6 +506,33 @@ void PointerAnalysis::resolveIndCalls(const CallBlockNode* cs, const PointsTo& t
         }
     }
 }
+
+/*!
+ * Match arguments for callsite at caller and callee
+ */
+bool PointerAnalysis::matchArgTypes(const CallBlockNode* cs, const SVFFunction* callee)
+{
+	const Instruction* inst = cs->getCallSite();
+	const CallInst* cInst = SVFUtil::dyn_cast<CallInst>(inst);
+	if (!cInst) return true; // whatever this is
+													 
+	const Function* fun = callee->getLLVMFun();
+	
+	PointerType* voidPtrTy = PointerType::get(Type::getInt8Ty(cInst->getContext()), 0);
+	const FunctionType* fType = fun->getFunctionType();
+	for (int i = 0; i < cInst->arg_size(); i++) {
+		Value* arg = cInst->getArgOperand(i);
+		Type* argTy = arg->getType();
+		Type* paramTy = fType->getParamType(i);
+
+		if (argTy != voidPtrTy && paramTy != voidPtrTy && argTy != paramTy) {
+			llvm::errs() << "Filtered " << fun->getName() << " from " << *cInst << " in function " << cInst->getParent()->getParent()->getName() << "\n";
+			return false;
+		}
+	}
+	return true;
+}
+
 
 /*!
  * Match arguments for callsite at caller and callee

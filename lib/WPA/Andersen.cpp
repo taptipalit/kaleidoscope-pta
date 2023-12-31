@@ -692,9 +692,9 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
 
 
     // Check if there's going to be a PWC
-    // If yes, then don't collapse
-
-    
+    // If yes, then don't collapse the fields
+		// We still merge the node to the rep because we can't have cycles
+		// in AndersenWaveDiff algorithm.
 
     std::set<const Function*> cycleFuncSet;
     for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); nodeIt++)
@@ -1363,7 +1363,6 @@ bool Andersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId, std::vector<Constra
  */
 void Andersen::mergeNodeToRep(NodeID nodeId,NodeID newRepId, std::vector<ConstraintEdge*>& criticalGepEdges)
 {
-
     //llvm::errs() << "Merging node: " << nodeId << " to newRepId " << newRepId << "\n";
     ConstraintNode* node = consCG->getConstraintNode(nodeId);
     bool gepInsideScc = mergeSrcToTgt(nodeId,newRepId, criticalGepEdges);
@@ -1377,6 +1376,9 @@ void Andersen::mergeNodeToRep(NodeID nodeId,NodeID newRepId, std::vector<Constra
         if (gepInsideScc || node->isPWCNode())
             consCG->setPWCNode(newRepId);
     }
+		
+		// Record that these points-to objects are somewhat sketchy
+		pag->getImpactedByCollapseSet() |= getPts(nodeId);
 }
 
 /*

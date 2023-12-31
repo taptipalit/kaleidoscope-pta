@@ -68,6 +68,19 @@ class ArgFlowAnalysis : public ModulePass
 {
 private:
 
+		// The callgraph information
+		std::map<Function*, std::vector<Function*>> calleeMap;
+		std::map<Function*, std::vector<Function*>> callerMap;
+		std::map<Function*, bool> isSummarizableMap; // Is the function summarizable
+																								// Check the function
+																								// computeISSummarizable() for
+																								// the criteria
+
+		void buildCallGraph(Module&, ArgFlowSummary*);
+		bool hasFunctionPointer(Type*);
+
+		void computeIsSummarizable();
+
 public:
     static char ID;
 

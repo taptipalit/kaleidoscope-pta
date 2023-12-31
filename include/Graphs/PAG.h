@@ -129,6 +129,7 @@ private:
 
     PWCInvariantMap pwcInvariantMap;
 
+		NodeBS impactedByCollapseSet; // The set of nodes that are collapsed. Knowing this helps us keep track of the impact of PWCs
     /// Constructor
     PAG(bool buildFromFile);
 
@@ -505,6 +506,10 @@ public:
         return GepObjNodeMap.size();
     }
     //@}
+
+		inline NodeBS& getImpactedByCollapseSet() {
+			return impactedByCollapseSet;
+		}
 
     /// Due to constaint expression, curInst is used to distinguish different instructions (e.g., memorycpy) when creating GepValPN.
     inline NodeID getGepValNode(const Value* curInst, NodeID base, const LocationSet& ls) const

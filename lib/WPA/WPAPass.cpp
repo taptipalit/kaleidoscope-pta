@@ -121,8 +121,8 @@ CallInst* WPAPass::findCorrespondingCallInClone(CallInst* indCall, llvm::Module*
 
 void WPAPass::collectCFI(SVFModule* svfModule, Module& M, bool woInv) {
     
-    std::map<llvm::CallInst*, std::set<Function*>>* indCallMap;
-    std::set<llvm::CallInst*>* indCallProhibited;
+    std::map<const CallInst*, std::set<const Function*>>* indCallMap;
+    std::set<const CallInst*>* indCallProhibited;
 
     std::map<int, int>* histogram;
 
@@ -138,7 +138,32 @@ void WPAPass::collectCFI(SVFModule* svfModule, Module& M, bool woInv) {
 
 
     PAG* pag = _pta->getPAG();
-    linkVariadics(svfModule, pag);
+		const PTACallGraph* ptaCallGraph = _pta->getPTACallGraph();
+				const PTACallGraph::CallInstToCallGraphEdgesMap& cInstMap = ptaCallGraph->getCallInstToCallGraphEdgesMap();
+
+				for (auto it: cInstMap) {
+					const CallBlockNode* callBlockNode = it.first;
+					const Instruction* inst = callBlockNode->getCallSite();
+					const CallInst* cInst = SVFUtil::dyn_cast<CallInst>(inst);
+
+					assert(cInst && "If not callinst then what?");
+					const Function* callerFun = cInst->getParent()->getParent();
+ 
+					if (cInst->isIndirectCall()) {
+						llvm::errs() << "For a callsite in " << callerFun->getName() << " : \n";
+						for (auto callGraphEdge: it.second) {
+							const SVFFunction* svfFun = callGraphEdge->getDstNode()->getFunction();
+							const Function* calledFunction = svfFun->getLLVMFun();
+							llvm::errs() << "    calls " << calledFunction->getName() << "\n";
+							(*indCallMap)[cInst].insert(calledFunction);
+
+						}
+					}
+				}
+
+
+    //linkVariadics(svfModule, pag);
+		/*
     for (Module::iterator MIterator = M.begin(); MIterator != M.end(); MIterator++) {
         if (Function* F = SVFUtil::dyn_cast<Function>(&*MIterator)) {
             llvm::errs() << "Function: " << F->getName() << "\n";
@@ -183,14 +208,15 @@ void WPAPass::collectCFI(SVFModule* svfModule, Module& M, bool woInv) {
         }
 
     }
+		*/
 
     (*histogram)[0] = indCallProhibited->size();
     
     for (auto it: *indCallMap) {
-        CallInst* cInst = it.first;
+        const CallInst* cInst = it.first;
         int sz = it.second.size();
         llvm::errs() << "[DUMPING IND CALL] Function: " << cInst->getFunction()->getName() << " : ";
-        for (Function* tgt: it.second) {
+        for (const Function* tgt: it.second) {
             llvm::errs() << tgt->getName() << ", ";
         }
         (*histogram)[sz]++;
@@ -342,8 +368,7 @@ void WPAPass::runOnModule(SVFModule* svfModule)
     runPointerAnalysis(svfModule, 0);
 
 
-    LLVMModuleSet::getLLVMModuleSet()->reattachHeapContexts();
-    //module->dump();
+        //module->dump();
     std::error_code EC;
     llvm::raw_fd_ostream OS("instrumented-module.bc", EC,
             llvm::sys::fs::F_None);
@@ -418,21 +443,21 @@ void WPAPass::initializeCFITargets(llvm::Module* module) {
     IRBuilder builder(inst);
 
     for (auto pair: wInvIndCallMap) {
-        llvm::CallInst* callInst = pair.first;
-        std::set<Function*>& wInvTgts = pair.second;
-        std::set<Function*>& woInvTgts = woInvIndCallMap[callInst]; // TODO: does it need to have it?
+        const CallInst* callInst = pair.first;
+        std::set<const Function*>& wInvTgts = pair.second;
+        std::set<const Function*>& woInvTgts = woInvIndCallMap[callInst]; // TODO: does it need to have it?
 
         indIDToCSMap[indCSId] = callInst;
         indCSToIDMap[callInst] = indCSId;
 
         Constant* csIdCons = ConstantInt::get(intType, indCSId);
-        for (Function* tgt: wInvTgts) {
-            Value* funcAddr = builder.CreateBitOrPointerCast(tgt, longType);
+        for (const Function* tgt: wInvTgts) {
+            Value* funcAddr = builder.CreateBitOrPointerCast(const_cast<Function*>(tgt), longType);
             builder.CreateCall(updateTgtWInvFn->getFunctionType(), updateTgtWInvFn, {csIdCons, funcAddr});
         }
 
-        for (Function* tgt: woInvTgts) {
-            Value* funcAddr = builder.CreateBitOrPointerCast(tgt, longType);
+        for (const Function* tgt: woInvTgts) {
+            Value* funcAddr = builder.CreateBitOrPointerCast(const_cast<Function*>(tgt), longType);
             builder.CreateCall(updateTgtWOInvFn->getFunctionType(), updateTgtWOInvFn, {csIdCons, funcAddr});
         }
         indCSId++;
@@ -557,8 +582,11 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
     if (Options::ShortCircuit) {
         collectCFI(svfModule, *module, true);
     } else {
+				// The default
         Options::InvariantVGEP = false;
         Options::InvariantPWC = false;
+
+				LLVMModuleSet::getLLVMModuleSet()->reattachHeapContexts();
 
         builder.getPAG()->resetPAG();
         SymbolTableInfo::releaseSymbolInfo();
@@ -605,7 +633,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
     initializeCFITargets(module);
 
     for (auto pair: wInvIndCallMap) {
-        llvm::CallInst* callInst = pair.first;
+        llvm::CallInst* callInst = const_cast<CallInst*>(pair.first);
 
         instrumentCFICheck(callInst);
     }

@@ -315,9 +315,34 @@ void AndersenStat::performStat()
 
     if (Options::DumpCFIStat) {
         SVFModule* svfModule = pag->getModule();
-        std::map<llvm::CallInst*, std::set<Function*>> indCallMap;
+        std::map<const CallInst*, std::set<const Function*>> indCallMap;
         std::map<int, int> histogram;
 
+				const PTACallGraph* ptaCallGraph = pta->getPTACallGraph();
+				const PTACallGraph::CallInstToCallGraphEdgesMap& cInstMap = ptaCallGraph->getCallInstToCallGraphEdgesMap();
+
+				for (auto it: cInstMap) {
+					const CallBlockNode* callBlockNode = it.first;
+					const Instruction* inst = callBlockNode->getCallSite();
+					const CallInst* cInst = SVFUtil::dyn_cast<CallInst>(inst);
+
+					assert(cInst && "If not callinst then what?");
+					const Function* callerFun = cInst->getParent()->getParent();
+ 
+					if (cInst->isIndirectCall()) {
+
+						llvm::errs() << "For a callsite in " << callerFun->getName() << " : \n";
+						for (auto callGraphEdge: it.second) {
+							const SVFFunction* svfFun = callGraphEdge->getDstNode()->getFunction();
+							Function* calledFunction = svfFun->getLLVMFun();
+							llvm::errs() << "    calls " << calledFunction->getName() << "\n";
+							indCallMap[cInst].insert(calledFunction);
+
+						}
+					}
+				}
+
+				/*
         for (auto it = svfModule->llvmFunBegin(), eit = svfModule->llvmFunEnd(); it != eit; it++) {
             Function* F = *it;
             llvm::errs() << "Function: " << F->getName() << "\n";
@@ -349,9 +374,10 @@ void AndersenStat::performStat()
                 }
             }
         }
+				*/
 
         for (auto it: indCallMap) {
-            CallInst* cInst = it.first;
+            const CallInst* cInst = it.first;
             int sz = it.second.size();
             histogram[sz]++;
         }

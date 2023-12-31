@@ -34,6 +34,24 @@ using namespace SVFUtil;
 
 AndersenWaveDiff* AndersenWaveDiff::diffWave = nullptr;
 
+bool AndersenWaveDiff::matchType(NodeID ptrId, NodeID objId, const NormalGepCGEdge* gep) {
+	/*
+	if (Options::InvariantPWC) {
+		PAGNode* ptrNode = pag->getPAGNode(ptrId);
+		PAGNode* ptdNode = pag->getPAGNode(objId);
+		if (ptrNode->isPWCRepNode() || ptdNode->isPWCRepNode()) {
+			// This is a PWC rep node
+			// Then we compare types
+			if (ptrNode->hasValue() && ptdNode->hasValue() && ptrNode->getType() != ptdNode->getType()) {
+//				llvm::errs() << "Filtering " << *(ptrNode->getValue()) << " points to " << *(ptdNode->getValue()) << "\n";
+				return false;
+			}
+		}
+	}
+	*/
+	return true;
+}
+
 /*!
  * solve worklist
  */

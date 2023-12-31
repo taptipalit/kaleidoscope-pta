@@ -103,19 +103,95 @@ ArgFlowSummary* ArgFlowSummary::argFlowSummary;
 
 
 void ArgFlowSummary::dumpBackwardSlice (Value* val) {
+	
+}
 
+void ArgFlowAnalysis::buildCallGraph(Module& module, ArgFlowSummary* summary) {
+	for (Function &F : module) {
+		for (BasicBlock &BB : F) {
+			for (Instruction &I : BB) {
+				if (CallInst *callInst = SVFUtil::dyn_cast<CallInst>(&I)) {
+					if (callInst->getCalledFunction()) {
+						if (callInst->getCalledFunction() != &F) { // Don't handle recursive functions
+							calleeMap[&F].push_back(callInst->getCalledFunction());
+							callerMap[callInst->getCalledFunction()].push_back(&F);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	computeIsSummarizable();
+	
+}
+
+void ArgFlowAnalysis::computeIsSummarizable() {
+	// Criteria:
+	// We want to only summarize at most one level
+	// That is funcA -> funcB
+	// If there are further callers of funcA then summarizing
+	// the last two levels won't help anyway because funcA will 
+	// in all likelihood
+	// become the bottleneck
+	for (auto it: callerMap) {
+		Function* calledFunc = it.first;
+		int firstLevelCount = it.second.size();
+		int totalCalleeCount = 0;
+		for (Function* caller: it.second) {
+			int secondLevelCount = callerMap[caller].size();
+			totalCalleeCount += secondLevelCount*firstLevelCount;
+		}
+
+		if (totalCalleeCount <= 5) {
+			continue;
+		}
+
+		if (calledFunc->getName() == "event_assign") {
+			llvm::errs() << "# of callers: " << it.second.size() << "\n";
+		}
+
+		// Additional criteria: Only capture those cases
+		// where the number of callers is 1. This isn't 
+		// _strictly_ necessary, but will ensure that we only
+		// capture the "wrappers"
+		if (it.second.size() == 1) {
+			continue;
+		}
+
+		// Final criteria: The single caller (funcA) should 
+		// have only once calling context with more than 2 callers
+		// Very arbitrary I know, but I need a prototype
+		Function* caller = it.second[0];
+		int numMultiCallers = 0;
+		for (Function* callerCaller: callerMap[caller]) {
+			if (callerMap[callerCaller].size() > 2) {
+				numMultiCallers++;
+			}
+		}
+
+		if (calledFunc->getName() == "event_assign") {
+			Function* caller = it.second[0];
+			for (Function* callerCaller: callerMap[caller]) {
+				llvm::errs() << "event_assign caller " << callerCaller->getName() << "\n";
+			}
+		}
+		if (numMultiCallers > 1) {
+			continue;
+		}
+
+		isSummarizableMap[calledFunc] = true;
+
+	}
 }
 
 bool
 ArgFlowAnalysis::runOnModule (Module & module) {
 	ArgFlowSummary* summary = ArgFlowSummary::getArgFlowSummary();
+	buildCallGraph(module, summary);
 	for (Function& func: module.getFunctionList()) {
-		if (func.arg_size() < 2) {
+		if (func.arg_size() < 2 || !isSummarizableMap[&func]) {
 			continue;
-		}
-
-		if (func.getName() == "evmap_io_add_") {
-			llvm::errs() << "# of callsites " << func.getNumUses() << "\n";
 		}
 
 		for (Argument& arg: func.args()) {

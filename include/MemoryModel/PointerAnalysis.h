@@ -408,6 +408,9 @@ public:
     /// Match arguments for callsite at caller and callee
     bool matchArgs(const CallBlockNode* cs, const SVFFunction* callee);
 
+		// Filter the mismatched types for PWC, for Kaleidoscope
+		bool matchArgTypes(const CallBlockNode* cs, const SVFFunction* callee);
+
     /// CallGraph SCC related methods
     //@{
     /// CallGraph SCC detection

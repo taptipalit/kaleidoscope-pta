@@ -158,12 +158,12 @@ private:
     PointerAnalysis* _pta;	///<  pointer analysis to be executed.
     SVFG* _svfg;  ///< svfg generated through -ander pointer analysis
 
-    std::map<llvm::CallInst*, std::set<Function*>> wInvIndCallMap;
-    std::set<llvm::CallInst*> wInvIndCallProhibited;
+    std::map<const CallInst*, std::set<const Function*>> wInvIndCallMap;
+    std::set<const CallInst*> wInvIndCallProhibited;
     std::map<int, int> wInvHistogram;
 
-    std::map<llvm::CallInst*, std::set<Function*>> woInvIndCallMap;
-    std::set<llvm::CallInst*> woInvIndCallProhibited;
+    std::map<const CallInst*, std::set<const Function*>> woInvIndCallMap;
+    std::set<const CallInst*> woInvIndCallProhibited;
     std::map<int, int> woInvHistogram;
 
 
@@ -171,8 +171,8 @@ private:
     llvm::Function* updateTgtWInvFn;
     llvm::Function* updateTgtWOInvFn;
 
-    std::map<NodeID, CallInst*> indIDToCSMap;
-    std::map<CallInst*, NodeID> indCSToIDMap;
+    std::map<NodeID, const CallInst*> indIDToCSMap;
+    std::map<const CallInst*, NodeID> indCSToIDMap;
 
     int indCSId;
     LoopInfoConsolidatorPass* svfLoopInfo;

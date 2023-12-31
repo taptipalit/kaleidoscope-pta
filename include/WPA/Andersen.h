@@ -511,6 +511,7 @@ public:
             delete diffWave;
         diffWave = nullptr;
     }
+		virtual bool matchType(NodeID ptrid, NodeID objid, const NormalGepCGEdge *normalGepEdge);
 
     virtual void solveWorklist();
     virtual void processNode(NodeID nodeId);

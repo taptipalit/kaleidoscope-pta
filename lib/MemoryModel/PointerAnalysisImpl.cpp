@@ -370,8 +370,9 @@ void BVDataPTAImpl::onTheFlyCallGraphSolve(const CallSiteToFunPtrMap& callsites,
             NodeID vtblId = pag->getValueNode(vtbl);
             resolveCPPIndCalls(cs, getPts(vtblId), newEdges);
         }
-        else
-            resolveIndCalls(iter->first,getPts(iter->second),newEdges);
+        else {
+          resolveIndCalls(iter->first,getPts(iter->second),newEdges);
+				}
     }
 }
 
