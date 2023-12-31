@@ -1185,6 +1185,11 @@ void Andersen::connectCaller2CalleeParams(CallSite cs, const SVFFunction* F, Nod
     CallBlockNode* callBlockNode = pag->getICFG()->getCallBlockNode(cs.getInstruction());
     RetBlockNode* retBlockNode = pag->getICFG()->getRetBlockNode(cs.getInstruction());
 
+		if (matchArgs(callBlockNode, F) == false) {
+			return;
+		}
+
+
     if(SVFUtil::isHeapAllocExtFunViaRet(F) && pag->callsiteHasRet(retBlockNode))
     {
         heapAllocatorViaIndCall(cs,cpySrcNodes);
@@ -1219,7 +1224,7 @@ void Andersen::connectCaller2CalleeParams(CallSite cs, const SVFFunction* F, Nod
         DBOUT(DPAGBuild, outs() << "      args:");
         PAG::PAGNodeList::const_iterator funArgIt = funArgList.begin(), funArgEit = funArgList.end();
         PAG::PAGNodeList::const_iterator csArgIt  = csArgList.begin(), csArgEit = csArgList.end();
-        for (; funArgIt != funArgEit; ++csArgIt, ++funArgIt)
+        for (; funArgIt != funArgEit && csArgIt != csArgEit; ++csArgIt, ++funArgIt)
         {
             //Some programs (e.g. Linux kernel) leave unneeded parameters empty.
             if (csArgIt  == csArgEit)

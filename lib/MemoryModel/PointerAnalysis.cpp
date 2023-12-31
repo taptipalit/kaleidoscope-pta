@@ -480,12 +480,12 @@ void PointerAnalysis::resolveIndCalls(const CallBlockNode* cs, const PointsTo& t
                 const Function* calleefun = SVFUtil::cast<Function>(obj->getRefVal());
                 const SVFFunction* callee = getDefFunForMultipleModule(calleefun);
 
-                /// if the arg size does not match then we do not need to connect this parameter
-                /// even if the callee is a variadic function (the first parameter of variadic function is its paramter number)
-                if(matchArgs(cs, callee) == false)
-                    continue;
-
 								if (Options::InvariantPWC) {
+									/// if the arg size does not match then we do not need to connect this parameter
+									/// even if the callee is a variadic function (the first parameter of variadic function is its paramter number)
+									if(matchArgs(cs, callee) == false)
+										continue;
+
 									if (pag->getImpactedByCollapseSet().test(*ii)) {
 										if (matchArgTypes(cs, callee) == false) 
 											continue;
