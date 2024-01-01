@@ -74,6 +74,11 @@ namespace SVF
             llvm::cl::init(true),
             llvm::cl::desc("Handle invariants for PWC"));
 
+    llvm::cl::opt<bool> Options::ApplyCFI(
+            "apply-cfi",
+            llvm::cl::init(false),
+            llvm::cl::desc("Apply CFI"));
+
     llvm::cl::opt<bool> Options::NoInvariants(
             "no-invariants",
             llvm::cl::init(false),

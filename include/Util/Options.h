@@ -27,20 +27,14 @@ public:
     static llvm::cl::opt<bool> DumpCFIStat;
     static llvm::cl::opt<bool> InvariantVGEP;
     static llvm::cl::opt<bool> InvariantPWC;
+    static llvm::cl::opt<bool> ApplyCFI;
+
     static llvm::cl::opt<bool> LogAll;
     static llvm::cl::opt<bool> PreventCollapseExplosion;
 
 
     static const llvm::cl::opt<bool> KaliRunTestDriver;
     static llvm::cl::opt<bool> NoInvariants;
-
-    /*
-
-    static const llvm::cl::opt<bool> HandleVGEP;
-    static const llvm::cl::opt<bool> Kaleidoscope;
-
-    static const llvm::cl::opt<bool> KaliBreakNullTypeEdges;
-    */
 
 
     /// If set, only return the clock when getClk is called as getClk(true).

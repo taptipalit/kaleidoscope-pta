@@ -628,36 +628,18 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
     //
 
 
-    addCFIFunctions(module);
+		if (Options::ApplyCFI) {
+			addCFIFunctions(module);
 
-    initializeCFITargets(module);
+			initializeCFITargets(module);
 
-    for (auto pair: wInvIndCallMap) {
-        llvm::CallInst* callInst = const_cast<CallInst*>(pair.first);
+			for (auto pair: wInvIndCallMap) {
+				llvm::CallInst* callInst = const_cast<CallInst*>(pair.first);
 
-        instrumentCFICheck(callInst);
-    }
-    /*
-
-    std::vector<std::pair<Function*, Function*>> memViewPairs;
-    for (auto pair: wInvIndCallMap) {
-        llvm::CallInst* callInst = pair.first;
-        std::vector<Function*>& wInvTgts = pair.second;
-        std::vector<Function*>& woInvTgts = woInvIndCallMap[callInst]; // TODO: does it need to have it?
-        if (wInvTgts.size() != woInvTgts.size()) {
-            Function* origFunc = callInst->getFunction();
-            llvm::ValueToValueMapTy VMap;
-            Function* clonedFunc = llvm::CloneFunction(origFunc, VMap);
-            llvm::Value* clonedVal = VMap[callInst];
-            llvm::CallInst* clonedCallInst = SVFUtil::dyn_cast<llvm::CallInst>(clonedVal);
-            instrumentCFICheck(clonedCallInst, woInvTgts);
-            memViewPairs.push_back(std::make_pair(origFunc, clonedFunc));
-        }
-
-        instrumentCFICheck(callInst, wInvTgts);
-    }
-    */
-
+				instrumentCFICheck(callInst);
+			}
+		}
+    
     // Now go over all functions 
     // and see if the versions are different
 
@@ -673,7 +655,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 
     }
 
-
+#if 0
     // Print CDF / PDF
     std::map<int, float> pdfWInv;
     std::map<int, float> cdfWInv;
@@ -712,7 +694,6 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
     }
     cdfWoInv[0] = 0; // testing
     
-
     // Compute the PDF and CDF for w/ invariant
     for (auto it: wInvHistogram) {
         int ecSize = it.first;
@@ -747,97 +728,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
             break;
         }
     }
- 
-    /*
-    std::unique_ptr<llvm::InsertFunctionSwitchPass> p1 = std::make_unique<llvm::InsertFunctionSwitchPass>(memViewPairs);
-    p1->runOnModule(*module);
-    */
-
-    /*
-    Options::InvariantVGEP = false;
-    PAG::releasePAG();
-    PAGBuilder builder2;
-    PAG* pag2 = builder2.build(svfModule);
-
-    _pta = new AndersenWaveDiff(pag2);
-    ptaVector.push_back(_pta);
-    _pta->analyze();
-    */
-
-    /*
-    /// Initialize pointer analysis.
-    switch (kind)
-    {
-    case PointerAnalysis::Andersen_WPA:
-        _pta = new Andersen(pag);
-        break;
-    case PointerAnalysis::AndersenLCD_WPA:
-        _pta = new AndersenLCD(pag);
-        break;
-    case PointerAnalysis::AndersenHCD_WPA:
-        _pta = new AndersenHCD(pag);
-        break;
-    case PointerAnalysis::AndersenHLCD_WPA:
-        _pta = new AndersenHLCD(pag);
-        break;
-    case PointerAnalysis::AndersenSCD_WPA:
-        _pta = new AndersenSCD(pag);
-        break;
-    case PointerAnalysis::AndersenSFR_WPA:
-        _pta = new AndersenSFR(pag);
-        break;
-    case PointerAnalysis::AndersenWaveDiff_WPA:
-        _pta = new AndersenWaveDiff(pag);
-        break;
-    case PointerAnalysis::AndersenWaveDiffWithType_WPA:
-        _pta = new AndersenWaveDiffWithType(pag);
-        break;
-    case PointerAnalysis::Steensgaard_WPA:
-        _pta = new Steensgaard(pag);
-        break;
-    case PointerAnalysis::FSSPARSE_WPA:
-        _pta = new FlowSensitive(pag);
-        break;
-    case PointerAnalysis::FSTBHC_WPA:
-        _pta = new FlowSensitiveTBHC(pag);
-        break;
-    case PointerAnalysis::VFS_WPA:
-        _pta = new VersionedFlowSensitive(pag);
-        break;
-    case PointerAnalysis::TypeCPP_WPA:
-        _pta = new TypeAnalysis(pag);
-        break;
-    default:
-        assert(false && "This pointer analysis has not been implemented yet.\n");
-        return;
-    }
-
-    ptaVector.push_back(_pta);
-    _pta->analyze();
-    */
-
-    /*
-    if (Options::AnderSVFG)
-    {
-        SVFGBuilder memSSA(true);
-        assert(SVFUtil::isa<AndersenBase>(_pta) && "supports only andersen/steensgaard for pre-computed SVFG");
-        SVFG *svfg;
-        if (Options::WPAOPTSVFG)
-        {
-            svfg = memSSA.buildFullSVFG((BVDataPTAImpl*)_pta);
-        } else
-        {
-            svfg = memSSA.buildFullSVFGWithoutOPT((BVDataPTAImpl*)_pta);
-        }
-
-        /// support mod-ref queries only for -ander
-        if (Options::PASelected.isSet(PointerAnalysis::AndersenWaveDiff_WPA))
-            _svfg = svfg;
-    }
-
-    if (Options::PrintAliases)
-        PrintAliasPairs(_pta);
-    */
+#endif
 }
 
 void WPAPass::PrintAliasPairs(PointerAnalysis* pta)

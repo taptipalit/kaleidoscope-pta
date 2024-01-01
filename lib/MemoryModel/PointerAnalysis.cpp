@@ -526,7 +526,7 @@ bool PointerAnalysis::matchArgTypes(const CallBlockNode* cs, const SVFFunction* 
 		Type* paramTy = fType->getParamType(i);
 
 		if (argTy != voidPtrTy && paramTy != voidPtrTy && argTy != paramTy) {
-			llvm::errs() << "Filtered " << fun->getName() << " from " << *cInst << " in function " << cInst->getParent()->getParent()->getName() << "\n";
+			//llvm::errs() << "Filtered " << fun->getName() << " from " << *cInst << " in function " << cInst->getParent()->getParent()->getName() << "\n";
 			return false;
 		}
 	}

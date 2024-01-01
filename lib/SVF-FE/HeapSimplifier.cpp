@@ -294,7 +294,7 @@ void HeapSimplifier::deriveHeapAllocationTypes(llvm::Module& module) {
                             if (std::find(memAllocFns.begin(), memAllocFns.end(), calledFunc->getName()) != memAllocFns.end() 
                                     && std::find(heapCalls.begin(), heapCalls.end(), F) == heapCalls.end() 
                                     /* if the caller is a heap allocator we don't care*/) {
-                                llvm::errs() << "No type annotation for heap call: " << *callInst << " in function : " << callInst->getFunction()->getName() << " treating as scalar\n";
+                                //llvm::errs() << "No type annotation for heap call: " << *callInst << " in function : " << callInst->getFunction()->getName() << " treating as scalar\n";
                                 callInst->addAnnotationMetadata("IntegerType");
                                 handled = true;
                             }
