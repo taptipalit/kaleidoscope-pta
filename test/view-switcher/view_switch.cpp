@@ -71,6 +71,7 @@ extern "C" void updatePWC(uint32_t pwcId, uint32_t invVal) {
 
 INLINE 
 extern "C" uint32_t checkPWC(uint32_t pwcId, uint64_t newVal, uint64_t offset) {
+		if (offset == 0) return 0; // 0 offset isn't a PWC as far as I can tell. TODO: Verify this.
 		// We ignore stack stuff for now
 		// TODO: We should handle stack the right way
 		if (newVal >= stack_start && newVal <= stack_end) return 0;
