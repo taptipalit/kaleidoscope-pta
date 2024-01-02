@@ -433,6 +433,20 @@ void WPAPass::invariantInstrumentationDriver(Module& module) {
     }
 }
 
+void WPAPass::initKaleidoscope(Module* module) {
+	LLVMContext& C = module->getContext();
+	Type* longType = IntegerType::get(module->getContext(), 64);
+	Type* intType = IntegerType::get(module->getContext(), 32);
+
+	Function* mainFunction = module->getFunction("main");
+	Instruction* inst = mainFunction->getEntryBlock().getFirstNonPHIOrDbg();
+	IRBuilder builder(inst);
+
+	FunctionType* kaleidoscopeInitFnTy = FunctionType::get(Type::getVoidTy(module->getContext()), {}, false);
+	Function* kaleidoscopeInitFn = Function::Create(kaleidoscopeInitFnTy, Function::ExternalLinkage, "kaleidoscopeInit", module);
+	builder.CreateCall(kaleidoscopeInitFn, {});
+}
+
 void WPAPass::initializeCFITargets(llvm::Module* module) {
     LLVMContext& C = module->getContext();
     Type* longType = IntegerType::get(module->getContext(), 64);
@@ -645,6 +659,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 
     // Handle the invariants
     if (!Options::NoInvariants) {
+				initKaleidoscope(module);
         InvariantHandler IHandler(svfModule, module, pag, loopInfoPass); // this one should be the original PAG
         IHandler.init();
         IHandler.handleVGEPInvariants();

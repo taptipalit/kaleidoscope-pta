@@ -136,6 +136,20 @@ void InvariantHandler::instrumentVGEPInvariant(GetElementPtrInst* gep, std::vect
 
 void InvariantHandler::handleVGEPInvariants() {
     for (const GetElementPtrInst* gep: pag->getVarGeps()) {
+				// We only care if the geps are of base pointer type, not array of
+				// structs
+				// TODO: In fact there should be nothing else here at all
+				// if there is then we've messed something up earlier on
+				Type* resultType = gep->getResultElementType();
+				if (PointerType* ptrType = SVFUtil::dyn_cast<PointerType>(resultType)) {
+					Type* elemTy = ptrType->getPointerElementType();
+					if (SVFUtil::isa<StructType>(elemTy) || SVFUtil::isa<ArrayType>(elemTy)) {
+						continue;
+					}
+				} else {
+					// If it's not a pointer then we don't care either
+					continue;
+				}
         std::vector<Value*> targets;
         for (NodeID ptdId: pag->getVarGepPtdMap()[gep]) {
             if (pag->hasPAGNode(ptdId)) {

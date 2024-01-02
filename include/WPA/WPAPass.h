@@ -150,6 +150,8 @@ public:
 
     virtual bool matchFunctionType(Function*, CallInst*);
 
+		virtual void initKaleidoscope(Module* module);
+
 private:
     /// Create pointer analysis according to specified kind and analyze the module.
     void runPointerAnalysis(SVFModule* svfModule, u32_t kind);

@@ -15,9 +15,7 @@ file_linked_inline="$file"_linked_inline.bc
 file_linked_inline_ll="$file"_linked_inline.ll
 file_exe="$file".exe
 
-#$SVF_HOME=/home/tpalit/svf-kernel/
 SVF_HOME=/home/tpalit/svf-kernel/
-#/morespace/introspection/svf-kernel
 
 if [ -f $file_c ]
 then
