@@ -185,6 +185,8 @@ public:
 //        kaliInvariantId = 0;
         pwcCycleId = 0;
         firstPWC = true;
+				/// Create statistic class
+				stat = new AndersenStat(this);
     }
 
     /// Destructor

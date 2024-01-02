@@ -31,6 +31,16 @@
 #include "WPA/WPAStat.h"
 #include "WPA/Andersen.h"
 
+// Headers for writing the output
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <ctime>
+#include <iomanip>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 using namespace SVF;
 using namespace SVFUtil;
 
@@ -316,9 +326,14 @@ void AndersenStat::performStat()
     u32_t maxFieldPtsSize = 0;
 
     if (Options::DumpCFIStat) {
+				// TODO: We assume that stat() is called only once
         SVFModule* svfModule = pag->getModule();
         std::map<const CallInst*, std::set<const Function*>> indCallMap;
         std::map<int, int> histogram;
+
+				if (statDir.size() == 0) {
+					createStatDirectory(svfModule);
+				}
 
 				const PTACallGraph* ptaCallGraph = pta->getPTACallGraph();
 				const PTACallGraph::CallInstToCallGraphEdgesMap& cInstMap = ptaCallGraph->getCallInstToCallGraphEdgesMap();
@@ -344,45 +359,27 @@ void AndersenStat::performStat()
 					}
 				}
 
-				/*
-        for (auto it = svfModule->llvmFunBegin(), eit = svfModule->llvmFunEnd(); it != eit; it++) {
-            Function* F = *it;
-            llvm::errs() << "Function: " << F->getName() << "\n";
-            for (inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F); I != E; ++I) {
-                if (CallInst* callInst = SVFUtil::dyn_cast<CallInst>(&*I)) {
-                    if (callInst->isIndirectCall()) {
-                        NodeID callNodePtr = pag->getPAGNode(pag->getValueNode(callInst->getCalledOperand()))->getId(); 
-                        const PointsTo& pts = pta->getPts(callNodePtr);
-                        bool hasTarget = false;
+				// Create the calltarget.csv file in the directory
+				std::string filename;
+				if (Options::InvariantPWC && Options::InvariantVGEP) {
+					filename = statDir + "/call-targets-full.csv";
+				} else if (Options::InvariantPWC) {
+					filename = statDir + "/call-targets-pwc.csv";
+				} else if (Options::InvariantVGEP) {
+					filename = statDir + "/call-targets-vgep.csv";
+				} else {
+					filename = statDir + "/call-targets-default.csv";
+				}
 
-                        llvm::errs() << "For a callsite in " << F->getName() << " : \n";
-                        for (PointsTo::iterator piter = pts.begin(), epiter = pts.end(); piter != epiter; ++piter) {
-                            NodeID ptd = *piter;
-                            if (pag->hasPAGNode(ptd)) {
-                                PAGNode* tgtNode = pag->getPAGNode(ptd);
-                                if (tgtNode->hasValue()) {
-                                    if (const Function* tgtFunction = SVFUtil::dyn_cast<Function>(tgtNode->getValue())) {
-                                        hasTarget = true;
-                                        indCallMap[callInst].insert(const_cast<Function*>(tgtFunction));
-                                        llvm::errs() << "    calls " << tgtFunction->getName() << "\n";
-                                    }
-                                }
-                            }
-                        }
-                        if (!hasTarget) {
-                            llvm::errs() << "   in " << F->getName() << " NO TARGET FOUND\n";
-                        }
-                    }
-                }
-            }
-        }
-				*/
+				std::ofstream call_targets_file(filename);
 
         for (auto it: indCallMap) {
             const CallInst* cInst = it.first;
             int sz = it.second.size();
+						call_targets_file << sz << std::endl;
             histogram[sz]++;
         }
+				call_targets_file.close();
 
         llvm::errs() << "EC Size:\t Ind. Call-sites\n";
         int totalTgts = 0;
@@ -400,6 +397,20 @@ void AndersenStat::performStat()
     NodeID maxPtsNodeID = -1;
     int maxFields = 0;
     NodeID maxFieldsNodeID = 0;
+
+		// Create the calltarget.csv file in the directory
+		std::string filename;
+		if (Options::InvariantPWC && Options::InvariantVGEP) {
+			filename = statDir + "/ptd-targets-full.csv";
+		} else if (Options::InvariantPWC) {
+			filename = statDir + "/ptd-targets-pwc.csv";
+		} else if (Options::InvariantVGEP) {
+			filename = statDir + "/ptd-targets-vgep.csv";
+		} else {
+			filename = statDir + "/ptd-targets-default.csv";
+		}
+		std::ofstream ptd_file(filename);
+
     for (PAG::iterator iter = pta->getPAG()->begin(), eiter = pta->getPAG()->end();
             iter != eiter; ++iter)
     {
@@ -409,21 +420,17 @@ void AndersenStat::performStat()
         NodeBS fiPts;
         performFieldSensitivityAwareExpansion(fiPts, pts);
         u32_t size = fiPts.count();
+
         //u32_t size = pts.count();
         totalPointers++;
         totalPtsSize+=size;
         totalFieldPtsSize+= pts.count();
 
-				/*
-        if (pts.test(node)) {
-            llvm::errs() << "Self pointer exists\n";
-        }
-				*/
-
         if(pta->getPAG()->isValidTopLevelPtr(pta->getPAG()->getPAGNode(node)))
         {
             totalTopLevPointers++;
             totalTopLevPtsSize+=size;
+						ptd_file << size << std::endl;
         }
 
         if(size > _MaxPtsSize )
@@ -444,6 +451,7 @@ void AndersenStat::performStat()
             }
         }
     }
+		ptd_file.close();
 
     PAGNode* maxPtsNode = pag->getPAGNode(maxPtsNodeID);
     if (maxPtsNode->hasValue()) {
@@ -534,5 +542,27 @@ void AndersenStat::performStat()
     PTNumStatMap["PointsToBlkPtr"] = _NumOfBlackholePtr;
 
     PTAStat::printStat("Andersen Pointer Analysis Stats");
+}
+
+// Function to create a directory with the given name
+bool AndersenStat::createStatDirectory(SVFModule* svfMod) {
+	// Get current date and time
+	std::time_t t = std::time(nullptr);
+	std::tm tm = *std::localtime(&t);
+
+	// Format the date and time
+	std::stringstream date_time_ss;
+	date_time_ss << svfMod->getModuleIdentifier() << "_"
+		<< std::setfill('0') << std::setw(2) << tm.tm_mon + 1 << "_"
+		<< std::setfill('0') << std::setw(2) << tm.tm_mday << "_"
+		<< std::setfill('0') << std::setw(2) << (tm.tm_year + 1900) % 100 << "_"
+		<< std::setfill('0') << std::setw(2) << tm.tm_hour << "_"
+		<< std::setfill('0') << std::setw(2) << tm.tm_min << "_"
+		<< std::setfill('0') << std::setw(2) << tm.tm_sec;
+
+	std::string directoryName = date_time_ss.str();
+
+	statDir = directoryName;
+	return mkdir(directoryName.c_str(), 0777) == 0;
 }
 

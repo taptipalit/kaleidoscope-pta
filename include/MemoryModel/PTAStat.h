@@ -153,6 +153,11 @@ public:
     double startTime;
     double endTime;
 
+		// The directory to dump the stats
+		std::string statDir;
+
+		std::string getStatDir() { return statDir; }
+		void setStatDir(std::string s) {statDir = s; }
     virtual void performStat();
 
     virtual void printStat(string str = "");

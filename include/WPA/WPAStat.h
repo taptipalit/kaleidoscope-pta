@@ -80,6 +80,8 @@ public:
     void statNullPtr();
 
     void constraintGraphStat();
+
+		bool createStatDirectory(SVFModule*);
 };
 
 /*!

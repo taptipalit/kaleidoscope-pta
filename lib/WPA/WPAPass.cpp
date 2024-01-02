@@ -150,80 +150,33 @@ void WPAPass::collectCFI(SVFModule* svfModule, Module& M, bool woInv) {
 					const Function* callerFun = cInst->getParent()->getParent();
  
 					if (cInst->isIndirectCall()) {
-						llvm::errs() << "For a callsite in " << callerFun->getName() << " : \n";
+						//llvm::errs() << "For a callsite in " << callerFun->getName() << " : \n";
 						for (auto callGraphEdge: it.second) {
 							const SVFFunction* svfFun = callGraphEdge->getDstNode()->getFunction();
 							const Function* calledFunction = svfFun->getLLVMFun();
-							llvm::errs() << "    calls " << calledFunction->getName() << "\n";
+							//llvm::errs() << "    calls " << calledFunction->getName() << "\n";
 							(*indCallMap)[cInst].insert(calledFunction);
 
 						}
 					}
 				}
 
-
-    //linkVariadics(svfModule, pag);
-		/*
-    for (Module::iterator MIterator = M.begin(); MIterator != M.end(); MIterator++) {
-        if (Function* F = SVFUtil::dyn_cast<Function>(&*MIterator)) {
-            llvm::errs() << "Function: " << F->getName() << "\n";
-            for (inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F); I != E; ++I) {
-                if (CallInst* callInst = SVFUtil::dyn_cast<CallInst>(&*I)) {
-                    if (callInst->isIndirectCall()) {
-                        NodeID callNodePtr = pag->getPAGNode(pag->getValueNode(callInst->getCalledOperand()))->getId(); 
-                        const PointsTo& pts = _pta->getPts(callNodePtr);
-                        bool hasTarget = false;
-
-                        llvm::errs() << "For a callsite in " << F->getName() << " : \n";
-                        for (PointsTo::iterator piter = pts.begin(), epiter = pts.end(); piter != epiter; ++piter) {
-                            NodeID ptd = *piter;
-                            if (pag->hasPAGNode(ptd)) {
-                                PAGNode* tgtNode = pag->getPAGNode(ptd);
-                                if (tgtNode->hasValue()) {
-                                    if (const Function* tgtFunction = SVFUtil::dyn_cast<Function>(tgtNode->getValue())) {
-                                        hasTarget = true;
-                                        (*indCallMap)[callInst].insert(const_cast<Function*>(tgtFunction));
-                                        llvm::errs() << "    calls " << tgtFunction->getName() << "\n";
-                                        //funcIndCallMap[F][callInst].push_back(const_cast<Function*>(tgtFunction));
-                                    }
-                                }
-                            }
-                        }
-                        for (Function* function: fixupSet) {
-                            if (!matchFunctionType(function, callInst)) continue;
-                            (*indCallMap)[callInst].insert(function);
-                            llvm::errs() << "    calls " << function->getName() << "\n";
-                            hasTarget = true;
-                            if (std::find(indCallProhibited->begin(), indCallProhibited->end(), callInst) != indCallProhibited->end()) {
-                                indCallProhibited->erase(callInst);
-                            }
-                        }
-                        if (!hasTarget) {
-                            llvm::errs() << "   in " << F->getName() << " NO TARGET FOUND\n";
-                            (*indCallProhibited).insert(callInst);
-                        }
-                    }
-                }
-            }
-        }
-
-    }
-		*/
-
     (*histogram)[0] = indCallProhibited->size();
     
     for (auto it: *indCallMap) {
         const CallInst* cInst = it.first;
         int sz = it.second.size();
+				/*
         llvm::errs() << "[DUMPING IND CALL] Function: " << cInst->getFunction()->getName() << " : ";
         for (const Function* tgt: it.second) {
             llvm::errs() << tgt->getName() << ", ";
         }
+				*/
         (*histogram)[sz]++;
-        llvm::errs() << "\n";
+        //llvm::errs() << "\n";
     }
 
-  
+		/*
     llvm::errs() << "EC Size:\t Ind. Call-sites\n";
     int totalTgts = 0;
     int totalIndCallSites = 0;
@@ -235,6 +188,7 @@ void WPAPass::collectCFI(SVFModule* svfModule, Module& M, bool woInv) {
     llvm::errs() << "Total Ind. Call-sites: " << totalIndCallSites << "\n";
     llvm::errs() << "Total Tgts: " << totalTgts << "\n";
     std::cerr << "Average CFI: " << std::fixed << (float)totalTgts / (float)totalIndCallSites << "\n";
+		*/
 }
 
 void WPAPass::instrumentCFICheck(llvm::CallInst* indCall) {
@@ -593,6 +547,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 
     collectCFI(svfModule, *module, false);
 
+		std::string statDir = _pta->getStat()->getStatDir();
     if (Options::ShortCircuit) {
         collectCFI(svfModule, *module, true);
     } else {
@@ -612,6 +567,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 
         PAG* pag2 = builder2.build(svfModule);
         _pta = new AndersenWaveDiff(pag2);
+				_pta->getStat()->setStatDir(statDir); // copy the stat dir
         ptaVector.clear();
         ptaVector.push_back(_pta);
         _pta->analyze();
