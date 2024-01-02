@@ -271,7 +271,7 @@ void AndersenStat::statNullPtr()
 
 }
 
-void AndersenStat::filter(std::set<NodeID>& fiPts, const PointsTo& pts) {
+void AndersenStat::performFieldSensitivityAwareExpansion(NodeBS& fiPts, const PointsTo& pts) {
     ConstraintGraph* consCG = pta->getConstraintGraph();
     PAG* pag = pta->getPAG();
 
@@ -279,9 +279,11 @@ void AndersenStat::filter(std::set<NodeID>& fiPts, const PointsTo& pts) {
             piter != epiter; ++piter) {
         NodeID ptd = *piter;
         if (pag->hasPAGNode(ptd)) {
-            fiPts.insert(consCG->getBaseObjNode(ptd));
+					// fiPts |= consCG->getAllFieldsObjNode(ptd);
+					fiPts.set(consCG->getBaseObjNode(ptd));
+          //  fiPts.insert(consCG->getBaseObjNode(ptd));
         } else {
-            fiPts.insert(ptd);
+					fiPts.set(ptd);
         }
     } 
 }
@@ -404,9 +406,9 @@ void AndersenStat::performStat()
         NodeID node = iter->first;
         const PointsTo& pts = pta->getPts(node);
         // Changing how we collect stats
-        std::set<NodeID> fiPts;
-        filter(fiPts, pts);
-        u32_t size = fiPts.size();
+        NodeBS fiPts;
+        performFieldSensitivityAwareExpansion(fiPts, pts);
+        u32_t size = fiPts.count();
         //u32_t size = pts.count();
         totalPointers++;
         totalPtsSize+=size;

@@ -72,7 +72,7 @@ public:
 
     }
 
-    virtual void filter(std::set<NodeID>&, const PointsTo&);
+    virtual void performFieldSensitivityAwareExpansion(NodeBS&, const PointsTo&);
     virtual void performStat();
 
     void collectCycleInfo(ConstraintGraph* consCG);

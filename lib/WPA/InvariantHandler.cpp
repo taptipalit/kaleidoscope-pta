@@ -135,14 +135,22 @@ void InvariantHandler::instrumentVGEPInvariant(GetElementPtrInst* gep, std::vect
 }
 
 void InvariantHandler::handleVGEPInvariants() {
+#define SANITIZE_VGEP // TODO: The checks contained inside this macro should likely go
     for (const GetElementPtrInst* gep: pag->getVarGeps()) {
+#ifdef SANITIZE_VGEP
 				// We only care if the geps are of base pointer type, not array of
 				// structs
 				// TODO: In fact there should be nothing else here at all
 				// if there is then we've messed something up earlier on
 				Type* resultType = gep->getResultElementType();
 				if (PointerType* ptrType = SVFUtil::dyn_cast<PointerType>(resultType)) {
-					Type* elemTy = ptrType->getPointerElementType();
+					Type* elemTy = nullptr;
+					while (ptrType) {
+						elemTy = ptrType->getPointerElementType();
+						// We can discard ptr-to-ptr-to... because these are automatically
+						// field insensitive
+						ptrType = SVFUtil::dyn_cast<PointerType>(elemTy);
+					}
 					if (SVFUtil::isa<StructType>(elemTy) || SVFUtil::isa<ArrayType>(elemTy)) {
 						continue;
 					}
@@ -150,6 +158,17 @@ void InvariantHandler::handleVGEPInvariants() {
 					// If it's not a pointer then we don't care either
 					continue;
 				}
+				// Now here we are left with the gep results of type (i8/iN)*
+				// But there's another caveat, if the variable gep index was an inner
+				// index, then we can ignore it too
+				// v[i]->k for example. Here v[i] is clearly pointing to a struct and
+				// this isn't a case of using a[i] to access each struct _element_
+				// byte-by-byte
+				if (gep->getNumIndices() > 1) {
+					continue;
+				}
+				llvm::errs() << "Gep return type: " << *(resultType) << " for gep: " << *gep << "\n";
+#endif
         std::vector<Value*> targets;
         for (NodeID ptdId: pag->getVarGepPtdMap()[gep]) {
             if (pag->hasPAGNode(ptdId)) {
