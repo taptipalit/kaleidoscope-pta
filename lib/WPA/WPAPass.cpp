@@ -532,12 +532,10 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 	/// Build PAG
 	PAGBuilder builder;
 
-    llvm::errs() << "Running with invariants turned on\n";
-    // Accept the command line inputs here
-    /*
-    Options::InvariantVGEP = true;
-    Options::InvariantPWC = true;
-    */
+	Options::InvariantVGEP = true;
+	Options::InvariantPWC = true;
+
+	llvm::errs() << "Running with InvariantVGEP = " << Options::InvariantVGEP << " InvariantPWC = " << Options::InvariantPWC << "\n";
 	PAG* pag = builder.build(svfModule);
     Andersen* anderAnalysis = new AndersenWaveDiff(pag);
     _pta = anderAnalysis;
@@ -551,16 +549,16 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
     if (Options::ShortCircuit) {
         collectCFI(svfModule, *module, true);
     } else {
-				// The default
-        Options::InvariantVGEP = false;
+
+				// Round 2: VGEP
+        Options::InvariantVGEP = true;
         Options::InvariantPWC = false;
 
-				LLVMModuleSet::getLLVMModuleSet()->reattachHeapContexts();
+				llvm::errs() << "Running with InvariantVGEP = " << Options::InvariantVGEP << " InvariantPWC = " << Options::InvariantPWC << "\n";
 
         builder.getPAG()->resetPAG();
         SymbolTableInfo::releaseSymbolInfo();
 
-        // Round 2
         svfModule->buildSymbolTableInfo();
 
         PAGBuilder builder2;
@@ -572,6 +570,50 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
         ptaVector.push_back(_pta);
         _pta->analyze();
 
+				// Round 2: VGEP
+        Options::InvariantVGEP = false;
+        Options::InvariantPWC = true;
+
+				llvm::errs() << "Running with InvariantVGEP = " << Options::InvariantVGEP << " InvariantPWC = " << Options::InvariantPWC << "\n";
+
+        builder.getPAG()->resetPAG();
+				builder2.getPAG()->resetPAG();
+        SymbolTableInfo::releaseSymbolInfo();
+
+        svfModule->buildSymbolTableInfo();
+
+        PAGBuilder builder3;
+
+        PAG* pag3 = builder3.build(svfModule);
+        _pta = new AndersenWaveDiff(pag3);
+				_pta->getStat()->setStatDir(statDir); // copy the stat dir
+        ptaVector.clear();
+        ptaVector.push_back(_pta);
+        _pta->analyze();
+
+				// Round 4: The default
+        Options::InvariantVGEP = false;
+        Options::InvariantPWC = false;
+
+				llvm::errs() << "Running with InvariantVGEP = " << Options::InvariantVGEP << " InvariantPWC = " << Options::InvariantPWC << "\n";
+
+        builder.getPAG()->resetPAG();
+				builder2.getPAG()->resetPAG();
+				builder3.getPAG()->resetPAG();
+        SymbolTableInfo::releaseSymbolInfo();
+
+        svfModule->buildSymbolTableInfo();
+
+        PAGBuilder builder4;
+
+        PAG* pag4 = builder4.build(svfModule);
+        _pta = new AndersenWaveDiff(pag4);
+				_pta->getStat()->setStatDir(statDir); // copy the stat dir
+        ptaVector.clear();
+        ptaVector.push_back(_pta);
+        _pta->analyze();
+
+				// Collect CFI at the end
         collectCFI(svfModule, *module, true);
     }
 

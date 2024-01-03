@@ -346,6 +346,9 @@ void AndersenStat::performStat()
 					assert(cInst && "If not callinst then what?");
 					const Function* callerFun = cInst->getParent()->getParent();
  
+					const Function* defaultFn = callerFun; // TODO: Some callsites are having no targets
+																								// This is a fix to prevent
+																								// skewing because of that.
 					if (cInst->isIndirectCall()) {
 
 						llvm::errs() << "For a callsite in " << callerFun->getName() << " : \n";
@@ -355,6 +358,9 @@ void AndersenStat::performStat()
 							llvm::errs() << "    calls " << calledFunction->getName() << "\n";
 							indCallMap[cInst].insert(calledFunction);
 
+						}
+						if (it.second.size() == 0) {
+							indCallMap[cInst].insert(callerFun);
 						}
 					}
 				}
@@ -552,7 +558,7 @@ bool AndersenStat::createStatDirectory(SVFModule* svfMod) {
 
 	// Format the date and time
 	std::stringstream date_time_ss;
-	date_time_ss << svfMod->getModuleIdentifier() << "_"
+	date_time_ss << "results-dir_" << svfMod->getModuleIdentifier() << "_"
 		<< std::setfill('0') << std::setw(2) << tm.tm_mon + 1 << "_"
 		<< std::setfill('0') << std::setw(2) << tm.tm_mday << "_"
 		<< std::setfill('0') << std::setw(2) << (tm.tm_year + 1900) % 100 << "_"

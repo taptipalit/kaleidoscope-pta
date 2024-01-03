@@ -731,9 +731,13 @@ void Andersen::mergeSccNodes(NodeID repNodeId, const NodeBS& subNodes)
                         BasicBlock* bb = const_cast<BasicBlock*>(inst->getParent());
                         Function* func = bb->getParent();
                         // TODO handle the loop correctly   
+												// I think this is the case where the PWC manifests as
+												// p = p + k
+												/*
                         if (svfLoopInfo->bbIsLoop(bb)) {
                             inLoop = true;
                         }
+												*/
                         if (const GetElementPtrInst* gepVal = SVFUtil::dyn_cast<GetElementPtrInst>(inst)) {
                             Type* gepPtrTy = gepVal->getPointerOperand()->getType();
                             while (SVFUtil::isa<PointerType>(gepPtrTy)) {
@@ -1375,7 +1379,7 @@ void Andersen::mergeNodeToRep(NodeID nodeId,NodeID newRepId, std::vector<Constra
     /// its pts should be collapsed later.
     /// 2. if the node to be merged is already a PWC node, the rep node will also become
     /// a PWC node as it will have a self-cycle gep edge.
-    if (!Options::InvariantPWC && !Options::InvariantVGEP) {
+    if (!Options::InvariantPWC) {
         if (gepInsideScc || node->isPWCNode())
             consCG->setPWCNode(newRepId);
     }
