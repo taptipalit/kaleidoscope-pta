@@ -642,7 +642,6 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 
 		if (Options::ApplyCFI) {
 			addCFIFunctions(module);
-
 			initializeCFITargets(module);
 
 			for (auto pair: wInvIndCallMap) {

@@ -350,14 +350,12 @@ void AndersenStat::performStat()
 																								// This is a fix to prevent
 																								// skewing because of that.
 					if (cInst->isIndirectCall()) {
-
 						llvm::errs() << "For a callsite in " << callerFun->getName() << " : \n";
 						for (auto callGraphEdge: it.second) {
 							const SVFFunction* svfFun = callGraphEdge->getDstNode()->getFunction();
 							Function* calledFunction = svfFun->getLLVMFun();
 							llvm::errs() << "    calls " << calledFunction->getName() << "\n";
 							indCallMap[cInst].insert(calledFunction);
-
 						}
 						if (it.second.size() == 0) {
 							indCallMap[cInst].insert(callerFun);

@@ -147,9 +147,11 @@ void ArgFlowAnalysis::computeIsSummarizable() {
 			continue;
 		}
 
+		/*
 		if (calledFunc->getName() == "event_assign") {
 			llvm::errs() << "# of callers: " << it.second.size() << "\n";
 		}
+		*/
 
 		// Additional criteria: Only capture those cases
 		// where the number of callers is 1. This isn't 
@@ -170,12 +172,14 @@ void ArgFlowAnalysis::computeIsSummarizable() {
 			}
 		}
 
+		/*
 		if (calledFunc->getName() == "event_assign") {
 			Function* caller = it.second[0];
 			for (Function* callerCaller: callerMap[caller]) {
 				llvm::errs() << "event_assign caller " << callerCaller->getName() << "\n";
 			}
 		}
+		*/
 		if (numMultiCallers > 1) {
 			continue;
 		}
@@ -219,7 +223,7 @@ ArgFlowAnalysis::runOnModule (Module & module) {
 						if (std::find(summary->getArgForwardSliceMap()[arg2].begin(), summary->getArgForwardSliceMap()[arg2].end(), sinkSite)
 								!= summary->getArgForwardSliceMap()[arg2].end()) {
 							// Match found
-							llvm::errs() << "Function: " << func.getName() << ", Argument: " << *arg1 << " stored to "  << *arg2 << "\n";
+							//llvm::errs() << "Function: " << func.getName() << ", Argument: " << *arg1 << " stored to "  << *arg2 << "\n";
 							summary->dumpBackwardSlice(sinkSite);
 						}
 					}
