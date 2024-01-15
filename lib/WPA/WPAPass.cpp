@@ -550,6 +550,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
         collectCFI(svfModule, *module, true);
     } else {
 
+			/*
 				// Round 2: VGEP
         Options::InvariantVGEP = true;
         Options::InvariantPWC = false;
@@ -590,6 +591,7 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
         ptaVector.clear();
         ptaVector.push_back(_pta);
         _pta->analyze();
+				*/
 
 				// Round 4: The default
         Options::InvariantVGEP = false;
