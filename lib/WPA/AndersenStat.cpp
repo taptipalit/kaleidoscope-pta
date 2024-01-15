@@ -325,9 +325,8 @@ void AndersenStat::performStat()
     u32_t totalFieldPtsSize = 0; // treat each field as distinct
     u32_t maxFieldPtsSize = 0;
 
+    SVFModule* svfModule = pag->getModule();
     if (Options::DumpCFIStat) {
-				// TODO: We assume that stat() is called only once
-        SVFModule* svfModule = pag->getModule();
         std::map<const CallInst*, std::set<const Function*>> indCallMap;
         std::map<int, int> histogram;
 
@@ -366,13 +365,13 @@ void AndersenStat::performStat()
 				// Create the calltarget.csv file in the directory
 				std::string filename;
 				if (Options::InvariantPWC && Options::InvariantVGEP) {
-					filename = statDir + "/call-targets-full.csv";
+					filename = statDir + "/" + svfModule->getModuleIdentifier() + "-call-targets-full.csv";
 				} else if (Options::InvariantPWC) {
-					filename = statDir + "/call-targets-pwc.csv";
+					filename = statDir + "/" + svfModule->getModuleIdentifier() + "-call-targets-pwc.csv";
 				} else if (Options::InvariantVGEP) {
-					filename = statDir + "/call-targets-vgep.csv";
+					filename = statDir + "/" + svfModule->getModuleIdentifier() + "-call-targets-vgep.csv";
 				} else {
-					filename = statDir + "/call-targets-default.csv";
+					filename = statDir + "/" + svfModule->getModuleIdentifier() + "-call-targets-default.csv";
 				}
 
 				std::ofstream call_targets_file(filename);
@@ -405,13 +404,13 @@ void AndersenStat::performStat()
 		// Create the calltarget.csv file in the directory
 		std::string filename;
 		if (Options::InvariantPWC && Options::InvariantVGEP) {
-			filename = statDir + "/ptd-targets-full.csv";
+			filename = statDir + "/" + svfModule->getModuleIdentifier() + "-ptd-targets-full.csv";
 		} else if (Options::InvariantPWC) {
-			filename = statDir + "/ptd-targets-pwc.csv";
+			filename = statDir + "/" + svfModule->getModuleIdentifier() + "-ptd-targets-pwc.csv";
 		} else if (Options::InvariantVGEP) {
-			filename = statDir + "/ptd-targets-vgep.csv";
+			filename = statDir + "/" + svfModule->getModuleIdentifier() + "-ptd-targets-vgep.csv";
 		} else {
-			filename = statDir + "/ptd-targets-default.csv";
+			filename = statDir + "/" + svfModule->getModuleIdentifier() + "-ptd-targets-default.csv";
 		}
 		std::ofstream ptd_file(filename);
 
@@ -556,13 +555,15 @@ bool AndersenStat::createStatDirectory(SVFModule* svfMod) {
 
 	// Format the date and time
 	std::stringstream date_time_ss;
-	date_time_ss << "results-dir_" << svfMod->getModuleIdentifier() << "_"
+	date_time_ss << "/home/tpalit/svf-kernel/test/full-results-dir_" 
 		<< std::setfill('0') << std::setw(2) << tm.tm_mon + 1 << "_"
 		<< std::setfill('0') << std::setw(2) << tm.tm_mday << "_"
-		<< std::setfill('0') << std::setw(2) << (tm.tm_year + 1900) % 100 << "_"
+		<< std::setfill('0') << std::setw(2) << (tm.tm_year + 1900) % 100;
+	/*
 		<< std::setfill('0') << std::setw(2) << tm.tm_hour << "_"
 		<< std::setfill('0') << std::setw(2) << tm.tm_min << "_"
 		<< std::setfill('0') << std::setw(2) << tm.tm_sec;
+		*/
 
 	std::string directoryName = date_time_ss.str();
 
