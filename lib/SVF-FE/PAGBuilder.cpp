@@ -729,6 +729,45 @@ void PAGBuilder::visitGetElementPtrInst(GetElementPtrInst &inst)
     }*/
 }
 
+Value* PAGBuilder::getIntToPtrSource(CastInst &inst) {
+	std::vector<Instruction*> workList;
+	std::vector<Instruction*> visitedList;
+
+	workList.push_back(&inst);
+
+	while (!workList.empty()) {
+		Instruction* inst = workList.back();
+		workList.pop_back();
+		visitedList.push_back(inst);
+
+		// If we've reached a top-level variable, we track all its users
+		if (AllocaInst* stack = SVFUtil::dyn_cast<AllocaInst>(inst)) {
+			for (User* u: stack->users()) {
+				if (Instruction* inst = SVFUtil::dyn_cast<Instruction>(u)) {
+					if (std::find(visitedList.begin(), visitedList.end(), inst) == visitedList.end()) {
+						workList.push_back(inst);
+					}
+				}
+			}
+		} else {
+			// Do backward slice
+			// Get the operands
+			for (int i = 0; i < inst->getNumOperands(); i++) {
+				Value* op = inst->getOperand(i);
+				if (PtrToIntInst* ptrToIntInst = SVFUtil::dyn_cast<PtrToIntInst>(op)) {
+					return ptrToIntInst->getOperand(0);
+				}
+				if (Instruction* inst = SVFUtil::dyn_cast<Instruction>(op)) {
+					if (std::find(visitedList.begin(), visitedList.end(), inst) == visitedList.end()) {
+						workList.push_back(inst);
+					}
+				}
+			}
+		}
+	}
+	return nullptr;
+}
+
 /*
  * Visit cast instructions
  */
@@ -740,8 +779,19 @@ void PAGBuilder::visitCastInst(CastInst &inst)
 
     if (SVFUtil::isa<IntToPtrInst>(&inst))
     {
-        addBlackHoleAddrEdge(dst);
-    }
+			Value* srcVal = getIntToPtrSource(inst);
+			if (srcVal) {
+				NodeID src = getValueNode(srcVal);
+				addCopyEdge(src, dst);
+			} else {
+				assert(false && "Can't find inttoptr source, aborting!");
+				/*
+				// BlackHoleAddrEdge isn't handled at all
+				// so we just abort the analysis because we know we can't be sound
+				addBlackHoleAddrEdge(dst);
+				*/
+			}
+		}
     else
     {
         Value * opnd = inst.getOperand(0);

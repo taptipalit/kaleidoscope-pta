@@ -206,6 +206,7 @@ public:
 
     void visitExtractElementInst(ExtractElementInst &I);
 
+		Value* getIntToPtrSource(CastInst &I);
     void visitInsertElementInst(InsertElementInst &I)
     {
         addBlackHoleAddrEdge(getValueNode(&I));
