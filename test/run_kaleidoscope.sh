@@ -15,7 +15,7 @@ file_linked_inline="$file"_linked_inline.bc
 file_linked_inline_ll="$file"_linked_inline.ll
 file_exe="$file".exe
 
-SVF_HOME=/home/tpalit/svf-kernel/
+SVF_HOME="$(realpath ../..)"
 
 if [ -f $file_c ]
 then
@@ -24,16 +24,11 @@ then
 fi
 
 
-/home/tpalit/svf-kernel/Debug-build/bin/wpa -invariant-pwc=true \
+$SVF_HOME/Debug-build/bin/wpa -invariant-pwc=true \
 -invariant-vgep=true -log-all=false -dump-constraint-graph=false -short-circuit=false \
 -ptd=persistent \
-$file_bc #aeSearchNearestTimer,
+$file_bc
 
-#/home/tpalit/svf-latest/SVF/Debug-build/bin/wpa -dump-constraint-graph=true -stat-limit=1 \
-#-ptd=persistent -print-all-pts=false \
-#-lander $file_bc #aeSearchNearestTimer,
-
-#-print-all-pts -debug-funcs=initServer #-field-limit=30
 
 if [ $? -ne 0 ]; then
     echo "Failed to run invariant-based pointer analysis"
@@ -61,7 +56,7 @@ cp $file_linked $file_linked_inline
 
 llvm-dis $file_linked_inline -o $file_linked_inline_ll
 
-clang++ -v -ggdb $file_linked_inline -o $file_exe $options # -L/data/tpalit/SVF/test/view_switcher  # -lkali 
+clang++ -v -ggdb $file_linked_inline -o $file_exe $options
 
 if [ $? -ne 0 ]; then
     echo "Failed to link into binary"

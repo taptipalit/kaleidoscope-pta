@@ -555,7 +555,7 @@ bool AndersenStat::createStatDirectory(SVFModule* svfMod) {
 
 	// Format the date and time
 	std::stringstream date_time_ss;
-	date_time_ss << "/home/tpalit/svf-kernel/test/full-results-dir_" 
+	date_time_ss << "../full-results-dir_" 
 		<< std::setfill('0') << std::setw(2) << tm.tm_mon + 1 << "_"
 		<< std::setfill('0') << std::setw(2) << tm.tm_mday << "_"
 		<< std::setfill('0') << std::setw(2) << (tm.tm_year + 1900) % 100;

@@ -600,8 +600,10 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 				llvm::errs() << "Running with InvariantVGEP = " << Options::InvariantVGEP << " InvariantPWC = " << Options::InvariantPWC << "\n";
 
         builder.getPAG()->resetPAG();
+				/*
 				builder2.getPAG()->resetPAG();
 				builder3.getPAG()->resetPAG();
+				*/
         SymbolTableInfo::releaseSymbolInfo();
 
         svfModule->buildSymbolTableInfo();
