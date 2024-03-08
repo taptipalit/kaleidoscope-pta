@@ -1,4 +1,4 @@
 alias curr_date='date "+%d_%m_%Y_%H_%M_%S"'
 ../run_kaleidoscope.sh memcached-libevent 2>&1 | tee $(curr_date)_out
 echo "Running memcached"
-./memcached-libevent.exe -t 1
+#./memcached-libevent.exe -t 1
