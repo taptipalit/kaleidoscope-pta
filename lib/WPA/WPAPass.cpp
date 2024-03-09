@@ -535,7 +535,6 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
 	Options::InvariantVGEP = true;
 	Options::InvariantPWC = true;
 
-	llvm::errs() << "Running with InvariantVGEP = " << Options::InvariantVGEP << " InvariantPWC = " << Options::InvariantPWC << "\n";
 	PAG* pag = builder.build(svfModule);
     Andersen* anderAnalysis = new AndersenWaveDiff(pag);
     _pta = anderAnalysis;
@@ -597,7 +596,6 @@ void WPAPass::runPointerAnalysis(SVFModule* svfModule, u32_t kind)
         Options::InvariantVGEP = false;
         Options::InvariantPWC = false;
 
-				llvm::errs() << "Running with InvariantVGEP = " << Options::InvariantVGEP << " InvariantPWC = " << Options::InvariantPWC << "\n";
 
         builder.getPAG()->resetPAG();
 				/*
