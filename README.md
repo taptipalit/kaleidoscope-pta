@@ -1,9 +1,7 @@
 # Invariant Guided PTA
 
-Insert invariants that monitor *suspicious* pointer relationships at run-time,
-and adapts accordingly. 
+Build it using
+`./build.sh debug`
 
-
-`test/run_kali.sh <bitcode_name>`
-
-**TODO: fill this out**
+Run it using
+`Debug-build/bin/wpa <OPTIONS> <BITCODE>`
